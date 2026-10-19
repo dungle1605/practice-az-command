@@ -1009,7 +1009,8 @@ class AzMasterApp {
       { id: 'b1', name: 'Cloud Rookie', icon: '🌱', desc: 'Hoàn thành Level 1: Môi trường & Defaults', unlocked: this.isLevelCompleted(1) },
       { id: 'b2', name: 'Registry Operator', icon: '🐳', desc: 'Hoàn thành Level 2: Azure Container Registry', unlocked: this.isLevelCompleted(2) },
       { id: 'b3', name: 'App Specialist', icon: '🚀', desc: 'Hoàn thành Level 3: Linux App Service & Web App', unlocked: this.isLevelCompleted(3) },
-      { id: 'b4', name: 'Identity Ninja', icon: '🛡️', desc: 'Hoàn thành Level 4: RBAC AcrPull & App Settings', unlocked: this.isLevelCompleted(4) }
+      { id: 'b4', name: 'Security Engineer', icon: '🛡️', desc: 'Hoàn thành Level 4: RBAC AcrPull & App Settings', unlocked: this.isLevelCompleted(4) },
+      { id: 'b5', name: 'Sidecar Architect', icon: '🧩', desc: 'Hoàn thành Level 5: Multi-container Pod & Sidecars', unlocked: this.isLevelCompleted(5) }
     ];
 
     this.statsBadgesGrid.innerHTML = badges.map(b => `

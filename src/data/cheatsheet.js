@@ -1,276 +1,242 @@
 /**
- * Interactive Cheatsheet & Reference Guide
- * Direct interactive version of Useful_Command.md with copyable snippets and deep dives.
+ * Interactive Cheatsheet & Reference Guide for AI-200 (AZ-COMMAND MASTER)
+ * Comprehensive reference matching all 5 levels and Exam Tips.
  */
 
 export const CHEATSHEET_SECTIONS = [
   {
-    id: "mental-model",
-    title: "💡 Tư duy cấu trúc lệnh & Cách tự tra cứu (Mental Model)",
-    badge: "Nguyên lý",
-    summary: "Không cần học vẹt! Nắm vững quy tắc ngữ pháp Azure CLI và 3 công cụ tra cứu tích hợp sẵn trong Terminal.",
+    id: "exam-tips-spotlight",
+    title: "⭐ 4 Mẹo phòng thi AI-200 & Thực chiến Cốt lõi",
+    badge: "Mẹo AI-200",
+    summary: "Bốn nguyên tắc vàng giúp bạn vượt qua các câu hỏi tình huống thực tế và tối ưu hóa câu lệnh trong kỳ thi Microsoft AI-200.",
     items: [
       {
-        title: "Quy tắc ngữ pháp chuẩn của Azure CLI",
-        desc: "Mọi câu lệnh Azure CLI đều tuân thủ công thức nhất quán:",
-        syntax: "az  <Dịch vụ / Nhóm>  [Nhóm con (nếu có)]  <Hành động (Action)>  [Các tham số]",
-        table: [
-          { verb: "list", meaning: "Liệt kê danh sách tài nguyên", example: "az group list, az acr repository list" },
-          { verb: "show", meaning: "Xem chi tiết 1 tài nguyên cụ thể", example: "az webapp show, az acr show" },
-          { verb: "create", meaning: "Tạo mới tài nguyên", example: "az group create, az webapp create" },
-          { verb: "update", meaning: "Cập nhật cấu hình tài nguyên", example: "az acr repository update" },
-          { verb: "delete", meaning: "Xóa tài nguyên", example: "az group delete, az webapp delete" },
-          { verb: "exists", meaning: "Kiểm tra tài nguyên đã tồn tại chưa (true/false)", example: "az group exists" }
-        ]
+        title: "1. Dùng `-o tsv` khi cần chuỗi sạch (Clean String Extraction)",
+        desc: "Khi cần lấy giá trị thuần túy (không chứa dấu ngoặc kép JSON bao quanh) để gán trực tiếp vào biến shell hoặc URL, hãy luôn dùng `--output tsv` (hoặc `-o tsv`) thay vì json hay table.",
+        code: `# Ví dụ lấy URL hoặc ID sạch:
+$PRINCIPAL_ID = az webapp identity show --name $env:APP_NAME --query principalId --output tsv
+$ACR_ID = az acr show --name $env:ACR_NAME --query id --output tsv
+$APP_URL = az webapp show --name $env:APP_NAME --query defaultHostName --output tsv`,
+        note: "Tránh lỗi syntax do chuỗi bị thừa hai dấu nháy kép `\"...\"` khi truyền vào các tham số tiếp theo."
       },
       {
-        title: "4 Công cụ tra cứu tức thì ngay trong Terminal",
-        desc: "Không cần rời khỏi màn hình terminal để tra cứu Google hay tài liệu web:",
-        bullets: [
-          "① Dùng cờ `-h` hoặc `--help` ở mọi cấp độ (ví dụ: `az -h`, `az webapp -h`, `az webapp create -h`).",
-          "② Chế độ tương tác thông minh `az interactive`: Tự động gợi ý từ khóa (Auto-completion), tham số khi bạn đang gõ và xem ví dụ lệnh ngay tức thì.",
-          "③ Tìm kiếm lệnh bằng ngôn ngữ tự nhiên `az find \"create container webapp\"` hoặc `az find \"assign identity to web app\"`.",
-          "④ Tận dụng phím Tab: Gõ một phần lệnh và nhấn Tab để terminal tự hoàn thành tên dịch vụ, hành động hoặc danh sách cờ tham số."
-        ]
+        title: "2. `--write-enabled false`: Khóa Image Bất biến (Immutability)",
+        desc: "Đây là lệnh 'một đi không trở lại' đối với image tag được chỉ định (không thể mở khóa lại tag đó). Chỉ áp dụng cho các phiên bản Production quan trọng cần đóng băng.",
+        code: "az acr repository update --name $env:ACR_NAME --image inference-api:v1.0.0 --write-enabled false",
+        note: "Ngăn chặn triệt để nguy cơ ai đó vô tình push đè mã nguồn lỗi hoặc xóa nhầm tag đang phục vụ khách hàng."
+      },
+      {
+        title: "3. JMESPath Multi-hash Projection: Lọc dữ liệu bảng gọn gàng",
+        desc: "Dùng cú pháp `--query \"[].{Setting:name, Value:value}\"` để định dạng lại các trường dữ liệu JSON thành bảng 2 cột trực quan khi danh sách quá dài.",
+        code: `az webapp config appsettings list \\
+    --name $env:APP_NAME \\
+    --query "[].{Setting:name, Value:value}" \\
+    --output table`,
+        note: "Cú pháp Multi-hash Projection xuất hiện thường xuyên trong đề thi khi hỏi về lọc dữ liệu Azure CLI."
+      },
+      {
+        title: "4. Nguyên tắc Đặc quyền Tối thiểu (Least Privilege) với AcrPull",
+        desc: "Luôn ưu tiên cấp System-Assigned Managed Identity kết hợp vai trò chuyên biệt `AcrPull` thay vì bật Admin Credentials tĩnh (`--admin-enabled false`).",
+        code: `# 1. Cấp System Managed Identity:
+az webapp identity assign --name $env:APP_NAME
+
+# 2. Gán quyền tối thiểu AcrPull:
+az role assignment create --assignee $PRINCIPAL_ID --scope $ACR_ID --role AcrPull
+
+# 3. Kích hoạt Identity trên Web App:
+az webapp config set --name $env:APP_NAME --acr-use-identity true --acr-identity "[system]"`,
+        note: "Loại bỏ hoàn toàn rủi ro lộ lọt mật khẩu trong tệp cấu hình hoặc mã nguồn."
       }
     ]
   },
   {
-    id: "setup-login",
-    title: "1. Khởi tạo & Đăng nhập",
-    badge: "Khởi tạo",
-    summary: "Đăng nhập môi trường không có GUI và kích hoạt các dịch vụ lõi trên Azure Subscription.",
+    id: "level-1-setup",
+    title: "Level 1: Nhập môn & Môi trường (Environment Setup)",
+    badge: "Level 1",
+    summary: "Các câu lệnh thiết lập phiên làm việc, kích hoạt Resource Provider và nạp biến môi trường.",
     items: [
       {
-        title: "Đăng nhập với Device Code",
-        desc: "Sử dụng khi làm việc trên môi trường terminal/remote không mở được trình duyệt tự động:",
+        title: "Đăng nhập Headless với Device Code",
+        desc: "Dùng khi làm việc trên terminal từ xa không có trình duyệt hoặc cần bảo mật xác thực 2 bước:",
         code: "az login --use-device-code",
-        note: "Mở URL https://microsoft.com/devicelogin trên điện thoại hoặc máy tính và nhập mã được cung cấp."
+        note: "Mở URL https://microsoft.com/devicelogin trên điện thoại hoặc trình duyệt khác và nhập mã 8 ký tự."
       },
       {
-        title: "Đăng ký các Resource Provider cần thiết",
-        desc: "Cần đăng ký dịch vụ Container Registry và Web App nếu subscription mới hoặc chưa kích hoạt:",
-        code: `az provider register --namespace Microsoft.ContainerRegistry\naz provider register --namespace Microsoft.Web`,
+        title: "Đăng ký Resource Provider cho ACR và Web App",
+        desc: "Kích hoạt dịch vụ cấp Subscription trước khi tạo tài nguyên (bắt buộc):",
+        code: `# Đăng ký cho Container Registry:
+az provider register --namespace Microsoft.ContainerRegistry
+
+# Đăng ký cho App Service:
+az provider register --namespace Microsoft.Web`,
         note: "Tránh lỗi 'Namespace not registered' khi gọi các lệnh tạo tài nguyên."
-      }
-    ]
-  },
-  {
-    id: "env-vars",
-    title: "2. Cấu hình biến môi trường & az config defaults",
-    badge: "Môi trường",
-    summary: "Nạp và quản lý các biến môi trường để dùng lại xuyên suốt, tránh gõ thủ công và sai sót.",
-    items: [
+      },
       {
-        title: "Nạp tự động từ file .env.ps1 (Dot-sourcing trong PowerShell)",
-        desc: "Khi chạy script bài lab, file cấu hình .env.ps1 được sinh ra. Dùng 1 dòng lệnh để nạp toàn bộ biến vào phiên hiện tại:",
+        title: "Nạp biến môi trường từ file script .env.ps1 (Dot-sourcing)",
+        desc: "Nạp toàn bộ biến vào phiên làm việc hiện tại thay vì chạy trong subshell:",
         code: ". .\\.env.ps1",
-        note: "Lưu ý có dấu chấm và khoảng trắng ở đầu (. .\\.env.ps1) để biến giữ nguyên trong phiên làm việc hiện tại."
+        note: "Lưu ý có dấu chấm và khoảng trắng ở đầu: `. .\\.env.ps1`."
       },
       {
-        title: "Gán thủ công trong PowerShell Session",
-        desc: "Nếu muốn tự định nghĩa biến môi trường cho bài lab:",
-        code: `$env:RESOURCE_GROUP = "rg-ai200-appsvc-lab"
-$env:LOCATION       = "southeastasia"
-$env:ACR_NAME       = "acr9e9994d6"
-$env:APP_PLAN       = "plan-docprocessor-9e9994d6"
-$env:APP_NAME       = "app-docprocessor-9e9994d6"`
+        title: "Gán biến thủ công trong PowerShell",
+        desc: "Định nghĩa biến môi trường tái sử dụng cho bài lab:",
+        code: `$env:ACR_NAME = "acr9e9994d6"
+$env:RESOURCE_GROUP = "rg-ai200-acr-lab"
+$env:LOCATION = "southeastasia"
+$env:APP_PLAN = "plan-docprocessor-9e9994d6"
+$env:APP_NAME = "app-docprocessor-9e9994d6"`
       },
       {
-        title: "Kiểm tra biến môi trường đã nạp",
-        desc: "Liệt kê tất cả các biến của bài lab dưới dạng bảng:",
-        code: "Get-ChildItem env:RESOURCE_GROUP, env:LOCATION, env:ACR_NAME, env:APP_PLAN, env:APP_NAME"
-      },
-      {
-        title: "Đặt cấu hình mặc định cho Azure CLI (az config defaults)",
-        desc: "Sau khi thiết lập, các câu lệnh az sẽ tự động nhận Resource Group mà bạn không cần phải gõ cờ --resource-group hay --location:",
-        code: `# 1. Đặt Resource Group và Location mặc định cho Azure CLI:
-az config set defaults.group=$env:RESOURCE_GROUP
-az config set defaults.location=$env:LOCATION
-
-# 2. Xem cấu hình mặc định hiện tại:
-az config get defaults
-
-# 3. Lợi ích: Các câu lệnh sau có thể gọi trực tiếp, không cần cờ --resource-group:
-az acr show --name $env:ACR_NAME --query name -o tsv
-az webapp show --name $env:APP_NAME --query state -o tsv
-
-# 4. Khi hoàn thành bài lab, nếu muốn xóa cấu hình mặc định:
-az config unset defaults.group
-az config unset defaults.location`
+        title: "Cấu hình Resource Group mặc định (az config defaults)",
+        desc: "Thiết lập cấu hình mặc định để câu lệnh ngắn hơn, không cần lặp lại cờ --resource-group:",
+        code: "az config set defaults.group=rg-ai200-acr-lab"
       }
     ]
   },
   {
-    id: "acr-section",
-    title: "4. Quản lý Azure Container Registry (ACR)",
-    badge: "Container Registry",
-    summary: "Tạo Registry chuẩn RBAC, Build Docker Image trên Cloud qua ACR Task và thiết lập Immutability.",
+    id: "level-2-acr",
+    title: "Level 2: Azure Container Registry (ACR) & ACR Tasks",
+    badge: "Level 2",
+    summary: "Đóng gói image trên Cloud, Smoke Test, kiểm tra Manifest và khóa Immutability.",
     items: [
       {
-        title: "Tạo mới ACR (Gói Basic, tắt tài khoản admin)",
-        desc: "Tạo ACR bảo mật vô hiệu hóa admin credentials:",
-        code: `az acr create \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:ACR_NAME \`
-    --sku Basic \`
-    --admin-enabled false`
+        title: "Build Image trên Cloud (Quick Task)",
+        desc: "Tải ngữ cảnh thư mục ./api lên Azure và build container image trực tiếp mà không cần cài Docker local:",
+        code: "az acr build --registry $env:ACR_NAME --image inference-api:v1.0.0 ./api"
       },
       {
-        title: "Kiểm tra trạng thái khởi tạo (provisioningState)",
-        desc: "Trích xuất giá trị text thuần với JMESPath và TSV:",
-        code: "az acr show --resource-group $env:RESOURCE_GROUP --name $env:ACR_NAME --query provisioningState -o tsv"
+        title: "Chạy thử Image trên Cloud (Smoke Test)",
+        desc: "Chạy container độc lập kiểm tra cú pháp và import module trước khi deploy Web App:",
+        code: "az acr run --registry $env:ACR_NAME --cmd \"$env:ACR_NAME.azurecr.io/inference-api:v1.0.0 python -c 'from app import app'\" /dev/null"
       },
       {
-        title: "Build Docker Image trực tiếp trên Cloud qua ACR Task",
-        desc: "Không cần cài đặt Docker ở máy cục bộ, Azure sẽ tự đóng gói và lưu vào Registry:",
-        code: `# Cách 1: Build với đường dẫn file Dockerfile cụ thể
-az acr build \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --registry $env:ACR_NAME \`
-    --image docprocessor:v1 \`
-    --file api/Dockerfile \`
-    --no-logs api/
-
-# Cách 2: Build image từ thư mục nguồn ./api
-az acr build --registry $env:ACR_NAME --image inference-api:v1.1.0 ./api`
-      },
-      {
-        title: "Liệt kê lịch sử các tác vụ build (Task Runs)",
-        desc: "Kiểm tra kết quả và ID các lần build trước:",
-        code: "az acr task list-runs --registry $env:ACR_NAME --output table"
-      },
-      {
-        title: "Liệt kê repositories và tags",
-        desc: "Xem các image và phiên bản hiện có:",
-        code: `# Liệt kê danh sách các repository trong ACR:
+        title: "Liệt kê Repositories & Tags",
+        desc: "Tra cứu danh sách kho chứa và các tag phiên bản trong ACR dưới dạng bảng:",
+        code: `# Liệt kê tất cả Repository:
 az acr repository list --name $env:ACR_NAME --output table
 
-# Liệt kê các tag của một repository:
+# Liệt kê các Tag của một Repository:
 az acr repository show-tags --name $env:ACR_NAME --repository inference-api --output table`
       },
       {
-        title: "Khóa Image chống ghi đè / xóa (Immutability)",
-        desc: "Đảm bảo an toàn triển khai production, biến tag v1.0.0 thành bất biến:",
-        code: "az acr repository update --name $env:ACR_NAME --image inference-api:v1.0.0 --write-enable false"
+        title: "Xem chi tiết Manifest & Digest SHA256",
+        desc: "Xem định danh bất biến (Digest) và ngày giờ tạo của image:",
+        code: "az acr manifest list-metadata --registry $env:ACR_NAME --name inference-api --output table"
+      },
+      {
+        title: "Khóa Image Bất biến (Immutability)",
+        desc: "Bảo vệ Production chống ghi đè hoặc xóa nhầm tag:",
+        code: "az acr repository update --name $env:ACR_NAME --image inference-api:v1.0.0 --write-enabled false"
+      },
+      {
+        title: "Xem lịch sử Build trên Cloud (Audit Trail)",
+        desc: "Kiểm tra toàn bộ lịch sử các tác vụ ACR Task đã chạy:",
+        code: "az acr task list-runs --registry $env:ACR_NAME --output table"
       }
     ]
   },
   {
-    id: "appservice-section",
-    title: "5 & 6. App Service Plan & Container Web App",
-    badge: "PaaS Hosting",
-    summary: "Hạ tầng tính toán Linux và triển khai Web App chạy từ image container ACR.",
+    id: "level-3-appservice",
+    title: "Level 3: App Service & Container Web App",
+    badge: "Level 3",
+    summary: "Khởi tạo hạ tầng tính toán Linux, Web App chạy từ Container, trích xuất URL và theo dõi luồng Log.",
     items: [
       {
-        title: "Tạo mới App Service Plan (Linux, P0v3)",
-        desc: "Khởi tạo máy chủ Linux hỗ trợ container:",
-        code: `az appservice plan create \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_PLAN \`
-    --location $env:LOCATION \`
-    --sku P0v3 \`
-    --is-linux`
+        title: "Tạo App Service Plan (Linux, P0v3)",
+        desc: "Cụm máy chủ chuyên dụng cho container với gói hiệu năng cao Premium V3:",
+        code: "az appservice plan create --name $env:APP_PLAN --resource-group $env:RESOURCE_GROUP --is-linux --sku P0v3"
       },
       {
-        title: "Tạo Web App trỏ đến Container Image từ ACR",
-        desc: "Triển khai ứng dụng container lên App Service:",
-        code: `az webapp create \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --plan $env:APP_PLAN \`
-    --name $env:APP_NAME \`
-    --container-image-name "$($env:ACR_NAME).azurecr.io/docprocessor:v1"`
+        title: "Tạo Web App từ Container Image trong ACR",
+        desc: "Khởi tạo Web App trỏ trực tiếp đến image container trong registry:",
+        code: "az webapp create --resource-group $env:RESOURCE_GROUP --plan $env:APP_PLAN --name $env:APP_NAME --container-image-name \"$($env:ACR_NAME).azurecr.io/docprocessor:v1\""
       },
       {
-        title: "Kiểm tra trạng thái hoạt động của Web App",
-        desc: "Xác nhận ứng dụng ở trạng thái Running:",
-        code: "az webapp show --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --query state -o tsv"
+        title: "Cập nhật Container Settings (Image & Registry URL)",
+        desc: "Thay đổi phiên bản image hoặc cấu hình registry cho ứng dụng:",
+        code: "az webapp config container set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --container-image-name \"$($env:ACR_NAME).azurecr.io/docprocessor:v1\" --container-registry-url \"https://$($env:ACR_NAME).azurecr.io\""
+      },
+      {
+        title: "Lấy URL của ứng dụng Web App",
+        desc: "Trích xuất tên miền mặc định dạng chuỗi sạch không ngoặc kép:",
+        code: "az webapp show --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --query defaultHostName --output tsv"
+      },
+      {
+        title: "Xem Log trực tiếp (Log Stream)",
+        desc: "Lắng nghe luồng nhật ký runtime thời gian thực của container:",
+        code: "az webapp log tail --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME"
       }
     ]
   },
   {
-    id: "identity-rbac-section",
-    title: "6.2. Cấu hình Managed Identity & Phân quyền RBAC (AcrPull)",
-    badge: "Bảo mật Nâng cao",
-    summary: "Kỹ thuật cấp quyền không dùng mật khẩu giữa Web App và ACR qua Entra ID Managed Identity.",
+    id: "level-4-rbac",
+    title: "Level 4: Bảo mật RBAC & App Settings",
+    badge: "Level 4",
+    summary: "Cấp quyền System Managed Identity không mật khẩu, cấu hình WEBSITES_PORT, Always-On và Container Logging.",
     items: [
       {
-        title: "Quy trình 4 bước chuẩn phân quyền Managed Identity",
-        desc: "Thực hiện lần lượt 4 bước sau để Web App tự động kéo image từ ACR bảo mật:",
-        code: `# Bước 1: Cung cấp System-Assigned Managed Identity cho Web App
-az webapp identity assign \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME
+        title: "Chu trình 4 bước phân quyền Managed Identity (AcrPull)",
+        desc: "Quy trình thiết lập bảo mật chuẩn AI-200 giữa Web App và ACR:",
+        code: `# Bước 1: Cung cấp System-Assigned Managed Identity
+az webapp identity assign --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME
 
-# Bước 2: Lấy principalId và lưu vào biến $PRINCIPAL_ID dạng chuỗi sạch (tsv)
-$PRINCIPAL_ID = az webapp identity show \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME \`
-    --query principalId \`
-    --output tsv
+# Bước 2: Lấy principalId sạch lưu vào biến
+$PRINCIPAL_ID = az webapp identity show --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --query principalId --output tsv
 
-# Bước 3: Lấy Resource ID của ACR và cấp quyền AcrPull qua RBAC
-$ACR_ID = az acr show --name $env:ACR_NAME --query id --output tsv
+# Bước 3: Lấy Scope ID của ACR và gán vai trò AcrPull
+$ACR_ID = az acr show --resource-group $env:RESOURCE_GROUP --name $env:ACR_NAME --query id --output tsv
+az role assignment create --assignee $PRINCIPAL_ID --scope $ACR_ID --role AcrPull
 
-az role assignment create \`
-    --assignee $PRINCIPAL_ID \`
-    --role AcrPull \`
-    --scope $ACR_ID
-
-# Bước 4: Cấu hình Web App sử dụng Managed Identity để kéo Image từ ACR
-az webapp config set \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME \`
-    --acr-use-identity true \`
-    --acr-identity "[system]"`
+# Bước 4: Cấu hình Web App kéo image bằng Managed Identity
+az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --acr-use-identity true --acr-identity "[system]"`
       },
       {
-        title: "Kiểm tra cấu hình xác thực ACR vừa gán",
-        desc: "Định dạng bảng xác nhận trạng thái Managed Identity:",
-        code: `az webapp config show \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME \`
-    --query "{acrUseManagedIdentityCreds:acrUseManagedIdentityCreds, acrIdentity:acrUserManagedIdentityId}" \`
-    --output table`
+        title: "Cấu hình biến App Settings (Port & Storage)",
+        desc: "Thiết lập cổng lắng nghe và ổ đĩa lưu trữ bền vững cho container:",
+        code: "az webapp config appsettings set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --settings WEBSITES_PORT=8000 WEBSITES_ENABLE_APP_SERVICE_STORAGE=true"
+      },
+      {
+        title: "Bật Always-On để giảm thiểu Cold Start",
+        desc: "Giữ container luôn nạp sẵn trong RAM, sẵn sàng phản hồi tức thì cho ứng dụng AI:",
+        code: "az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --always-on true"
+      },
+      {
+        title: "Bật Container Logging ra hệ thống tệp",
+        desc: "Ghi nhận nhật ký stdout/stderr của Docker container ra filesystem:",
+        code: "az webapp log config --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --docker-container-logging filesystem"
+      },
+      {
+        title: "Lọc danh sách App Settings bằng JMESPath",
+        desc: "Hiển thị bảng trực quan gồm 2 cột Setting và Value:",
+        code: "az webapp config appsettings list --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --query \"[].{Setting:name, Value:value}\" --output table"
       }
     ]
   },
   {
-    id: "appsettings-section",
-    title: "6.3. Cấu hình biến môi trường (App Settings)",
-    badge: "Runtime Config",
-    summary: "Truyền các tham số cấu hình runtime vào container trong Web App.",
+    id: "level-5-sidecar",
+    title: "Level 5: Sidecar Containers (Bài Lab 3 Nâng cao)",
+    badge: "Level 5",
+    summary: "Kiến trúc Multi-container Pod, triển khai file đặc tả sitecontainers-spec.json và cô lập nhật ký Sidecar.",
     items: [
       {
-        title: "Thêm hoặc cập nhật biến môi trường cho Web App",
-        desc: "Thiết lập biến cổng WEBSITES_PORT và cấu hình ứng dụng:",
-        code: `az webapp config appsettings set \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME \`
-    --settings \`
-        ENVIRONMENT="production" \`
-        LOG_LEVEL="INFO" \`
-        WEBSITES_PORT="8000" \`
-        MAX_DOCUMENT_SIZE_MB="50" \`
-        PROCESSING_TIMEOUT_SECONDS="30"`
+        title: "Áp dụng cấu hình Sidecar từ file JSON",
+        desc: "Triển khai cụm Multi-container Pod (Main Web App + Model Server sidecar) từ file cấu hình:",
+        code: "az webapp sitecontainers create --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP --sitecontainers-spec-file ./sitecontainers-spec.json"
       },
       {
-        title: "Liệt kê danh sách biến môi trường (bảng đẹp qua JMESPath)",
-        desc: "Chỉ lấy tên và giá trị gọn gàng:",
-        code: `az webapp config appsettings list \`
-    --resource-group $env:RESOURCE_GROUP \`
-    --name $env:APP_NAME \`
-    --query "[].{Setting:name, Value:value}" \`
-    --output table`
+        title: "Liệt kê các Container trong Pod",
+        desc: "Kiểm tra danh sách container chính và container phụ kèm thông tin cổng kết nối:",
+        code: "az webapp sitecontainers list --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP --output table"
       },
       {
-        title: "Nạp biến môi trường từ file JSON hoặc xóa biến",
-        desc: "Thao tác hàng loạt:",
-        code: `# Nạp từ file JSON:
-az webapp config appsettings set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --settings @settings.json
-
-# Xóa một hoặc nhiều biến:
-az webapp config appsettings delete --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME --setting-names LOG_LEVEL ENVIRONMENT`
+        title: "Xem Log riêng biệt của Sidecar Container",
+        desc: "Trích xuất độc lập nhật ký của riêng container model-server để chẩn đoán lỗi:",
+        code: "az webapp sitecontainers log --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP --container-name model-server"
+      },
+      {
+        title: "Kiểm tra trạng thái sức khỏe tổng quát (Health Check)",
+        desc: "Xem trạng thái hoạt động của toàn bộ cụm container trong Web App:",
+        code: "az webapp sitecontainers status --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP"
       }
     ]
   }

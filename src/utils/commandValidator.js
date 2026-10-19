@@ -10,7 +10,11 @@ const FLAG_ALIASES = {
   '-l': '--location',
   '-o': '--output',
   '-s': '--subscription',
-  '--rg': '--resource-group'
+  '-r': '--registry',
+  '-i': '--image',
+  '-t': '--image',
+  '--rg': '--resource-group',
+  '--write-enable': '--write-enabled'
 };
 
 /**
@@ -29,7 +33,7 @@ export function normalizeCommandText(cmd) {
 
 /**
  * Parse a command string into components:
- * - assignmentVar (if any, like "$PRINCIPAL_ID =")
+ * - assignmentVar (if any, like "$PRINCIPAL_ID =" or "$env:ACR_NAME =")
  * - program & verbs (like "az acr create")
  * - options (flags and their values)
  * - positional arguments
@@ -41,8 +45,8 @@ export function parseCliCommand(rawCmd) {
   let cmdToParse = normalized;
   let assignment = null;
 
-  // Check for variable assignment: e.g. $PRINCIPAL_ID = az ...
-  const assignMatch = cmdToParse.match(/^(\$[a-zA-Z0-9_]+)\s*=\s*(.*)$/);
+  // Check for variable assignment: e.g. $PRINCIPAL_ID = az ... or $env:ACR_NAME = ...
+  const assignMatch = cmdToParse.match(/^(\$[a-zA-Z0-9_:]+)\s*=\s*(.*)$/);
   if (assignMatch) {
     assignment = assignMatch[1];
     cmdToParse = assignMatch[2].trim();
