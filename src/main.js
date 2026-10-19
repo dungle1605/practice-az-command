@@ -416,67 +416,63 @@ class AzMasterApp {
     let cursorPos = input.selectionStart;
     const now = Date.now();
 
-    // 1. Collapse multiple consecutive spaces (e.g. "az login  -u" -> "az login -u")
-    if (val.includes('  ')) {
+    // 1. Collapse multiple consecutive whitespace/spaces (e.g. "az login  -u" -> "az login -u")
+    if (/[\s\u00a0]{2,}/.test(val)) {
       const oldLen = val.length;
-      val = val.replace(/ {2,}/g, ' ');
+      val = val.replace(/[\s\u00a0]{2,}/g, ' ');
       cursorPos = Math.max(0, cursorPos - (oldLen - val.length));
       input.value = val;
       input.selectionStart = input.selectionEnd = cursorPos;
     }
 
     // 2. Anti-Ghosting / UniKey Double Dash Recovery
-    // When UniKey/EVKey is in Telex mode, typing '--' followed by a letter (e.g. '--u')
-    // triggers an IME rollback where Backspace is sent to erase the dash, mutating '--' into '-u'.
-    // We actively detect this rollback and restore the double dash!
-    let recovered = false;
+    // Check if right at the cursor we have a single-dash flag start: (start-of-string or whitespace) followed by -[a-zA-Z]
+    const checkPos = cursorPos - 2;
+    if (checkPos >= 0 && val.slice(checkPos, cursorPos).match(/^-[a-zA-Z]$/)) {
+      // Must be at the start of a word: char before checkPos must be whitespace or checkPos === 0
+      const isWordStart = checkPos === 0 || /[\s\u00a0]/.test(val[checkPos - 1]);
+      
+      if (isWordStart) {
+        // Did we have a double dash right at this exact word boundary within 800ms?
+        const hadDoubleDashHere = (this.recentDoubleDash && 
+                                   Math.abs(this.recentDoubleDash.pos - (checkPos + 1)) <= 1 && 
+                                   (now - this.recentDoubleDash.time < 800)) ||
+                                  (this.dashDeletedFromDoubleDash && 
+                                   Math.abs(this.dashDeletedFromDoubleDash.pos - (checkPos + 2)) <= 1 && 
+                                   (now - this.dashDeletedFromDoubleDash.time < 800));
 
-    // Check if Backspace was recently fired at double-dash position
-    if (this.dashDeletedFromDoubleDash && (now - this.dashDeletedFromDoubleDash.time < 800)) {
-      const checkPos = cursorPos - 2;
-      if (checkPos >= 0 && val.slice(checkPos, cursorPos).match(/^-[a-zA-Z]$/)) {
-        val = val.slice(0, checkPos) + '-' + val.slice(checkPos);
-        cursorPos += 1;
-        input.value = val;
-        input.selectionStart = input.selectionEnd = cursorPos;
-        this.dashDeletedFromDoubleDash = null;
-        this.recentDoubleDash = null;
-        recovered = true;
+        if (hadDoubleDashHere) {
+          val = val.slice(0, checkPos) + '-' + val.slice(checkPos);
+          cursorPos += 1;
+          input.value = val;
+          input.selectionStart = input.selectionEnd = cursorPos;
+          this.dashDeletedFromDoubleDash = null;
+          this.recentDoubleDash = null;
+        }
       }
     }
 
-    // Also check if we previously tracked '--' right before cursor and it became '-[a-zA-Z]'
-    if (!recovered && this.recentDoubleDash && (now - this.recentDoubleDash.time < 800)) {
-      const checkPos = cursorPos - 2;
-      if (checkPos >= 0 && val.slice(checkPos, cursorPos).match(/^-[a-zA-Z]$/)) {
-        val = val.slice(0, checkPos) + '-' + val.slice(checkPos);
-        cursorPos += 1;
-        input.value = val;
-        input.selectionStart = input.selectionEnd = cursorPos;
-        this.recentDoubleDash = null;
-        recovered = true;
-      }
-    }
-
-    // Record when text before cursor ends with '--'
+    // Record when text before cursor ends with '--' preceded by whitespace or at start of input
     if (cursorPos >= 2 && val.slice(cursorPos - 2, cursorPos) === '--') {
-      this.recentDoubleDash = { time: now, pos: cursorPos };
+      const beforeDash = cursorPos - 2;
+      if (beforeDash === 0 || /[\s\u00a0]/.test(val[beforeDash - 1])) {
+        this.recentDoubleDash = { time: now, pos: cursorPos };
+      }
     }
 
     // 3. Auto-convert single-dash multi-letter flags:
-    // In Azure CLI, multi-letter flags always use '--' (e.g. -use -> --use, -name -> --name).
-    // If user has '-[a-zA-Z]{2,}', auto-expand to '--'
-    const multiFlagRegex = /(^|\s)-([a-zA-Z]{2,}[a-zA-Z0-9\-]*)/;
-    const match = val.match(multiFlagRegex);
-    if (match) {
-      const flagStart = match.index + match[1].length;
-      if (cursorPos >= flagStart + 2) {
-        val = val.slice(0, flagStart) + '-' + val.slice(flagStart);
+    // Any flag argument that starts with a single dash followed by 2+ letters (e.g. " -use" -> " --use")
+    // In Azure CLI, multi-letter flags ALWAYS have '--'.
+    val = val.replace(/(^|[\s\u00a0])-([a-zA-Z]{2,}[a-zA-Z0-9\-]*)/g, (fullMatch, prefix, flagName, offset) => {
+      const flagStart = offset + prefix.length;
+      if (cursorPos > flagStart) {
         cursorPos += 1;
-        input.value = val;
-        input.selectionStart = input.selectionEnd = cursorPos;
       }
-    }
+      return prefix + '--' + flagName;
+    });
+
+    input.value = val;
+    input.selectionStart = input.selectionEnd = cursorPos;
 
     // 4. Sanitize accidental Vietnamese Telex accents in flags (e.g. --úse -> --use, --đevice -> --device)
     if (val.includes('--')) {
