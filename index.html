@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230078d4'><path d='M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z'/></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AZ-Command Master | Luyện Tập Azure CLI Thực Chiến AI-200</title>
+  <meta name="description" content="Nền tảng luyện tập tương tác câu lệnh Azure CLI thực chiến dành cho AI-200 và Azure DevOps với hướng dẫn chi tiết và độ khó nâng dần." />
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-badge">
+          <svg class="azure-icon" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M13.005 16.993l-4.505-7.79 3.49-6.203h6.01l-5 14zm-4.995 1.007h-6.01l7-12 2.505 4.336-3.495 7.664zm8.995-12.007l4.005 6.993-4.005 7.007h-3.995l3.995-7.007-4-6.993h4z"/>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-title">AZ-COMMAND <span class="gradient-text">MASTER</span></span>
+            <span class="brand-sub">Microsoft AI-200 • 100% Giả Lập An Toàn (Sandbox)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" id="nav-tabs">
+        <button class="nav-tab active" data-tab="practice" id="tab-btn-practice">
+          <span class="tab-icon">⚡</span>
+          <span>Thực Hành CLI</span>
+        </button>
+        <button class="nav-tab" data-tab="quiz" id="tab-btn-quiz">
+          <span class="tab-icon">🧠</span>
+          <span>Trắc Nghiệm AI-200</span>
+        </button>
+        <button class="nav-tab" data-tab="cheatsheet" id="tab-btn-cheatsheet">
+          <span class="tab-icon">📖</span>
+          <span>Cẩm Nang Tra Cứu</span>
+        </button>
+        <button class="nav-tab" data-tab="stats" id="tab-btn-stats">
+          <span class="tab-icon">🏆</span>
+          <span>Thành Tích</span>
+        </button>
+      </nav>
+
+      <!-- User Stats / Progress Summary -->
+      <div class="header-right">
+        <div class="stats-pill" title="Điểm kinh nghiệm">
+          <span class="stat-icon">✨</span>
+          <span class="stat-value" id="header-xp">0 XP</span>
+        </div>
+        <div class="stats-pill streak-pill" title="Chuỗi hoàn thành liên tiếp">
+          <span class="stat-icon">🔥</span>
+          <span class="stat-value" id="header-streak">0 streak</span>
+        </div>
+        <button class="icon-btn" id="btn-sound-toggle" title="Bật/Tắt âm thanh Web Audio" aria-label="Toggle Sound">
+          <span id="sound-icon">🔊</span>
+        </button>
+        <button class="icon-btn" id="btn-reset-progress" title="Đặt lại tiến trình học" aria-label="Reset Progress">
+          <span>🔄</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+      
+      <!-- ============================================== -->
+      <!-- TAB 1: PRACTICE WORKSTATION                    -->
+      <!-- ============================================== -->
+      <section class="tab-view active" id="view-practice">
+        <!-- Level Selector Cards -->
+        <div class="level-selector" id="level-selector-container">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Level Meta Banner -->
+        <div class="level-meta-banner" id="level-meta-banner">
+          <div class="meta-left">
+            <span class="level-badge" id="current-level-badge">Level 1</span>
+            <h2 class="level-heading" id="current-level-title">Nhập môn & Thiết lập Môi trường</h2>
+            <p class="level-tagline" id="current-level-tagline">Làm chủ cú pháp nền tảng, công cụ tra cứu và biến môi trường</p>
+          </div>
+          <div class="meta-right">
+            <div class="question-pagination" id="question-pills">
+              <!-- Question indicators populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Practice Split Workspace -->
+        <div class="workspace-grid">
+          <!-- Left Pane: Problem Briefing & Guided Explanation -->
+          <div class="pane pane-briefing">
+            <div class="pane-header">
+              <div class="title-with-pill">
+                <span class="badge badge-diff" id="challenge-diff">Cơ bản</span>
+                <span class="badge badge-cat" id="challenge-cat">Setup</span>
+              </div>
+              <div class="challenge-index-indicator" id="challenge-index-text">Bài 1 / 8</div>
+            </div>
+
+            <div class="pane-body">
+              <h1 class="challenge-title" id="challenge-title">Đang tải câu hỏi...</h1>
+              
+              <div class="challenge-mission-card">
+                <div class="card-label">🎯 Mục tiêu & Kịch bản thực tế</div>
+                <p class="challenge-mission" id="challenge-mission"></p>
+              </div>
+
+              <!-- Mental Model Blueprint -->
+              <div class="mental-model-box" id="mental-model-container">
+                <div class="card-label">💡 Tư duy cấu trúc lệnh (Mental Model)</div>
+                <div class="grammar-formula" id="grammar-formula">az &lt;Service&gt; &lt;Action&gt; [Parameters]</div>
+                <div class="grammar-breakdown" id="grammar-breakdown">
+                  <!-- Breakdown tokens populated by JS -->
+                </div>
+              </div>
+
+              <!-- Quick Tokens (Clickable helpers) -->
+              <div class="tokens-section">
+                <div class="card-label">🧩 Gợi ý Token (Nhấp để chèn nhanh vào Terminal)</div>
+                <div class="tokens-list" id="tokens-list">
+                  <!-- Clickable chips -->
+                </div>
+              </div>
+
+              <!-- Detailed Guide & Parameters Accordion -->
+              <div class="accordion-guide">
+                <details class="guide-details" id="details-params" open>
+                  <summary class="guide-summary">
+                    <span>📚 Giải thích chi tiết các tham số & cờ</span>
+                    <span class="chevron">▼</span>
+                  </summary>
+                  <div class="guide-content" id="params-explanation-content">
+                    <!-- Populated by JS -->
+                  </div>
+                </details>
+
+                <details class="guide-details" id="details-exam">
+                  <summary class="guide-summary">
+                    <span>⭐ Mẹo thi AI-200 & Ghi chú thực tế</span>
+                    <span class="chevron">▼</span>
+                  </summary>
+                  <div class="guide-content exam-tips-content" id="exam-notes-content">
+                    <!-- Populated by JS -->
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <!-- Bottom Left Actions -->
+            <div class="pane-footer">
+              <button class="btn btn-outline" id="btn-show-hint" title="Hiển thị gợi ý từng bước">
+                <span>💡 Gợi ý</span>
+                <span class="hint-count" id="hint-counter">(0/2)</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-reveal-solution" title="Xem câu lệnh mẫu">
+                <span>👁️ Xem đáp án</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Pane: Azure Terminal Simulator -->
+          <div class="pane pane-terminal">
+            <div class="terminal-window">
+              <!-- Terminal Title Bar -->
+              <div class="terminal-bar">
+                <div class="terminal-bar-left">
+                  <div class="terminal-controls">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                  </div>
+                  <div class="terminal-title">
+                    <span class="shell-badge">PowerShell 7</span>
+                    <span class="session-info">azure-cli@ai200-lab [southeastasia]</span>
+                  </div>
+                </div>
+                <div class="terminal-status">
+                  <span class="pulse-indicator"></span>
+                  <span class="status-label">SANDBOX • 100% GIẢ LẬP AN TOÀN</span>
+                </div>
+              </div>
+
+              <!-- Terminal Body / Output & Input -->
+              <div class="terminal-body" id="terminal-screen">
+                <div class="terminal-history" id="terminal-history">
+                  <div class="term-line info-line">
+                    <strong style="color: var(--neon-cyan);">[🛡️ SAFE SANDBOX SIMULATOR]</strong> Môi trường giả lập học tập an toàn 100%.<br>
+                    Các câu lệnh bạn nhập <strong style="color: #fca5a5;">KHÔNG THỰC THI</strong> trên máy tính hay tài khoản Azure của bạn, chỉ phân tích cú pháp và in kết quả mô phỏng.<br>
+                    Mẹo: Nhấn <kbd>Tab</kbd> để hoàn thành lệnh, <kbd>Enter</kbd> để kiểm tra giả lập.
+                  </div>
+                </div>
+
+                <!-- Input Row -->
+                <div class="terminal-input-row">
+                  <span class="term-prompt">PS H:\azure-lab&gt;</span>
+                  <div class="input-wrapper">
+                    <textarea 
+                      id="terminal-input" 
+                      class="terminal-input" 
+                      rows="1" 
+                      spellcheck="false" 
+                      autocomplete="off" 
+                      autocorrect="off" 
+                      autocapitalize="off"
+                      placeholder="Gõ lệnh az tại đây (ví dụ: az login --use-device-code)..."
+                    ></textarea>
+                    <!-- Floating autocompletion dropdown -->
+                    <div class="autocomplete-dropdown hidden" id="autocomplete-dropdown"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Terminal Toolbar & Run Buttons -->
+              <div class="terminal-actions">
+                <div class="term-shortcuts-tip">
+                  <span class="ime-shield-badge" id="ime-shield-badge" title="Hệ thống tự động phát hiện và giữ lại 2 dấu -- khi bạn gõ trên bộ gõ UniKey/EVKey">🛡️ Chống nuốt dấu -- : ĐANG BẬT</span>
+                  <span><kbd>Tab ↹</kbd> Tự điền | <kbd>Enter</kbd> Chạy | <kbd>Ctrl+L</kbd> Xóa màn hình</span>
+                </div>
+                <div class="term-btns">
+                  <button class="btn btn-ghost" id="btn-clear-term" title="Xóa lịch sử màn hình terminal">
+                    <span>🧹 Clear</span>
+                  </button>
+                  <button class="btn btn-ghost" id="btn-copy-input" title="Sao chép nội dung lệnh">
+                    <span>📋 Copy</span>
+                  </button>
+                  <button class="btn btn-primary btn-run" id="btn-run-command" title="Chạy giả lập để kiểm tra cú pháp và hiển thị kết quả mẫu (100% An toàn, không thực thi thật)">
+                    <span>⚡ Chạy giả lập</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Terminal Pagination Footer -->
+            <div class="practice-nav-bar">
+              <button class="btn btn-nav" id="btn-prev-challenge">
+                <span>← Câu trước</span>
+              </button>
+              <div class="nav-status-text" id="nav-status-text">
+                Câu 1 / 8 trong Level 1
+              </div>
+              <button class="btn btn-nav btn-nav-primary" id="btn-next-challenge">
+                <span>Câu tiếp theo →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: QUIZ CHALLENGE                          -->
+      <!-- ============================================== -->
+      <section class="tab-view" id="view-quiz">
+        <div class="quiz-container">
+          <div class="quiz-header-card">
+            <div class="quiz-header-content">
+              <span class="badge badge-accent">AI-200 Knowledge Test</span>
+              <h2>Trắc Nghiệm Kiến Thức Lệnh & Best Practices</h2>
+              <p>Kiểm tra tư duy chuyên sâu về bảo mật RBAC, cơ chế Managed Identity và các cờ tham số Azure CLI.</p>
+            </div>
+            <div class="quiz-score-card">
+              <div class="score-number" id="quiz-score-display">0 / 8</div>
+              <div class="score-label">Điểm trắc nghiệm</div>
+            </div>
+          </div>
+
+          <div class="quiz-questions-list" id="quiz-questions-list">
+            <!-- Quiz cards populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: CHEATSHEET & SEARCH                     -->
+      <!-- ============================================== -->
+      <section class="tab-view" id="view-cheatsheet">
+        <div class="cheatsheet-container">
+          <div class="cheatsheet-header">
+            <div>
+              <span class="badge badge-cat">Live Reference</span>
+              <h2>Cẩm Nang Tra Cứu Lệnh Azure CLI Thực Chiến</h2>
+              <p>Toàn bộ tài liệu chuẩn trích xuất từ <code>Useful_Command.md</code>, tích hợp tìm kiếm tức thì và sao chép 1 chạm.</p>
+            </div>
+            <div class="cheatsheet-search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="cheatsheet-search-input" placeholder="Tìm kiếm dịch vụ, cờ, jmespath, acr, webapp..." />
+            </div>
+          </div>
+
+          <!-- Cheatsheet Content Sections -->
+          <div class="cheatsheet-sections-wrapper" id="cheatsheet-sections-wrapper">
+            <!-- Sections populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: ACHIEVEMENTS & STATS                    -->
+      <!-- ============================================== -->
+      <section class="tab-view" id="view-stats">
+        <div class="stats-container">
+          <div class="stats-hero">
+            <div class="hero-rank">
+              <div class="rank-avatar" id="stats-rank-avatar">🌟</div>
+              <div class="rank-info">
+                <span class="rank-tag">Cấp bậc hiện tại</span>
+                <h2 class="rank-name" id="stats-rank-name">Azure Apprentice</h2>
+                <p id="stats-rank-desc">Hãy hoàn thành thêm các bài tập để thăng hạng lên AI-200 Master!</p>
+              </div>
+            </div>
+            <div class="hero-progress-ring">
+              <div class="progress-percent" id="stats-overall-percent">0%</div>
+              <div class="progress-sub">Hoàn thành tổng thể</div>
+            </div>
+          </div>
+
+          <!-- Level Breakdown Cards -->
+          <h3 class="section-heading">Tiến độ chi tiết từng Level</h3>
+          <div class="level-progress-grid" id="stats-level-grid">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Badges Showcase -->
+          <h3 class="section-heading">Huy hiệu đạt được</h3>
+          <div class="badges-grid" id="stats-badges-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Global Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
