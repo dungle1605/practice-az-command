@@ -239,5 +239,135 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         code: "az webapp sitecontainers status --name $env:APP_NAME --resource-group $env:RESOURCE_GROUP"
       }
     ]
+  },
+  {
+    id: "level-6-containerapps",
+    title: "Level 6: Azure Container Apps (ACA) - Quản lý và Chẩn đoán",
+    badge: "Level 6",
+    summary: "Quản lý Revisions, cập nhật Image Digest, điều khiển vòng đời, chẩn đoán Ingress & Biến môi trường, truy vấn Log Analytics KQL và xác minh Health Probes.",
+    items: [
+      {
+        title: "Cập nhật Image mới với Digest SHA256 (Tự động tạo Revision)",
+        desc: "Cập nhật image mới (nên dùng Digest thay vì tag để bất biến) → Tự động tạo Revision mới:",
+        code: "az containerapp update --name <app-name> --resource-group <rg> --image <registry>/<repo>@sha256:<digest>",
+        note: "Lab 4: Bất kỳ thay đổi nào trong template (image, env, scale) đều kích hoạt sinh một Revision mới."
+      },
+      {
+        title: "Xác minh cấu hình Container sau khi Update",
+        desc: "Trích xuất mảng cấu hình container từ template để kiểm tra image và tài nguyên:",
+        code: "az containerapp show --name <app-name> --resource-group <rg> --query properties.template.containers",
+        note: "Lab 4: Xác nhận container đã nhận đúng image digest vừa cập nhật."
+      },
+      {
+        title: "Liệt kê tất cả Revisions (Kiểm tra trạng thái Active)",
+        desc: "Liệt kê toàn bộ lịch sử revision, traffic weight và trạng thái kích hoạt:",
+        code: "az containerapp revision list --name <app-name> --resource-group <rg> -o table",
+        note: "Lab 4: Giúp theo dõi revision nào đang hoạt động và nhận lưu lượng người dùng."
+      },
+      {
+        title: "Xem chi tiết một Revision cụ thể",
+        desc: "Tra cứu thông tin chi tiết và URL FQDN riêng biệt của một revision:",
+        code: "az containerapp revision show --name <app-name> --resource-group <rg> --revision <revision-name>",
+        note: "Lab 4: Cho phép kiểm thử revision độc lập trước khi chuyển toàn bộ traffic sang."
+      },
+      {
+        title: "Vô hiệu hóa một Revision lỗi (Deactivate bảo lưu bằng chứng)",
+        desc: "Dừng phục vụ một revision lỗi nhưng vẫn giữ lại snapshot cấu hình trong lịch sử (không xóa):",
+        code: "az containerapp revision deactivate --name <app-name> --resource-group <rg> --revision <revision-name>",
+        note: "Lab 4: Mẹo phòng thi: Deactivate an toàn hơn xóa vì vẫn giữ log và cấu hình để post-mortem."
+      },
+      {
+        title: "JMESPath nâng cao: Lọc nhanh Active & Health State của Revisions",
+        desc: "Dùng Multi-hash Projection để lọc nhanh danh sách 3 cột name, active, healthState:",
+        code: `az containerapp revision list \\
+    --name <app-name> \\
+    --resource-group <rg> \\
+    --query "[].{name:name,active:properties.active,health:properties.healthState}" \\
+    -o table`,
+        note: "Lab 4: Cú pháp trích xuất bảng chuyên nghiệp dành cho kỹ sư SRE và DevOps."
+      },
+      {
+        title: "Dừng Container App (Stop)",
+        desc: "Dừng toàn bộ App (đảm bảo không khởi động replica trong lúc xử lý sự cố):",
+        code: "az containerapp stop --name <app-name> --resource-group <rg>",
+        note: "Lab 4: Scale ứng dụng về 0 và tạm ngưng xử lý request ngoài Internet."
+      },
+      {
+        title: "Khởi động lại Container App (Start)",
+        desc: "Khởi động lại ứng dụng sau khi đã khắc phục sự cố hoặc hoàn tất bảo trì:",
+        code: "az containerapp start --name <app-name> --resource-group <rg>",
+        note: "Lab 4: KEDA autoscaler sẽ tự động kích hoạt số replica tương ứng."
+      },
+      {
+        title: "Restart Container App (Khởi động lại vòng đời)",
+        desc: "Tái khởi động tất cả replicas hiện tại để xóa trạng thái lỗi tạm thời (không tạo revision mới):",
+        code: "az containerapp restart --name <app-name> --resource-group <rg>",
+        note: "Lab 4: Hữu ích khi ứng dụng bị memory leak hoặc dead-lock tạm thời."
+      },
+      {
+        title: "Log Streaming thời gian thực (như tail -f)",
+        desc: "Theo dõi luồng log trực tiếp thời gian thực từ container:",
+        code: "az containerapp logs show --name <app-name> --resource-group <rg> --follow",
+        note: "Lab 4: Cờ --follow (hoặc -f) duy trì kết nối stream liên tục cho đến khi nhấn Ctrl+C."
+      },
+      {
+        title: "Chẩn đoán thiếu biến môi trường: Kiểm tra env vars hiện có",
+        desc: "Trích xuất danh sách biến môi trường trong container đầu tiên dưới dạng bảng:",
+        code: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].env" -o table',
+        note: "Lab 4: Chẩn đoán nhanh khi ứng dụng báo lỗi KeyError hoặc Missing Config lúc startup."
+      },
+      {
+        title: "Gây lỗi (mô phỏng): Xóa biến môi trường để test",
+        desc: "Gỡ bỏ biến môi trường khỏi Container App (tạo ra Revision mới):",
+        code: "az containerapp update --name <app-name> --resource-group <rg> --remove-env-vars <VAR_NAME>",
+        note: "Lab 4: Sử dụng trong kịch bản lab mô phỏng lỗi ứng dụng thiếu cấu hình."
+      },
+      {
+        title: "Sửa lỗi: Thêm hoặc cập nhật lại biến môi trường",
+        desc: "Thiết lập lại giá trị cho biến môi trường cấu hình:",
+        code: "az containerapp update --name <app-name> --resource-group <rg> --set-env-vars <VAR_NAME>=<value>",
+        note: "Lab 4: Tự động kích hoạt rolling update sang một Revision mới đã được bổ sung env var."
+      },
+      {
+        title: "Chẩn đoán sai Port: Kiểm tra cấu hình Ingress (targetPort)",
+        desc: "Xem toàn bộ cấu hình Ingress bao gồm targetPort dưới định dạng YAML:",
+        code: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.configuration.ingress" -o yaml',
+        note: "Lab 4: Nguyên nhân phổ biến gây lỗi 502 Bad Gateway khi Ingress trỏ sai port lắng nghe của app."
+      },
+      {
+        title: "Sửa lỗi Port: Cập nhật lại Target Port cho Ingress",
+        desc: "Điều chỉnh lại cổng đích (target-port) mà Ingress router chuyển tiếp lưu lượng vào container:",
+        code: "az containerapp ingress update --name <app-name> --resource-group <rg> --target-port <port>",
+        note: "Lab 4: Cập nhật cấu hình router ingress tức thì mà không cần rebuild image."
+      },
+      {
+        title: "Lấy Workspace ID của Log Analytics gắn liền với ACA Environment",
+        desc: "Trích xuất định danh customerId sạch (-o tsv) để gán vào biến chạy KQL:",
+        code: "az containerapp env show --name <env-name> --resource-group <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId -o tsv",
+        note: "Lab 4: Định danh Workspace ID là tham số bắt buộc cho cờ -w trong lệnh az monitor log-analytics query."
+      },
+      {
+        title: "Truy vấn 20 log gần nhất qua KQL (Log Analytics)",
+        desc: "Truy vấn log lịch sử từ bảng ContainerAppConsoleLogs_CL ngay cả khi replica đã tắt:",
+        code: `az monitor log-analytics query -w $WORKSPACE_ID \\
+    --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" \\
+    -o table`,
+        note: "Lab 4: Bảng ContainerAppConsoleLogs_CL lưu trữ toàn bộ stdout/stderr của Azure Container Apps."
+      },
+      {
+        title: "Truy vấn log lỗi qua KQL (Error Filter)",
+        desc: "Lọc nhanh các dòng nhật ký có chứa chuỗi 'error' trong 20 bản ghi mới nhất:",
+        code: `az monitor log-analytics query -w $WORKSPACE_ID \\
+    --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' and Log_s contains 'error' | order by TimeGenerated desc | take 20" \\
+    -o table`,
+        note: "Lab 4: Toán tử contains trong KQL không phân biệt chữ hoa chữ thường."
+      },
+      {
+        title: "Xem cấu hình Health Probes hiện tại (Readiness / Liveness)",
+        desc: "Kiểm tra cấu hình probe thăm dò sức khỏe của container dưới dạng YAML:",
+        code: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].probes" -o yaml',
+        note: "Lý thuyết: Liveness probe xác định khi nào cần restart container; Readiness probe xác định khi nào container sẵn sàng nhận traffic."
+      }
+    ]
   }
 ];

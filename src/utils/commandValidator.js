@@ -13,6 +13,8 @@ const FLAG_ALIASES = {
   '-r': '--registry',
   '-i': '--image',
   '-t': '--image',
+  '-w': '--workspace',
+  '-f': '--follow',
   '--rg': '--resource-group',
   '--write-enable': '--write-enabled'
 };
@@ -115,6 +117,64 @@ export function parseCliCommand(rawCmd) {
 }
 
 /**
+ * Compare expected flag value with user value, supporting literal placeholders
+ * e.g. <app-name>, <rg>, <port>, <VAR_NAME>, <registry>/<repo>@sha256:<digest>
+ */
+function matchesExpectedValue(expectedVal, userVal) {
+  const cleanExp = String(expectedVal).replace(/^["']|["']$/g, '').toLowerCase().trim();
+  const cleanUser = String(userVal).replace(/^["']|["']$/g, '').toLowerCase().trim();
+
+  if (cleanExp === cleanUser) {
+    return true;
+  }
+
+  // Handle generic single placeholder e.g. <app-name>, <rg>, <port>, <var_name>, <revision-name>, <env-name>, <digest>
+  if (/^<[a-zA-Z0-9_\-]+>$/.test(cleanExp)) {
+    // User provided any non-empty identifier that doesn't start with '-'
+    return cleanUser.length > 0 && !cleanUser.startsWith('-');
+  }
+
+  // Handle composite image digest placeholder: <registry>/<repo>@sha256:<digest>
+  if (cleanExp.includes('@sha256:')) {
+    if (cleanUser.includes('@sha256:') || cleanUser === cleanExp) {
+      return true;
+    }
+  }
+
+  // Handle composite env var placeholder: <var_name>=<value>
+  if (cleanExp.includes('=')) {
+    if (cleanUser.includes('=') || cleanUser === cleanExp) {
+      return true;
+    }
+  }
+
+  // Handle shell variables like $WORKSPACE_ID vs $env:WORKSPACE_ID or literal GUID
+  if (cleanExp.startsWith('$')) {
+    if (cleanUser.startsWith('$') || /^[0-9a-fA-F-]{36}$/.test(cleanUser)) {
+      return true;
+    }
+  }
+
+  // Handle queries with placeholder inside like ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>'
+  if (cleanExp.includes('<') && cleanExp.includes('>')) {
+    const regexPattern = '^' + cleanExp
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/<[^>]+>/g, '[a-zA-Z0-9_\\-$.:]+')
+      + '$';
+    try {
+      const reg = new RegExp(regexPattern, 'i');
+      if (reg.test(cleanUser)) {
+        return true;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  return false;
+}
+
+/**
  * Validate a user command against an expected command definition
  */
 export function validateCommand(userInput, challenge) {
@@ -212,11 +272,8 @@ export function validateCommand(userInput, challenge) {
         };
       }
     } else {
-      // String value comparison (strip outer quotes)
-      const cleanExpected = String(expectedVal).replace(/^["']|["']$/g, '').toLowerCase().trim();
-      const cleanUser = String(userVal).replace(/^["']|["']$/g, '').toLowerCase().trim();
-
-      if (cleanExpected !== cleanUser) {
+      // String value comparison (strip outer quotes and support placeholders)
+      if (!matchesExpectedValue(expectedVal, userVal)) {
         return {
           isValid: false,
           message: `Giá trị của cờ \`${flag}\` chưa khớp. Bạn nhập: \`${userVal}\`, kỳ vọng: \`${expectedVal}\`.`

@@ -947,6 +947,9 @@ body {
   outline: none;
   color: #f8fafc;
   font-family: var(--font-mono);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  letter-spacing: 0.02em;
   font-size: 0.92rem;
   font-weight: 500;
   line-height: 1.6;

@@ -170,8 +170,24 @@ class AzMasterApp {
     // Terminal Keydown (Enter to run, Tab to autocomplete, Ctrl+L to clear, Escape to dismiss dropdown)
     this.dashDeletedFromDoubleDash = null;
     this.recentDoubleDash = null;
+    this._isComposing = false; // Track IME composition state
+    this._sanitizeTimer = null; // Debounce timer for post-composition cleanup
+
+    // Track IME composition lifecycle to prevent interference with Vietnamese/CJK input
+    this.terminalInput.addEventListener('compositionstart', () => {
+      this._isComposing = true;
+    });
+    this.terminalInput.addEventListener('compositionend', () => {
+      this._isComposing = false;
+      // Run deferred text transformations after composition completes
+      this._scheduleSanitize();
+    });
 
     this.terminalInput.addEventListener('keydown', (e) => {
+      // Skip all special key handling during IME composition
+      if (e.isComposing || this._isComposing) {
+        return;
+      }
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.hideAutocompleteDropdown();
@@ -410,19 +426,30 @@ class AzMasterApp {
     this.terminalInput.style.height = Math.max(26, this.terminalInput.scrollHeight) + 'px';
   }
 
-  handleTerminalInput(e) {
+  // Schedule a debounced sanitize pass (for post-composition or delayed cleanup)
+  _scheduleSanitize() {
+    if (this._sanitizeTimer) clearTimeout(this._sanitizeTimer);
+    this._sanitizeTimer = setTimeout(() => {
+      this._sanitizeTimer = null;
+      this._runTextTransformations();
+    }, 50);
+  }
+
+  // Core text transformations extracted so they can be called
+  // both from handleTerminalInput (when NOT composing) and after compositionend
+  _runTextTransformations() {
     const input = this.terminalInput;
     let val = input.value;
     let cursorPos = input.selectionStart;
     const now = Date.now();
+    let changed = false;
 
     // 1. Collapse multiple consecutive whitespace/spaces (e.g. "az login  -u" -> "az login -u")
     if (/[\s\u00a0]{2,}/.test(val)) {
       const oldLen = val.length;
       val = val.replace(/[\s\u00a0]{2,}/g, ' ');
       cursorPos = Math.max(0, cursorPos - (oldLen - val.length));
-      input.value = val;
-      input.selectionStart = input.selectionEnd = cursorPos;
+      changed = true;
     }
 
     // 2. Anti-Ghosting / UniKey Double Dash Recovery
@@ -444,8 +471,7 @@ class AzMasterApp {
         if (hadDoubleDashHere) {
           val = val.slice(0, checkPos) + '-' + val.slice(checkPos);
           cursorPos += 1;
-          input.value = val;
-          input.selectionStart = input.selectionEnd = cursorPos;
+          changed = true;
           this.dashDeletedFromDoubleDash = null;
           this.recentDoubleDash = null;
         }
@@ -463,16 +489,20 @@ class AzMasterApp {
     // 3. Auto-convert single-dash multi-letter flags:
     // Any flag argument that starts with a single dash followed by 2+ letters (e.g. " -use" -> " --use")
     // In Azure CLI, multi-letter flags ALWAYS have '--'.
-    val = val.replace(/(^|[\s\u00a0])-([a-zA-Z]{2,}[a-zA-Z0-9\-]*)/g, (fullMatch, prefix, flagName, offset) => {
+    const flagRegex = /(^|[\s\u00a0])-([a-zA-Z]{2,}[a-zA-Z0-9\-]*)/g;
+    let cursorShift = 0;
+    const convertedVal = val.replace(flagRegex, (fullMatch, prefix, flagName, offset) => {
       const flagStart = offset + prefix.length;
       if (cursorPos > flagStart) {
-        cursorPos += 1;
+        cursorShift += 1;
       }
+      changed = true;
       return prefix + '--' + flagName;
     });
-
-    input.value = val;
-    input.selectionStart = input.selectionEnd = cursorPos;
+    if (convertedVal !== val) {
+      val = convertedVal;
+      cursorPos += cursorShift;
+    }
 
     // 4. Sanitize accidental Vietnamese Telex accents in flags (e.g. --úse -> --use, --đevice -> --device)
     if (val.includes('--')) {
@@ -486,9 +516,14 @@ class AzMasterApp {
       });
       if (sanitized !== val) {
         val = sanitized;
-        input.value = val;
-        input.selectionStart = input.selectionEnd = cursorPos;
+        changed = true;
       }
+    }
+
+    // Only write back if something actually changed (avoids unnecessary cursor jumps)
+    if (changed) {
+      input.value = val;
+      input.selectionStart = input.selectionEnd = cursorPos;
     }
 
     // 5. Update interactive autocomplete dropdown
@@ -496,6 +531,19 @@ class AzMasterApp {
 
     // 6. Adjust input height
     this.autoResizeInput();
+  }
+
+  handleTerminalInput(e) {
+    // CRITICAL: Do NOT modify input.value during IME composition!
+    // Vietnamese IME (UniKey/EVKey) and CJK IMEs maintain internal state.
+    // Changing input.value mid-composition breaks the IME and causes character loss.
+    if (e.isComposing || this._isComposing) {
+      // Only auto-resize (safe — doesn't modify value) and update dropdown
+      this.autoResizeInput();
+      return;
+    }
+
+    this._runTextTransformations();
   }
 
   insertTokenIntoInput(token) {
@@ -963,15 +1011,19 @@ class AzMasterApp {
       rankName = 'AI-200 Azure Master';
       rankAvatar = '👑';
       rankDesc = 'Xuất sắc! Bạn đã làm chủ 100% kho lệnh thực chiến và sẵn sàng cho bài thi AI-200.';
-    } else if (percent >= 75) {
+    } else if (percent >= 80) {
+      rankName = 'Container Apps Specialist';
+      rankAvatar = '⚡';
+      rankDesc = 'Bạn đã làm chủ quản lý Revisions, chẩn đoán KQL và khắc phục sự cố Azure Container Apps!';
+    } else if (percent >= 60) {
       rankName = 'Security & RBAC Architect';
       rankAvatar = '🛡️';
       rankDesc = 'Bạn đã làm chủ việc cấu hình Managed Identity, bảo mật ACR và App Service!';
-    } else if (percent >= 50) {
+    } else if (percent >= 40) {
       rankName = 'Container Operations Pro';
       rankAvatar = '🐳';
       rankDesc = 'Bạn đã thành thạo build Docker trên Cloud và triển khai Web App Container!';
-    } else if (percent >= 25) {
+    } else if (percent >= 20) {
       rankName = 'Azure Specialist';
       rankAvatar = '🚀';
       rankDesc = 'Nắm vững cấu hình biến môi trường và quản lý Resource Groups.';
@@ -1006,7 +1058,8 @@ class AzMasterApp {
       { id: 'b2', name: 'Registry Operator', icon: '🐳', desc: 'Hoàn thành Level 2: Azure Container Registry', unlocked: this.isLevelCompleted(2) },
       { id: 'b3', name: 'App Specialist', icon: '🚀', desc: 'Hoàn thành Level 3: Linux App Service & Web App', unlocked: this.isLevelCompleted(3) },
       { id: 'b4', name: 'Security Engineer', icon: '🛡️', desc: 'Hoàn thành Level 4: RBAC AcrPull & App Settings', unlocked: this.isLevelCompleted(4) },
-      { id: 'b5', name: 'Sidecar Architect', icon: '🧩', desc: 'Hoàn thành Level 5: Multi-container Pod & Sidecars', unlocked: this.isLevelCompleted(5) }
+      { id: 'b5', name: 'Sidecar Architect', icon: '🧩', desc: 'Hoàn thành Level 5: Multi-container Pod & Sidecars', unlocked: this.isLevelCompleted(5) },
+      { id: 'b6', name: 'ACA Specialist', icon: '⚡', desc: 'Hoàn thành Level 6: Azure Container Apps & Chẩn đoán KQL', unlocked: this.isLevelCompleted(6) }
     ];
 
     this.statsBadgesGrid.innerHTML = badges.map(b => `

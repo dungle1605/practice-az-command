@@ -44,6 +44,14 @@ export const LEVELS = [
     badge: "AI-200 Master",
     color: "#10b981",
     icon: "🧩"
+  },
+  {
+    id: 6,
+    name: "Level 6: Azure Container Apps (ACA)",
+    tagline: "Quản lý Revisions, Vòng đời Lifecycle, Chẩn đoán Troubleshooting & Log Analytics",
+    badge: "ACA Specialist",
+    color: "#f59e0b",
+    icon: "⚡"
   }
 ];
 
@@ -1169,6 +1177,744 @@ model-server  acr9e9994d6.azurecr.io/inference-api:v1.0.0       False     8501`
   ],
   "overallStatus": "Healthy"
 }`
+  },
+
+  // ==========================================
+  // LEVEL 6: AZURE CONTAINER APPS (ACA)
+  // ==========================================
+  // --- Phần A: Quản lý Revisions & Cập nhật Image ---
+  {
+    id: "l6-update-image-digest",
+    level: 6,
+    title: "Cập nhật Image với Digest SHA256 (Tạo Revision mới)",
+    difficulty: "Trung bình",
+    category: "Revisions & Images",
+    mission: "Để đảm bảo tính bất biến (Immutability) và tránh lỗi kéo nhầm tag cũ trong môi trường Production, hãy cập nhật Container App `<app-name>` trong Resource Group `<rg>` bằng Image kèm mã băm SHA256 (`<registry>/<repo>@sha256:<digest>`). Thao tác này sẽ tự động tạo một Revision mới.",
+    expectedCommand: "az containerapp update --name <app-name> --resource-group <rg> --image <registry>/<repo>@sha256:<digest>",
+    aliases: [
+      "az containerapp update -n <app-name> -g <rg> --image <registry>/<repo>@sha256:<digest>",
+      "az containerapp update --resource-group <rg> --name <app-name> --image <registry>/<repo>@sha256:<digest>",
+      "az containerapp update -g <rg> -n <app-name> --image <registry>/<repo>@sha256:<digest>"
+    ],
+    tokens: ["az", "containerapp", "update", "--name", "<app-name>", "--resource-group", "<rg>", "--image", "<registry>/<repo>@sha256:<digest>"],
+    hints: [
+      "Bắt đầu bằng nhóm lệnh `az containerapp update`.",
+      "Cung cấp cờ `--name <app-name>` và `--resource-group <rg>`.",
+      "Chỉ định image định dạng digest qua cờ `--image <registry>/<repo>@sha256:<digest>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp update --name <App> --resource-group <RG> --image <Repo@sha256:Digest>",
+      breakdown: [
+        { part: "az containerapp update", role: "Updater", desc: "Cập nhật thông số template của Container App" },
+        { part: "--image", role: "Target Artifact", desc: "Đường dẫn image đầy đủ kèm mã băm SHA256 để đảm bảo tính bất biến" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--image", meaning: "Tên image kèm tag hoặc digest (@sha256:...). Khuyến nghị dùng digest cho Production để chống ghi đè." },
+      { param: "update", meaning: "Mọi thay đổi cấu hình template sẽ tự động kích hoạt Azure tạo một Revision mới." }
+    ],
+    examNotes: "💡 Dùng Digest (`@sha256:...`) thay vì tag động (như `latest`) giúp đảm bảo 100% tất cả replicas khởi tạo đều tải chính xác bản build nhị phân không bị sai lệch.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../resourceGroups/rg-lab4/providers/Microsoft.App/containerApps/ca-processor",
+  "location": "southeastasia",
+  "name": "ca-processor",
+  "properties": {
+    "latestRevisionName": "ca-processor--20261021-01",
+    "provisioningState": "Succeeded",
+    "template": {
+      "containers": [
+        {
+          "image": "myacr.azurecr.io/docprocessor@sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+          "name": "ca-processor"
+        }
+      ]
+    }
+  }
+}`
+  },
+  {
+    id: "l6-verify-containers",
+    level: 6,
+    title: "Xác minh cấu hình Containers sau khi Update",
+    difficulty: "Cơ bản",
+    category: "Inspection & Query",
+    mission: "Sau khi cập nhật image, hãy dùng lệnh `az containerapp show` kết hợp bộ lọc JMESPath `properties.template.containers` để xác minh cấu hình container trong app `<app-name>` thuộc `<rg>`.",
+    expectedCommand: "az containerapp show --name <app-name> --resource-group <rg> --query properties.template.containers",
+    aliases: [
+      "az containerapp show -n <app-name> -g <rg> --query properties.template.containers",
+      "az containerapp show --resource-group <rg> --name <app-name> --query properties.template.containers",
+      'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers"',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.template.containers"'
+    ],
+    tokens: ["az", "containerapp", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--query", "properties.template.containers"],
+    hints: [
+      "Lệnh kiểm tra thông tin chi tiết là `az containerapp show`.",
+      "Sử dụng cờ `--query properties.template.containers` để trích xuất mảng container."
+    ],
+    mentalModel: {
+      rule: "az containerapp show --name <App> --resource-group <RG> --query properties.template.containers",
+      breakdown: [
+        { part: "az containerapp show", role: "Inspector", desc: "Đọc cấu hình JSON chi tiết của ứng dụng Container App" },
+        { part: "--query", role: "JMESPath Filter", desc: "Trích xuất đúng nhánh thuộc tính template.containers" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query", meaning: "Bộ lọc JMESPath giúp chỉ hiển thị các trường cần quan sát mà không cần cuộn qua JSON khổng lồ." }
+    ],
+    examNotes: "Kiểm tra thuộc tính `image` bên trong `properties.template.containers` để chắc chắn revision mới đang nạp đúng digest mong muốn.",
+    simulatedOutput: `[
+  {
+    "image": "myacr.azurecr.io/docprocessor@sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+    "name": "ca-processor",
+    "resources": {
+      "cpu": 0.5,
+      "memory": "1Gi"
+    }
+  }
+]`
+  },
+  {
+    id: "l6-revision-list",
+    level: 6,
+    title: "Liệt kê tất cả Revisions (Kiểm tra trạng thái Active)",
+    difficulty: "Cơ bản",
+    category: "Revisions Management",
+    mission: "Trong Azure Container Apps, các phiên bản triển khai được quản lý dưới dạng Revisions. Hãy liệt kê tất cả các Revisions của `<app-name>` trong `<rg>` dưới dạng bảng (`-o table`) để kiểm tra revision nào đang active.",
+    expectedCommand: "az containerapp revision list --name <app-name> --resource-group <rg> -o table",
+    aliases: [
+      "az containerapp revision list --name <app-name> --resource-group <rg> --output table",
+      "az containerapp revision list -n <app-name> -g <rg> -o table",
+      "az containerapp revision list -n <app-name> -g <rg> --output table",
+      "az containerapp revision list --resource-group <rg> --name <app-name> -o table",
+      "az containerapp revision list --resource-group <rg> --name <app-name> --output table"
+    ],
+    tokens: ["az", "containerapp", "revision", "list", "--name", "<app-name>", "--resource-group", "<rg>", "-o", "table"],
+    hints: [
+      "Nhóm lệnh quản lý phiên bản là `az containerapp revision`.",
+      "Hành động là `list` và định dạng bảng là `-o table` (hoặc `--output table`)."
+    ],
+    mentalModel: {
+      rule: "az containerapp revision list --name <App> --resource-group <RG> -o table",
+      breakdown: [
+        { part: "containerapp revision list", role: "Revision Inspector", desc: "Xem toàn bộ lịch sử các revisions của container app" },
+        { part: "-o table", role: "Table Output", desc: "Định dạng kết quả dạng bảng gồm tên, active, healthState" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "revision list", meaning: "Liệt kê tất cả các bản snapshot cấu hình (revisions) đã từng được sinh ra." }
+    ],
+    examNotes: "Cột `Active` cho biết revision nào đang được phép chạy replica; cột `TrafficWeight` cho biết tỷ lệ % lưu lượng được điều hướng tới revision đó.",
+    simulatedOutput: `Name                       Active    TrafficWeight    HealthState    ProvisioningState
+-------------------------  --------  ---------------  -------------  -------------------
+ca-processor--20261021-01  True      100              Healthy        Provisioned
+ca-processor--20261020-02  False     0                None           Deprovisioned`
+  },
+  {
+    id: "l6-revision-show",
+    level: 6,
+    title: "Xem chi tiết một Revision cụ thể",
+    difficulty: "Cơ bản",
+    category: "Revisions Management",
+    mission: "Hãy xem toàn bộ thông tin chi tiết và URL kiểm thử độc lập của revision `<revision-name>` thuộc app `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp revision show --name <app-name> --resource-group <rg> --revision <revision-name>",
+    aliases: [
+      "az containerapp revision show -n <app-name> -g <rg> --revision <revision-name>",
+      "az containerapp revision show --resource-group <rg> --name <app-name> --revision <revision-name>",
+      "az containerapp revision show -g <rg> -n <app-name> --revision <revision-name>"
+    ],
+    tokens: ["az", "containerapp", "revision", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--revision", "<revision-name>"],
+    hints: [
+      "Lệnh xem chi tiết revision là `az containerapp revision show`.",
+      "Chỉ định tên revision cụ thể bằng cờ `--revision <revision-name>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp revision show --name <App> --resource-group <RG> --revision <RevName>",
+      breakdown: [
+        { part: "revision show", role: "Revision Detail", desc: "Xem chi tiết một revision cụ thể" },
+        { part: "--revision", role: "Revision Identifier", desc: "Tên định danh của revision (thường có hậu tố timestamp)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--revision", meaning: "Tên duy nhất của revision trong container app (ví dụ: ca-processor--rev1)." }
+    ],
+    examNotes: "Trường `properties.fqdn` trong kết quả show trả về URL trực tiếp của riêng revision đó, cực kỳ tiện lợi để smoke test trước khi cut-over traffic.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../revisions/ca-processor--20261021-01",
+  "name": "ca-processor--20261021-01",
+  "properties": {
+    "active": true,
+    "createdTime": "2026-10-21T10:15:30Z",
+    "fqdn": "ca-processor--20261021-01.bravecliff-123456.southeastasia.azurecontainerapps.io",
+    "healthState": "Healthy",
+    "replicas": 1
+  }
+}`
+  },
+  {
+    id: "l6-revision-deactivate",
+    level: 6,
+    title: "Vô hiệu hóa Revision lỗi (Deactivate bảo lưu bằng chứng)",
+    difficulty: "Trung bình",
+    category: "Troubleshooting & Safety",
+    mission: "Khi phát hiện một revision bị lỗi, thay vì xóa làm mất dấu vết điều tra, hãy vô hiệu hóa (deactivate) revision `<revision-name>` của app `<app-name>` trong `<rg>` để dừng replica ngay lập tức.",
+    expectedCommand: "az containerapp revision deactivate --name <app-name> --resource-group <rg> --revision <revision-name>",
+    aliases: [
+      "az containerapp revision deactivate -n <app-name> -g <rg> --revision <revision-name>",
+      "az containerapp revision deactivate --resource-group <rg> --name <app-name> --revision <revision-name>",
+      "az containerapp revision deactivate -g <rg> -n <app-name> --revision <revision-name>"
+    ],
+    tokens: ["az", "containerapp", "revision", "deactivate", "--name", "<app-name>", "--resource-group", "<rg>", "--revision", "<revision-name>"],
+    hints: [
+      "Lệnh vô hiệu hóa là `az containerapp revision deactivate`.",
+      "Truyền tên app, resource-group và cờ `--revision <revision-name>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp revision deactivate --name <App> --resource-group <RG> --revision <RevName>",
+      breakdown: [
+        { part: "revision deactivate", role: "Safe Shutdown", desc: "Chuyển trạng thái revision sang Inactive, dừng mọi container của revision đó" },
+        { part: "--revision", role: "Target Revision", desc: "Tên revision cần ngừng hoạt động" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "deactivate", meaning: "Dừng phân bổ tài nguyên và ngừng cấp traffic cho revision nhưng bảo lưu lịch sử để rollback khi cần." }
+    ],
+    examNotes: "💡 Best Practice: Không xóa revision lỗi ngay lập tức. Hãy `deactivate` để bảo lưu log và cấu hình cho buổi họp rút kinh nghiệm (Post-mortem Analysis).",
+    simulatedOutput: `{
+  "name": "ca-processor--20261021-01",
+  "properties": {
+    "active": false,
+    "healthState": "None",
+    "provisioningState": "Deprovisioned"
+  }
+}`
+  },
+  {
+    id: "l6-revision-jmespath",
+    level: 6,
+    title: "Lọc nhanh Active & Health State của Revisions bằng JMESPath",
+    difficulty: "Nâng cao",
+    category: "JMESPath & Monitoring",
+    mission: "Sử dụng kỹ thuật JMESPath Multi-hash Projection để lọc danh sách tất cả các revisions của app `<app-name>` trong `<rg>` thành bảng 3 cột: `name`, `active` (từ `properties.active`) và `health` (từ `properties.healthState`).",
+    expectedCommand: 'az containerapp revision list --name <app-name> --resource-group <rg> --query "[].{name:name,active:properties.active,health:properties.healthState}" -o table',
+    aliases: [
+      'az containerapp revision list --name <app-name> --resource-group <rg> --query "[].{name:name,active:properties.active,health:properties.healthState}" --output table',
+      'az containerapp revision list -n <app-name> -g <rg> --query "[].{name:name,active:properties.active,health:properties.healthState}" -o table',
+      'az containerapp revision list -n <app-name> -g <rg> --query "[].{name:name,active:properties.active,health:properties.healthState}" --output table',
+      'az containerapp revision list --resource-group <rg> --name <app-name> --query "[].{name:name,active:properties.active,health:properties.healthState}" -o table'
+    ],
+    tokens: ["az", "containerapp", "revision", "list", "--name", "<app-name>", "--resource-group", "<rg>", "--query", '"[].{name:name,active:properties.active,health:properties.healthState}"', "-o", "table"],
+    hints: [
+      "Lệnh bắt đầu bằng `az containerapp revision list`.",
+      "Cú pháp query là `--query \"[].{name:name,active:properties.active,health:properties.healthState}\"`.",
+      "Kết thúc bằng `-o table`."
+    ],
+    mentalModel: {
+      rule: 'az containerapp revision list ... --query "[].{name:name,active:properties.active,health:properties.healthState}" -o table',
+      breakdown: [
+        { part: "--query", role: "Multi-hash Projection", desc: "Chuyển đổi từng phần tử trong mảng revisions thành đối tượng mới có 3 thuộc tính" },
+        { part: "-o table", role: "Formatter", desc: "Hiển thị 3 thuộc tính dưới dạng 3 cột bảng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query", meaning: "Cú pháp `[].{Alias:property}` định dạng lại cấu trúc JSON trước khi xuất ra bảng." }
+    ],
+    examNotes: "Câu hỏi lọc JMESPath xuất hiện rất phổ biến trong đề thi AI-200 và DevOps Engineer để đánh giá kỹ năng trích xuất dữ liệu nhanh.",
+    simulatedOutput: `name                       active    health
+-------------------------  --------  ---------
+ca-processor--20261021-01  True      Healthy
+ca-processor--20261020-02  False     None`
+  },
+
+  // --- Phần B: Quản lý Vòng đời (Lifecycle) ---
+  {
+    id: "l6-lifecycle-stop",
+    level: 6,
+    title: "Dừng Container App (Stop để xử lý sự cố)",
+    difficulty: "Cơ bản",
+    category: "Lifecycle Management",
+    mission: "Để đảm bảo an toàn trong lúc xử lý sự cố nghiêm trọng hoặc bảo trì, hãy dừng hoàn toàn Container App `<app-name>` trong `<rg>` để không có replica nào khởi động.",
+    expectedCommand: "az containerapp stop --name <app-name> --resource-group <rg>",
+    aliases: [
+      "az containerapp stop -n <app-name> -g <rg>",
+      "az containerapp stop --resource-group <rg> --name <app-name>",
+      "az containerapp stop -g <rg> -n <app-name>"
+    ],
+    tokens: ["az", "containerapp", "stop", "--name", "<app-name>", "--resource-group", "<rg>"],
+    hints: [
+      "Lệnh dừng là `az containerapp stop`.",
+      "Truyền tham số `--name <app-name>` và `--resource-group <rg>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp stop --name <App> --resource-group <RG>",
+      breakdown: [
+        { part: "containerapp stop", role: "Lifecycle Action", desc: "Đình chỉ toàn bộ hoạt động của ứng dụng, scale về 0" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "stop", meaning: "Hạ số lượng replica về 0, ngưng tiếp nhận traffic ngoài Internet." }
+    ],
+    examNotes: "Khác với xóa tài nguyên, lệnh `stop` vẫn bảo toàn toàn bộ cấu hình, ingress domains và revision history.",
+    simulatedOutput: `{
+  "name": "ca-processor",
+  "properties": {
+    "provisioningState": "Succeeded",
+    "runningStatus": "Stopped"
+  }
+}`
+  },
+  {
+    id: "l6-lifecycle-start",
+    level: 6,
+    title: "Khởi động lại Container App (Start)",
+    difficulty: "Cơ bản",
+    category: "Lifecycle Management",
+    mission: "Sau khi khắc phục xong sự cố, hãy khởi động lại Container App `<app-name>` trong `<rg>` để tiếp tục phục vụ người dùng.",
+    expectedCommand: "az containerapp start --name <app-name> --resource-group <rg>",
+    aliases: [
+      "az containerapp start -n <app-name> -g <rg>",
+      "az containerapp start --resource-group <rg> --name <app-name>",
+      "az containerapp start -g <rg> -n <app-name>"
+    ],
+    tokens: ["az", "containerapp", "start", "--name", "<app-name>", "--resource-group", "<rg>"],
+    hints: [
+      "Lệnh khởi động là `az containerapp start`.",
+      "Truyền tham số `--name <app-name>` và `--resource-group <rg>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp start --name <App> --resource-group <RG>",
+      breakdown: [
+        { part: "containerapp start", role: "Lifecycle Action", desc: "Kích hoạt ứng dụng chuyển sang trạng thái Running" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "start", meaning: "Đưa ứng dụng trở lại trạng thái Running và bắt đầu tiếp nhận request." }
+    ],
+    examNotes: "Khi start, hệ thống sẽ tự động kích hoạt số lượng replicas tối thiểu dựa trên quy tắc scaling đã cấu hình.",
+    simulatedOutput: `{
+  "name": "ca-processor",
+  "properties": {
+    "provisioningState": "Succeeded",
+    "runningStatus": "Running"
+  }
+}`
+  },
+  {
+    id: "l6-lifecycle-restart",
+    level: 6,
+    title: "Restart Container App (Khởi động lại chu kỳ)",
+    difficulty: "Cơ bản",
+    category: "Lifecycle Management",
+    mission: "Khi ứng dụng bị treo hoặc gặp lỗi rò rỉ bộ nhớ tạm thời mà không thay đổi cấu hình mã nguồn, hãy khởi động lại toàn bộ replicas của app `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp restart --name <app-name> --resource-group <rg>",
+    aliases: [
+      "az containerapp restart -n <app-name> -g <rg>",
+      "az containerapp restart --resource-group <rg> --name <app-name>",
+      "az containerapp restart -g <rg> -n <app-name>"
+    ],
+    tokens: ["az", "containerapp", "restart", "--name", "<app-name>", "--resource-group", "<rg>"],
+    hints: [
+      "Lệnh restart là `az containerapp restart`.",
+      "Truyền tham số `--name <app-name>` và `--resource-group <rg>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp restart --name <App> --resource-group <RG>",
+      breakdown: [
+        { part: "containerapp restart", role: "Lifecycle Action", desc: "Tái khởi động tất cả pods/replicas hiện có" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "restart", meaning: "Tạo mới lại các container instance mà không làm thay đổi template hay sinh revision mới." }
+    ],
+    examNotes: "Dùng `restart` khi chỉ cần dọn dẹp bộ nhớ RAM tạm thời của tiến trình mà không làm đổi phiên bản cấu hình.",
+    simulatedOutput: `{
+  "name": "ca-processor",
+  "properties": {
+    "provisioningState": "Succeeded",
+    "runningStatus": "Running"
+  }
+}`
+  },
+
+  // --- Phần C: Chẩn đoán & Sửa lỗi (Troubleshooting) ---
+  {
+    id: "l6-troubleshoot-logs-tail",
+    level: 6,
+    title: "Log Streaming thời gian thực với cờ --follow",
+    difficulty: "Cơ bản",
+    category: "Troubleshooting",
+    mission: "Để bắt các sự kiện và lỗi stdout/stderr ngay khi chúng xảy ra (tương tự `tail -f`), hãy mở luồng truyền trực tiếp log (streaming) cho Container App `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp logs show --name <app-name> --resource-group <rg> --follow",
+    aliases: [
+      "az containerapp logs show -n <app-name> -g <rg> --follow",
+      "az containerapp logs show --name <app-name> --resource-group <rg> -f",
+      "az containerapp logs show -n <app-name> -g <rg> -f",
+      "az containerapp logs show --resource-group <rg> --name <app-name> --follow"
+    ],
+    tokens: ["az", "containerapp", "logs", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--follow"],
+    hints: [
+      "Lệnh xem log là `az containerapp logs show`.",
+      "Thêm cờ `--follow` (hoặc `-f`) để xem log liên tục thời gian thực."
+    ],
+    mentalModel: {
+      rule: "az containerapp logs show --name <App> --resource-group <RG> --follow",
+      breakdown: [
+        { part: "containerapp logs show", role: "Log Prober", desc: "Đọc log stdout/stderr của container" },
+        { part: "--follow", role: "Streaming Flag", desc: "Giữ kết nối mở để nhận log mới nhất theo thời gian thực" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--follow", meaning: "Giữ kết nối streaming mở liên tục (tương đương lệnh tail -f trong Linux)." }
+    ],
+    examNotes: "Đây là lệnh đầu tiên bạn cần chạy khi container gặp tình trạng crash ngay khi vừa khởi động (CrashLoopBackOff).",
+    simulatedOutput: `Connecting to the container logs...
+[2026-10-21 13:20:01] [INFO] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[2026-10-21 13:20:05] [INFO] Application startup complete.
+[2026-10-21 13:20:10] [INFO] 10.0.0.4:52310 - "GET /health HTTP/1.1" 200 OK`
+  },
+  {
+    id: "l6-troubleshoot-env-check",
+    level: 6,
+    title: "Chẩn đoán thiếu Biến môi trường (Env Vars Inspection)",
+    difficulty: "Trung bình",
+    category: "Troubleshooting",
+    mission: "Khi nghi ngờ ứng dụng bị crash do thiếu biến cấu hình hoặc secret, hãy trích xuất danh sách các biến môi trường của container đầu tiên trong app `<app-name>` (thuộc `<rg>`) dưới dạng bảng.",
+    expectedCommand: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].env" -o table',
+    aliases: [
+      'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].env" --output table',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.template.containers[0].env" -o table',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.template.containers[0].env" --output table',
+      'az containerapp show --name <app-name> --resource-group <rg> --query properties.template.containers[0].env -o table'
+    ],
+    tokens: ["az", "containerapp", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--query", '"properties.template.containers[0].env"', "-o", "table"],
+    hints: [
+      "Lệnh kiểm tra thông tin là `az containerapp show`.",
+      "Cờ lọc JMESPath là `--query \"properties.template.containers[0].env\"`.",
+      "Xuất kết quả dạng bảng với `-o table`."
+    ],
+    mentalModel: {
+      rule: 'az containerapp show ... --query "properties.template.containers[0].env" -o table',
+      breakdown: [
+        { part: "--query", role: "Path Extractor", desc: "Trỏ thẳng vào thuộc tính env của container đầu tiên" },
+        { part: "-o table", role: "Table Formatter", desc: "Hiển thị 2 cột name và value rõ ràng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "containers[0].env", meaning: "Mảng danh sách các cặp key-value biến môi trường được inject vào container." }
+    ],
+    examNotes: "Kiểm tra nhanh xem các biến nhạy cảm hoặc endpoint API đã được cấu hình đúng tên hay chưa.",
+    simulatedOutput: `Name               Value
+-----------------  -----------------
+PORT               8000
+AI_MODEL_NAME      gpt-4o-mini
+LOG_LEVEL          DEBUG`
+  },
+  {
+    id: "l6-troubleshoot-env-remove",
+    level: 6,
+    title: "Gây lỗi (Mô phỏng): Xóa biến môi trường để test",
+    difficulty: "Trung bình",
+    category: "Troubleshooting",
+    mission: "Trong bài lab mô phỏng tình huống sự cố (hoặc dọn dẹp cấu hình cũ), hãy sử dụng lệnh `az containerapp update` với cờ `--remove-env-vars` để xóa biến môi trường `<VAR_NAME>` khỏi app `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp update --name <app-name> --resource-group <rg> --remove-env-vars <VAR_NAME>",
+    aliases: [
+      "az containerapp update -n <app-name> -g <rg> --remove-env-vars <VAR_NAME>",
+      "az containerapp update --resource-group <rg> --name <app-name> --remove-env-vars <VAR_NAME>",
+      "az containerapp update -g <rg> -n <app-name> --remove-env-vars <VAR_NAME>"
+    ],
+    tokens: ["az", "containerapp", "update", "--name", "<app-name>", "--resource-group", "<rg>", "--remove-env-vars", "<VAR_NAME>"],
+    hints: [
+      "Lệnh cập nhật là `az containerapp update`.",
+      "Cờ xóa biến môi trường là `--remove-env-vars <VAR_NAME>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp update --name <App> --resource-group <RG> --remove-env-vars <VarName>",
+      breakdown: [
+        { part: "containerapp update", role: "App Config Modifier", desc: "Cập nhật lại cấu hình runtime của container app" },
+        { part: "--remove-env-vars", role: "Env Cleaner", desc: "Xóa một hoặc nhiều biến môi trường đã gán trước đó" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--remove-env-vars", meaning: "Danh sách tên các biến môi trường cần gỡ bỏ khỏi template của container." }
+    ],
+    examNotes: "Lưu ý rằng thao tác này sẽ kích hoạt tạo ra một Revision mới mà không còn biến môi trường này nữa.",
+    simulatedOutput: `{
+  "name": "ca-processor",
+  "properties": {
+    "latestRevisionName": "ca-processor--remove-env-01",
+    "provisioningState": "Succeeded"
+  }
+}`
+  },
+  {
+    id: "l6-troubleshoot-env-set",
+    level: 6,
+    title: "Sửa lỗi: Thêm hoặc Cập nhật lại Biến môi trường",
+    difficulty: "Trung bình",
+    category: "Troubleshooting",
+    mission: "Để sửa lỗi ứng dụng bị thiếu cấu hình, hãy bổ sung lại biến môi trường bằng cờ `--set-env-vars <VAR_NAME>=<value>` cho app `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp update --name <app-name> --resource-group <rg> --set-env-vars <VAR_NAME>=<value>",
+    aliases: [
+      "az containerapp update -n <app-name> -g <rg> --set-env-vars <VAR_NAME>=<value>",
+      "az containerapp update --resource-group <rg> --name <app-name> --set-env-vars <VAR_NAME>=<value>",
+      "az containerapp update -g <rg> -n <app-name> --set-env-vars <VAR_NAME>=<value>"
+    ],
+    tokens: ["az", "containerapp", "update", "--name", "<app-name>", "--resource-group", "<rg>", "--set-env-vars", "<VAR_NAME>=<value>"],
+    hints: [
+      "Lệnh là `az containerapp update`.",
+      "Cờ thiết lập biến môi trường là `--set-env-vars <VAR_NAME>=<value>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp update --name <App> --resource-group <RG> --set-env-vars <Key>=<Val>",
+      breakdown: [
+        { part: "--set-env-vars", role: "Env Injector", desc: "Thêm hoặc ghi đè cặp key=value vào biến môi trường" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--set-env-vars", meaning: "Cung cấp danh sách các biến theo cú pháp KEY=VALUE (hoặc KEY=secretref:SECRET_NAME)." }
+    ],
+    examNotes: "Khi thêm biến môi trường qua `--set-env-vars`, ACA sẽ tiến hành Zero-Downtime rolling update sang revision mới.",
+    simulatedOutput: `{
+  "name": "ca-processor",
+  "properties": {
+    "latestRevisionName": "ca-processor--set-env-02",
+    "provisioningState": "Succeeded"
+  }
+}`
+  },
+  {
+    id: "l6-troubleshoot-ingress-check",
+    level: 6,
+    title: "Chẩn đoán sai Port: Kiểm tra cấu hình Ingress (targetPort)",
+    difficulty: "Trung bình",
+    category: "Troubleshooting",
+    mission: "Nếu ứng dụng trả về mã lỗi 502 Bad Gateway khi truy cập domain, nguyên nhân thường do router Ingress trỏ sai cổng nội bộ. Hãy trích xuất cấu hình Ingress của app `<app-name>` (thuộc `<rg>`) dưới dạng YAML.",
+    expectedCommand: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.configuration.ingress" -o yaml',
+    aliases: [
+      'az containerapp show --name <app-name> --resource-group <rg> --query "properties.configuration.ingress" --output yaml',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.configuration.ingress" -o yaml',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.configuration.ingress" --output yaml',
+      'az containerapp show --name <app-name> --resource-group <rg> --query properties.configuration.ingress -o yaml'
+    ],
+    tokens: ["az", "containerapp", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--query", '"properties.configuration.ingress"', "-o", "yaml"],
+    hints: [
+      "Lệnh là `az containerapp show`.",
+      "Cờ trích xuất là `--query \"properties.configuration.ingress\"`.",
+      "Định dạng xuất là `-o yaml`."
+    ],
+    mentalModel: {
+      rule: 'az containerapp show ... --query "properties.configuration.ingress" -o yaml',
+      breakdown: [
+        { part: "--query properties.configuration.ingress", role: "Ingress Subtree", desc: "Trích xuất khối cấu hình định tuyến ingress" },
+        { part: "-o yaml", role: "YAML Formatter", desc: "Xuất cấu hình phân cấp dạng YAML dễ đọc" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "targetPort", meaning: "Cổng nội bộ mà container web server (như FastAPI, Node, Nginx) đang lắng nghe." }
+    ],
+    examNotes: "Cần đảm bảo `targetPort` trong Ingress khớp chính xác với cổng EXPOSE trong Dockerfile hoặc cổng mà ứng dụng bind.",
+    simulatedOutput: `allowInsecure: false
+external: true
+fqdn: ca-processor.bravecliff-123456.southeastasia.azurecontainerapps.io
+targetPort: 8080
+transport: auto`
+  },
+  {
+    id: "l6-troubleshoot-ingress-port",
+    level: 6,
+    title: "Sửa lỗi Port: Cập nhật lại Target Port cho Ingress",
+    difficulty: "Trung bình",
+    category: "Troubleshooting",
+    mission: "Sau khi phát hiện Ingress trỏ nhầm cổng, hãy cập nhật lại `--target-port <port>` cho Container App `<app-name>` trong `<rg>` bằng lệnh `az containerapp ingress update`.",
+    expectedCommand: "az containerapp ingress update --name <app-name> --resource-group <rg> --target-port <port>",
+    aliases: [
+      "az containerapp ingress update -n <app-name> -g <rg> --target-port <port>",
+      "az containerapp ingress update --resource-group <rg> --name <app-name> --target-port <port>",
+      "az containerapp ingress update -g <rg> -n <app-name> --target-port <port>"
+    ],
+    tokens: ["az", "containerapp", "ingress", "update", "--name", "<app-name>", "--resource-group", "<rg>", "--target-port", "<port>"],
+    hints: [
+      "Nhóm lệnh cấu hình router là `az containerapp ingress update`.",
+      "Chỉ định tham số `--target-port <port>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp ingress update --name <App> --resource-group <RG> --target-port <Port>",
+      breakdown: [
+        { part: "containerapp ingress update", role: "Ingress Controller", desc: "Cập nhật cấu hình router Envoy ingress" },
+        { part: "--target-port", role: "Port Mapping", desc: "Cổng đích mà container lắng nghe lưu lượng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--target-port", meaning: "Cổng đích mà traffic mạng từ Internet/VNet sẽ được chuyển tiếp vào trong container." }
+    ],
+    examNotes: "Lệnh `az containerapp ingress update` có hiệu lực ngay lập tức mà không cần build lại hay push lại container image.",
+    simulatedOutput: `{
+  "allowInsecure": false,
+  "external": true,
+  "fqdn": "ca-processor.bravecliff-123456.southeastasia.azurecontainerapps.io",
+  "targetPort": 8000,
+  "transport": "Auto"
+}`
+  },
+
+  // --- Phần D: Truy vấn Log Analytics (Log Lịch sử) ---
+  {
+    id: "l6-logs-workspace-id",
+    level: 6,
+    title: "Lấy Workspace ID của Log Analytics (customerId) dạng sạch",
+    difficulty: "Trung bình",
+    category: "Log Analytics",
+    mission: "Để truy vấn log lịch sử bằng KQL, bạn cần Workspace ID. Hãy trích xuất trường `customerId` từ Container App Environment `<env-name>` trong `<rg>` dưới dạng chuỗi sạch `-o tsv`.",
+    expectedCommand: "az containerapp env show --name <env-name> --resource-group <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId -o tsv",
+    aliases: [
+      "az containerapp env show --name <env-name> --resource-group <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId --output tsv",
+      "az containerapp env show -n <env-name> -g <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId -o tsv",
+      "az containerapp env show -n <env-name> -g <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId --output tsv",
+      "$WORKSPACE_ID = az containerapp env show --name <env-name> --resource-group <rg> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId -o tsv",
+      "az containerapp env show --resource-group <rg> --name <env-name> --query properties.appLogsConfiguration.logAnalyticsConfiguration.customerId -o tsv"
+    ],
+    tokens: ["az", "containerapp", "env", "show", "--name", "<env-name>", "--resource-group", "<rg>", "--query", "properties.appLogsConfiguration.logAnalyticsConfiguration.customerId", "-o", "tsv"],
+    hints: [
+      "Lệnh xem môi trường là `az containerapp env show`.",
+      "Truy vấn sâu vào `properties.appLogsConfiguration.logAnalyticsConfiguration.customerId`.",
+      "Dùng `-o tsv` để lấy chuỗi ID thuần túy không ngoặc kép."
+    ],
+    mentalModel: {
+      rule: "az containerapp env show ... --query properties.appLogsConfiguration...customerId -o tsv",
+      breakdown: [
+        { part: "containerapp env show", role: "Environment Inspector", desc: "Xem cấu hình ACA Environment" },
+        { part: "--query ...customerId -o tsv", role: "Clean String Extraction", desc: "Lấy đúng Workspace GUID sạch không dấu ngoặc kép" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "customerId", meaning: "Định danh định dạng GUID đại diện cho Log Analytics Workspace gắn liền với môi trường ACA." },
+      { param: "-o tsv", meaning: "Trích xuất giá trị thô, không chứa nháy kép, sẵn sàng gán vào biến $WORKSPACE_ID." }
+    ],
+    examNotes: "Lưu Workspace ID vào biến môi trường `$WORKSPACE_ID` trong PowerShell hoặc Bash để tái sử dụng cho các câu truy vấn KQL tiếp theo.",
+    simulatedOutput: "4a8f9b20-1234-4abc-9def-0123456789ab"
+  },
+  {
+    id: "l6-logs-kql-recent",
+    level: 6,
+    title: "Truy vấn 20 Log gần nhất qua KQL (Log Analytics)",
+    difficulty: "Nâng cao",
+    category: "KQL & Log Analytics",
+    mission: "Khi ứng dụng đã tắt hoặc gặp sự cố ngắt quãng trong quá khứ, hãy dùng lệnh `az monitor log-analytics query` cùng ngôn ngữ KQL để truy xuất 20 dòng log mới nhất của app `<app-name>` từ bảng `ContainerAppConsoleLogs_CL`.",
+    expectedCommand: 'az monitor log-analytics query -w $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" -o table',
+    aliases: [
+      'az monitor log-analytics query --workspace $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" -o table',
+      'az monitor log-analytics query -w $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" --output table',
+      'az monitor log-analytics query --workspace $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" --output table'
+    ],
+    tokens: ["az", "monitor", "log-analytics", "query", "-w", "$WORKSPACE_ID", "--analytics-query", '"ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20"', "-o", "table"],
+    hints: [
+      "Nhóm lệnh truy vấn nhật ký là `az monitor log-analytics query`.",
+      "Tham số workspace là `-w $WORKSPACE_ID` (hoặc `--workspace $WORKSPACE_ID`).",
+      "Truy vấn KQL lọc theo `where ContainerAppName_s == '<app-name>'` và lấy 2 cột `TimeGenerated, Log_s`."
+    ],
+    mentalModel: {
+      rule: 'az monitor log-analytics query -w <WorkspaceID> --analytics-query "<KQL>" -o table',
+      breakdown: [
+        { part: "az monitor log-analytics query", role: "Log Engine", desc: "Thực thi truy vấn KQL trên Azure Monitor" },
+        { part: "ContainerAppConsoleLogs_CL", role: "Table", desc: "Bảng lưu toàn bộ stdout/stderr của Azure Container Apps" },
+        { part: "where ContainerAppName_s", role: "KQL Filter", desc: "Lọc chính xác theo tên ứng dụng" },
+        { part: "project TimeGenerated, Log_s", role: "Projection", desc: "Chỉ chọn thời gian và nội dung log" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "ContainerAppConsoleLogs_CL", meaning: "Bảng Custom Log chuẩn của ACA chứa nhật ký giao diện dòng lệnh." },
+      { param: "Log_s", meaning: "Cột chứa chuỗi văn bản dòng nhật ký (message) được in ra từ container." }
+    ],
+    examNotes: "💡 KQL là kỹ năng cốt lõi trong đề thi Microsoft AI-200 khi hỏi về giám sát và chẩn đoán sự cố ứng dụng đám mây.",
+    simulatedOutput: `TimeGenerated             Log_s
+------------------------  -------------------------------------------------
+2026-10-21T13:45:10.123Z  [INFO] Processing document batch #42 completed.
+2026-10-21T13:45:09.987Z  [INFO] Received POST /v1/infer request from 10.0.0.5
+2026-10-21T13:45:05.456Z  [INFO] Health check probe succeeded.`
+  },
+  {
+    id: "l6-logs-kql-errors",
+    level: 6,
+    title: "Lọc nhanh các Log chứa lỗi (Error Filter KQL)",
+    difficulty: "Nâng cao",
+    category: "KQL & Troubleshooting",
+    mission: "Để khoanh vùng nhanh nguyên nhân gây lỗi giữa hàng ngàn dòng log, hãy viết truy vấn KQL lấy 20 log gần nhất của `<app-name>` trong đó cột `Log_s` có chứa chuỗi `'error'`.",
+    expectedCommand: 'az monitor log-analytics query -w $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' and Log_s contains \'error\' | order by TimeGenerated desc | take 20" -o table',
+    aliases: [
+      'az monitor log-analytics query --workspace $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' and Log_s contains \'error\' | order by TimeGenerated desc | take 20" -o table',
+      'az monitor log-analytics query -w $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' and Log_s contains \'error\' | order by TimeGenerated desc | take 20" --output table',
+      'az monitor log-analytics query --workspace $WORKSPACE_ID --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' and Log_s contains \'error\' | order by TimeGenerated desc | take 20" --output table'
+    ],
+    tokens: ["az", "monitor", "log-analytics", "query", "-w", "$WORKSPACE_ID", "--analytics-query", '"ContainerAppConsoleLogs_CL | where ContainerAppName_s == \'<app-name>\' and Log_s contains \'error\' | order by TimeGenerated desc | take 20"', "-o", "table"],
+    hints: [
+      "Sử dụng lệnh `az monitor log-analytics query -w $WORKSPACE_ID`.",
+      "Trong mệnh đề KQL, kết hợp điều kiện `and Log_s contains 'error'`.",
+      "Sắp xếp giảm dần theo thời gian `order by TimeGenerated desc | take 20`."
+    ],
+    mentalModel: {
+      rule: 'az monitor log-analytics query -w <WorkspaceID> --analytics-query "... and Log_s contains \'error\' ..." -o table',
+      breakdown: [
+        { part: "and Log_s contains 'error'", role: "Text Matcher", desc: "Tìm kiếm chuỗi 'error' không phân biệt hoa thường trong nội dung log" },
+        { part: "take 20", role: "Limit", desc: "Giới hạn 20 dòng mới nhất để tăng tốc độ truy vấn" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "contains", meaning: "Toán tử KQL tìm kiếm chuỗi con (case-insensitive substring match)." }
+    ],
+    examNotes: "Đây là câu lệnh thực chiến số 1 giúp DevOps / AI Engineer phát hiện ngay các lỗi như Out Of Memory (OOM), Unhandled Exception hay Connection Refused.",
+    simulatedOutput: `TimeGenerated             Log_s
+------------------------  -------------------------------------------------
+2026-10-21T13:40:22.789Z  [ERROR] ConnectionRefusedError: Unable to reach database host:5432
+2026-10-21T13:40:20.102Z  [ERROR] Failed to load configuration model: Key 'AI_MODEL_KEY' not found.`
+  },
+
+  // --- Phần E: Cấu hình Health Probes (Từ lý thuyết Module) ---
+  {
+    id: "l6-health-probes-inspect",
+    level: 6,
+    title: "Kiểm tra cấu hình Health Probes (Liveness & Readiness)",
+    difficulty: "Trung bình",
+    category: "Health Probes",
+    mission: "Cấu hình Health Probes thường được định nghĩa trong file YAML lúc deploy. Hãy dùng `az containerapp show` để kiểm tra các probes hiện có của container đầu tiên trong app `<app-name>` (thuộc `<rg>`) dưới dạng YAML.",
+    expectedCommand: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].probes" -o yaml',
+    aliases: [
+      'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].probes" --output yaml',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.template.containers[0].probes" -o yaml',
+      'az containerapp show -n <app-name> -g <rg> --query "properties.template.containers[0].probes" --output yaml',
+      'az containerapp show --name <app-name> --resource-group <rg> --query properties.template.containers[0].probes -o yaml'
+    ],
+    tokens: ["az", "containerapp", "show", "--name", "<app-name>", "--resource-group", "<rg>", "--query", '"properties.template.containers[0].probes"', "-o", "yaml"],
+    hints: [
+      "Lệnh kiểm tra là `az containerapp show`.",
+      "Cờ truy vấn JMESPath là `--query \"properties.template.containers[0].probes\"`.",
+      "Định dạng xuất là `-o yaml`."
+    ],
+    mentalModel: {
+      rule: 'az containerapp show ... --query "properties.template.containers[0].probes" -o yaml',
+      breakdown: [
+        { part: "--query ...containers[0].probes", role: "Probe Subtree", desc: "Trích xuất danh sách cấu hình kiểm tra sức khỏe của container" },
+        { part: "-o yaml", role: "YAML Formatter", desc: "Hiển thị type, path, port, periodSeconds rõ ràng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "probes", meaning: "Danh sách các cơ chế thăm dò sức khỏe định kỳ gồm Liveness, Readiness và Startup probes." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Liveness probe dùng để tự động khởi động lại container khi bị treo/deadlock; Readiness probe dùng để xác định container đã sẵn sàng tiếp nhận traffic định tuyến từ ingress hay chưa.",
+    simulatedOutput: `- failureThreshold: 3
+  httpGet:
+    path: /health/liveness
+    port: 8000
+    scheme: HTTP
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  type: Liveness
+- failureThreshold: 3
+  httpGet:
+    path: /health/readiness
+    port: 8000
+    scheme: HTTP
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  type: Readiness`
   }
 ];
 
@@ -1319,5 +2065,53 @@ export const QUIZ_QUESTIONS = [
     ],
     correctIndex: 1,
     explanation: "Tính năng Sidecar Containers trên Azure App Service sử dụng nhóm lệnh `az webapp sitecontainers create` với cờ `--sitecontainers-spec-file` để triển khai multi-container pod."
+  },
+  {
+    id: "q13",
+    question: "Tại sao khi cập nhật Container App trong môi trường Production, bạn NÊN sử dụng cú pháp Image Digest (`@sha256:...`) thay vì tag thông thường (`:latest` hoặc `:v1`)?",
+    options: [
+      "Vì Azure CLI không hỗ trợ cờ --image với tên tag.",
+      "Vì digest đại diện cho mã băm SHA256 bất biến của nội dung image, đảm bảo 100% tất cả replicas khởi tạo đều chạy chính xác cùng một phiên bản mã nguồn, loại bỏ hoàn toàn rủi ro tag bị đẩy đè (tampering) hoặc không đồng bộ.",
+      "Vì cú pháp digest giúp tải image nhanh gấp đôi so với dùng tag.",
+      "Vì digest giúp miễn phí dung lượng lưu trữ trên Azure Container Registry."
+    ],
+    correctIndex: 1,
+    explanation: "Một tag image (như `latest` hoặc `v1`) là một con trỏ có thể bị ghi đè nội dung bất kỳ lúc nào. Sử dụng SHA256 digest tạo ra tính bất biến tuyệt đối (Immutability), đảm bảo mọi container instance trong cụm ACA luôn chạy đúng bản build đã được kiểm thử."
+  },
+  {
+    id: "q14",
+    question: "Khi một Revision trong Azure Container Apps phát sinh sự cố nghiêm trọng, tại sao giải pháp chuẩn của Microsoft là chạy lệnh `az containerapp revision deactivate` thay vì xóa bỏ revision đó?",
+    options: [
+      "Vì Azure Container Apps không cho phép xóa bất kỳ revision nào.",
+      "Vì thao tác `deactivate` sẽ lập tức dừng tất cả replicas và ngắt traffic của revision lỗi, đồng thời bảo lưu cấu hình trong lịch sử để phục vụ phân tích nguyên nhân gốc rễ (Post-mortem) hoặc rollback an toàn.",
+      "Vì lệnh deactivate giúp giảm 50% chi phí đăng ký Azure.",
+      "Vì xóa revision sẽ làm mất toàn bộ Resource Group."
+    ],
+    correctIndex: 1,
+    explanation: "Vô hiệu hóa (`deactivate`) dừng việc tiêu tốn tài nguyên và ngắt traffic của revision lỗi ngay lập tức, nhưng vẫn bảo tồn các thông tin snapshot cấu hình và dữ liệu log lịch sử để kỹ sư điều tra nguyên nhân sự cố."
+  },
+  {
+    id: "q15",
+    question: "Trong Azure Log Analytics, bảng dữ liệu nào lưu trữ các luồng nhật ký bảng điều khiển (stdout / stderr) của các container đang hoạt động trong Azure Container Apps?",
+    options: [
+      "AppServiceConsoleLogs",
+      "ContainerAppConsoleLogs_CL",
+      "AzureDiagnostics",
+      "Syslog"
+    ],
+    correctIndex: 1,
+    explanation: "Bảng `ContainerAppConsoleLogs_CL` là bảng Custom Log chuyên dụng lưu trữ toàn bộ luồng xuất chuẩn (stdout/stderr) của các container trong môi trường Azure Container Apps."
+  },
+  {
+    id: "q16",
+    question: "Sự khác biệt bản chất giữa Liveness Probe và Readiness Probe trong cấu hình Health Probes của Azure Container Apps là gì?",
+    options: [
+      "Không có sự khác biệt nào giữa hai probe.",
+      "Liveness probe chỉ kiểm tra cổng CPU; Readiness probe chỉ kiểm tra bộ nhớ RAM.",
+      "Liveness probe kiểm tra xem ứng dụng có còn sống hay bị treo/deadlock để tự động khởi động lại container; trong khi Readiness probe kiểm tra xem ứng dụng đã sẵn sàng xử lý yêu cầu mạng hay chưa để cho phép Ingress chuyển tiếp traffic.",
+      "Liveness probe chỉ chạy trên hệ điều hành Windows; Readiness probe chỉ chạy trên Linux."
+    ],
+    correctIndex: 2,
+    explanation: "Liveness probe phát hiện tình trạng ứng dụng bị treo để restart container; Readiness probe phát hiện khi ứng dụng đã nạp xong mô hình/dữ liệu để bắt đầu nhận traffic từ Ingress router."
   }
 ];
