@@ -278,52 +278,111 @@ token = credential.get_token("https://management.azure.com/.default")
 print("Bearer token retrieved for Azure ARM API")
 `
     },
-    // Thêm vào mảng pythonSnippets hiện có
+    // 4. AKS Configuration API Client (Lab 02)
     {
-        id: "aks-client",
-        title: "AKS API Client",
-        description: "Client Python để test API trên AKS: health check, readiness, inference, streaming chat.",
+        id: "aks-config-client",
+        title: "4. AKS Config API Client (Health, Secrets, PVC Logs)",
+        description: "Console Client hoàn chỉnh tương tác với AKS Config API: kiểm tra Liveness /healthz, Readiness /readyz, xem Secrets an toàn, và đọc Log Summary từ Persistent Volume Claim.",
         category: "Azure Kubernetes Service",
-        filename: "aks_client.py",
-        code: `import requests
+        filename: "aks_config_client.py",
+        code: `"""
+Console application client tương tác với AKS Configuration API (AI-200 Lab 02).
+Hỗ trợ kiểm tra Liveness, Readiness, Secrets mask và tổng hợp Log từ PVC.
+"""
 
-# Lấy EXTERNAL-IP từ: kubectl get svc aks-api-service
-API_BASE_URL = "http://<EXTERNAL-IP>"
+import os
+import sys
+import httpx
+from dotenv import load_dotenv
 
-def check_health():
-    """Kiểm tra liveness - giống endpoint mà Kubernetes probe gọi."""
-    response = requests.get(f"{API_BASE_URL}/healthz", timeout=10)
-    response.raise_for_status()
-    return response.json()
+load_dotenv()
 
-def check_readiness():
-    """Kiểm tra readiness - xác nhận API kết nối được với Foundry."""
-    response = requests.get(f"{API_BASE_URL}/ready", timeout=30)
-    response.raise_for_status()
-    return response.json()
+API_ENDPOINT = os.getenv("API_ENDPOINT", "http://<EXTERNAL-IP>")
+TIMEOUT = 30
 
-def send_inference(prompt: str):
-    """Gửi inference request, nhận response đầy đủ."""
-    response = requests.post(
-        f"{API_BASE_URL}/inference",
-        json={"prompt": prompt},
-        timeout=60,
+def get_client() -> httpx.Client:
+    """Khởi tạo HTTP client với base URL và timeout chuẩn."""
+    return httpx.Client(
+        base_url=API_ENDPOINT,
+        timeout=httpx.Timeout(TIMEOUT),
+        headers={"Content-Type": "application/json"}
     )
-    response.raise_for_status()
-    return response.json()
 
-def stream_chat(prompt: str):
-    """Chat streaming - nhận response theo từng chunk."""
-    response = requests.post(
-        f"{API_BASE_URL}/chat",
-        json={"prompt": prompt},
-        stream=True,
-        timeout=120,
-    )
-    response.raise_for_status()
-    for chunk in response.iter_content(chunk_size=None):
-        if chunk:
-            print(chunk.decode("utf-8"), end="", flush=True)
+def check_api_health() -> bool:
+    """1. Kiểm tra Liveness Probe (/healthz) - lấy thông tin ConfigMap."""
+    try:
+        with get_client() as client:
+            res = client.get("/healthz")
+            if res.status_code == 200:
+                data = res.json()
+                print("✓ API Healthy & Alive!")
+                print(f"  Service: {data.get('service')}")
+                print(f"  Version: {data.get('version')} (ConfigMap)")
+                print(f"  Student: {data.get('student')} (ConfigMap)")
+                return True
+            print(f"✗ Health check failed: {res.status_code}")
+            return False
+    except Exception as e:
+        print(f"✗ Không thể kết nối tới AKS API: {e}")
+        return False
+
+def check_api_readiness() -> bool:
+    """2. Kiểm tra Readiness Probe (/readyz) - xác nhận Secrets & PVC."""
+    try:
+        with get_client() as client:
+            res = client.get("/readyz")
+            if res.status_code == 200:
+                data = res.json()
+                print("✓ API Ready để nhận Traffic!")
+                print(f"  Secrets loaded: {data.get('secrets_loaded')}")
+                print(f"  Persistent storage ready: {data.get('persistent_storage_ready')}")
+                print(f"  Log path: {data.get('log_path')} (PVC Mount)")
+                return True
+            print(f"✗ Readiness check failed: {res.status_code}")
+            return False
+    except Exception as e:
+        print(f"✗ Lỗi kết nối: {e}")
+        return False
+
+def view_secrets_masked():
+    """3. Kiểm tra Secrets (/secrets) - hiển thị giá trị đã được mask."""
+    try:
+        with get_client() as client:
+            res = client.get("/secrets")
+            if res.status_code == 200:
+                details = res.json().get("details", {})
+                print("✓ Kubernetes Secrets Details (Masked):")
+                for key, val in details.items():
+                    print(f"  [{key}] Loaded: {val.get('loaded')}, Value: {val.get('value')}")
+            else:
+                print(f"✗ Không lấy được secrets: {res.status_code}")
+    except Exception as e:
+        print(f"✗ Lỗi: {e}")
+
+def view_log_summary():
+    """4. Tổng hợp Logs (/logs) lưu trên PersistentVolumeClaim Azure Disk."""
+    try:
+        with get_client() as client:
+            res = client.get("/logs")
+            if res.status_code == 200:
+                data = res.json()
+                print("✓ Persistent Volume Log Summary:")
+                print(f"  Log file: {data.get('log_file')}")
+                print(f"  Total requests: {data.get('total_requests')}")
+                print("  Requests by endpoint:")
+                for ep, count in data.get('endpoints', {}).items():
+                    print(f"    {ep}: {count} lần")
+            else:
+                print(f"✗ Không lấy được logs: {res.status_code}")
+    except Exception as e:
+        print(f"✗ Lỗi: {e}")
+
+if __name__ == "__main__":
+    print(f"Connecting to AKS API at: {API_ENDPOINT}")
+    check_api_health()
+    check_api_readiness()
+    view_secrets_masked()
+    view_log_summary()
 `,
     },
 ];

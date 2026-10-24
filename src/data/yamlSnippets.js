@@ -1,38 +1,120 @@
-// YAML Manifests cho bài lab AKS - AI-200
+// YAML Manifests cho bài lab AKS: 02-aks-configure-container (Microsoft AI-200)
 export const yamlSnippets = [
   {
+    id: "configmap-yaml",
+    title: "1. ConfigMap (k8s/configmap.yaml)",
+    description: "Lưu trữ cấu hình ứng dụng không nhạy cảm (Student Name, API Version, Log Path) cho aks-config-api.",
+    category: "Configuration",
+    filename: "configmap.yaml",
+    code: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  labels:
+    app: aks-config-api # Label for the AKS configuration API
+data:
+  # Store non-sensitive configuration values
+  STUDENT_NAME: "AI200Student"
+  API_VERSION: "1.0.0"
+  LOG_PATH: "/var/log/api" # Path for API logs`,
+  },
+  {
+    id: "secrets-yaml",
+    title: "2. Secrets (k8s/secrets.yaml)",
+    description: "Lưu trữ thông tin nhạy cảm (API Endpoint bí mật, Access Key) sử dụng stringData tự động encode base64.",
+    category: "Security",
+    filename: "secrets.yaml",
+    code: `apiVersion: v1
+kind: Secret
+metadata:
+  name: api-secrets
+  labels:
+    app: aks-config-api
+type: Opaque
+stringData:
+  # Store sensitive credentials as base64-encoded values
+  secret-endpoint: "SecretEndpointValue"
+  secret-access-key: "SecretAccessKey123456"`,
+  },
+  {
+    id: "pvc-yaml",
+    title: "3. PersistentVolumeClaim (k8s/pvc.yaml)",
+    description: "Yêu cầu lưu trữ bền vững Azure Disk (managed-csi, 1Gi) để lưu log file không bị mất khi Pod restart.",
+    category: "Storage",
+    filename: "pvc.yaml",
+    code: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: api-logs-pvc
+  labels:
+    app: aks-config-api # Label for the AKS configuration API
+spec:
+  accessModes:
+    - ReadWriteOnce  # Allow single pod to mount volume for read/write
+  resources:
+    requests:
+      storage: 1Gi  # Request minimum Azure Disk size
+  storageClassName: managed-csi  # Use Azure Disk CSI driver (default)
+  volumeMode: Filesystem  # Default mode`,
+  },
+  {
     id: "deployment-yaml",
-    title: "Deployment (aks-api)",
-    description: "Định nghĩa Deployment với 1 replica, liveness probe HTTP và resource limits cho AI Inference API.",
+    title: "4. Deployment (k8s/deployment.yaml)",
+    description: "Khởi tạo Pod API tích hợp ConfigMap envFrom, Secret env, VolumeMounts cho log storage, Liveness & Readiness probe.",
     category: "Workload",
     filename: "deployment.yaml",
     code: `apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aks-api
+  name: aks-config-api
   labels:
-    app: aks-api
+    app: aks-config-api # Label for the AKS configuration API
     version: v1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: aks-api
+      app: aks-config-api
       version: v1
   template:
     metadata:
       labels:
-        app: aks-api
+        app: aks-config-api
         version: v1
     spec:
       containers:
       - name: api
-        image: <ACR_NAME>.azurecr.io/aks-api:latest
+        image: <YOUR_ACR_ENDPOINT>/aks-config-api:latest
         imagePullPolicy: Always
         ports:
         - name: http
           containerPort: 8000
           protocol: TCP
+
+        # Inject environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: api-config
+
+        # Inject environment variables from Secrets
+        env:
+        - name: SECRET_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: secret-endpoint
+        - name: SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: secret-access-key
+
+        # Attach persistent volume for logs
+        volumeMounts:
+        - name: log-storage
+          mountPath: /var/log/api
+
+        # Liveness probe - checks if container is alive
         livenessProbe:
           httpGet:
             path: /healthz
@@ -41,162 +123,18 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
-        envFrom:
-        - configMapRef:
-            name: aks-api-config
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"`,
-  },
-  {
-    id: "service-yaml",
-    title: "Service (LoadBalancer)",
-    description: "Expose API ra Internet qua Azure Load Balancer trên cổng 80 → container port 8000.",
-    category: "Networking",
-    filename: "service.yaml",
-    code: `apiVersion: v1
-kind: Service
-metadata:
-  name: aks-api-service
-  labels:
-    app: aks-api
-  annotations:
-    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
-spec:
-  type: LoadBalancer
-  selector:
-    app: aks-api
-    version: v1
-  ports:
-  - name: http
-    port: 80
-    targetPort: http
-    protocol: TCP
-  sessionAffinity: None`,
-  },
-  {
-    id: "configmap-yaml",
-    title: "ConfigMap (cấu hình API)",
-    description: "Lưu trữ các biến môi trường không nhạy cảm: tên model, endpoint AI, max tokens.",
-    category: "Configuration",
-    filename: "configmap.yaml",
-    code: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: aks-api-config
-  labels:
-    app: aks-api
-data:
-  MODEL_NAME: "gpt-4o-mini"
-  AI_ENDPOINT: "https://<foundry-project>.openai.azure.com/"
-  MAX_TOKENS: "1024"
-  LOG_LEVEL: "INFO"
-  PORT: "8000"`,
-  },
-  {
-    id: "hpa-yaml",
-    title: "HorizontalPodAutoscaler (HPA)",
-    description: "Tự động scale số replica từ 1 đến 5 dựa trên mức CPU trung bình 70%.",
-    category: "Scaling",
-    filename: "hpa.yaml",
-    code: `apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: aks-api-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: aks-api
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70`,
-  },
-  {
-    id: "ingress-yaml",
-    title: "Ingress (NGINX)",
-    description: "Định tuyến traffic HTTP vào Service qua Ingress Controller — hỗ trợ path-based routing.",
-    category: "Networking",
-    filename: "ingress.yaml",
-    code: `apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: aks-api-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: aks-api.<EXTERNAL_IP>.nip.io
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: aks-api-service
-            port:
-              name: http`,
-  },
-  {
-    id: "all-in-one",
-    title: "Full Deploy (tất cả trong 1 file)",
-    description: "Triển khai toàn bộ: ConfigMap + Deployment + Service trong một lần apply duy nhất.",
-    category: "Full Stack",
-    filename: "aks-full-deploy.yaml",
-    code: `# ── ConfigMap ─────────────────────────────────────
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: aks-api-config
-data:
-  MODEL_NAME: "gpt-4o-mini"
-  PORT: "8000"
----
-# ── Deployment ────────────────────────────────────
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: aks-api
-  labels:
-    app: aks-api
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: aks-api
-  template:
-    metadata:
-      labels:
-        app: aks-api
-    spec:
-      containers:
-      - name: api
-        image: <ACR_NAME>.azurecr.io/aks-api:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8000
-          name: http
-        envFrom:
-        - configMapRef:
-            name: aks-api-config
-        livenessProbe:
+
+        # Readiness probe - checks if container is ready to serve traffic
+        readinessProbe:
           httpGet:
-            path: /healthz
+            path: /readyz
             port: http
-          initialDelaySeconds: 10
-          periodSeconds: 30
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Resource limits
         resources:
           requests:
             memory: "256Mi"
@@ -204,21 +142,65 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
----
-# ── Service ───────────────────────────────────────
-apiVersion: v1
+
+      # Volume definition for persistent storage
+      volumes:
+      - name: log-storage # Volume for API logs
+        persistentVolumeClaim:
+          claimName: api-logs-pvc # PVC for API logs`,
+  },
+  {
+    id: "service-yaml",
+    title: "5. Service (k8s/service.yaml)",
+    description: "Mở cổng công khai ra Internet qua Azure Public LoadBalancer (Port 80 -> Target Port 8000).",
+    category: "Networking",
+    filename: "service.yaml",
+    code: `apiVersion: v1
 kind: Service
 metadata:
-  name: aks-api-service
+  name: aks-config-api-service
   labels:
-    app: aks-api
+    app: aks-config-api
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"  # Use public load balancer
 spec:
-  type: LoadBalancer
-  selector:
-    app: aks-api
-  ports:
-  - port: 80
-    targetPort: http
-    protocol: TCP`,
+  type: LoadBalancer  # Expose service externally via Azure Load Balancer
+  selector:  # Route traffic to pods matching these labels
+    app: aks-config-api
+    version: v1
+  ports:  # Map external port to container port
+  - name: http
+    port: 80  # External port for incoming traffic
+    targetPort: http  # Forward to container's http port (8000)
+    protocol: TCP
+  sessionAffinity: None  # Distribute requests across all pods`,
   },
+  {
+    id: "deploy-all-script",
+    title: "6. Script triển khai chuẩn Lab (deploy.sh)",
+    description: "Thứ tự thực thi các lệnh kubectl chuẩn trong bài lab để tạo cấu hình, storage, workload và service.",
+    category: "Full Stack",
+    filename: "deploy.sh",
+    code: `#!/usr/bin/env bash
+# Quy trình apply manifests chuẩn bài lab 02 AKS Configure
+set -e
+
+echo "[1/5] Applying ConfigMap..."
+kubectl apply -f k8s/configmap.yaml
+
+echo "[2/5] Applying Secrets..."
+kubectl apply -f k8s/secrets.yaml
+
+echo "[3/5] Applying PersistentVolumeClaim..."
+kubectl apply -f k8s/pvc.yaml
+
+echo "[4/5] Applying Deployment..."
+kubectl apply -f k8s/deployment.yaml
+
+echo "[5/5] Creating LoadBalancer Service..."
+kubectl apply -f k8s/service.yaml
+
+echo "Waiting for External IP..."
+kubectl get svc aks-config-api-service -w`,
+  }
 ];

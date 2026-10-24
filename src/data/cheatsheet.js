@@ -466,57 +466,106 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
   },
   {
     id: "level-7-aks",
-    title: "Level 7: Azure Kubernetes Service (AKS) - Deploy AI Inference API",
+    title: "Level 7: Azure Kubernetes Service (AKS) - Cấu hình nâng cao (Bài Lab AKS Configure - 15 bài)",
     badge: "Level 7",
-    summary: "Đăng ký Provider, lấy credentials kubectl, kiểm tra Deployment/Service/Pod và xem log chẩn đoán trong AKS cluster.",
+    summary: "Thực hành cấu hình Kubernetes chuyên sâu: Quản trị workload kubectl cơ bản, ConfigMap lưu cấu hình, Secrets bảo mật credentials và PersistentVolumeClaim lưu trữ log bền vững.",
     items: [
+      // --- Phần A: kubectl cơ bản (5 bài) ---
       {
-        title: "Đăng ký Provider Microsoft.CognitiveServices (Microsoft Foundry / AI model)",
-        desc: "Kích hoạt Resource Provider cho Azure AI / Microsoft Foundry trước khi tạo tài nguyên AI model:",
-        code: "az provider register --namespace Microsoft.CognitiveServices",
-        note: "Lab AKS: Bắt buộc nếu Subscription chưa bao giờ dùng Azure AI Services. Chạy song song với lệnh đăng ký AKS."
-      },
-      {
-        title: "Đăng ký Provider Microsoft.ContainerService (AKS)",
-        desc: "Kích hoạt Resource Provider cho Azure Kubernetes Service trước khi tạo cluster:",
-        code: "az provider register --namespace Microsoft.ContainerService",
-        note: "Lab AKS: Tránh lỗi 'Namespace not registered' khi tạo AKS cluster. Kiểm tra trạng thái bằng: az provider show --namespace Microsoft.ContainerService --query registrationState -o tsv"
-      },
-      {
-        title: "Lấy Credentials AKS & Cấu hình kubectl",
-        desc: "Tải kubeconfig của cluster về máy và merge vào ~/.kube/config để kubectl có thể giao tiếp với cluster:",
+        title: "1. Lấy Credentials AKS & Cấu hình kubectl",
+        desc: "Tải chứng thực cluster về máy và tự động merge vào ~/.kube/config để giao tiếp với AKS API Server:",
         code: "az aks get-credentials --resource-group <rg> --name <cluster-name>",
-        note: "Lab AKS: Sau lệnh này, mọi lệnh kubectl sẽ tự động trỏ đến cluster được chỉ định. Thêm --overwrite-existing nếu bị conflict."
+        note: "Lab AKS (Phần A): Sau lệnh này, kubectl sẽ tự động trỏ đến cụm AKS vừa tạo. Thêm cờ --overwrite-existing nếu bị xung đột context cũ."
       },
       {
-        title: "Kiểm tra trạng thái Deployment & Service",
+        title: "2. Kiểm tra trạng thái Deployment & Service",
         desc: "Liệt kê nhanh tất cả Deployment và Service đang chạy trong namespace hiện tại:",
         code: "kubectl get deploy,svc",
-        note: "Lab AKS: Cột READY (ví dụ 1/1) cho biết số replica đang sẵn sàng. Cột EXTERNAL-IP của Service type LoadBalancer sẽ hiện IP công cộng để gọi API."
+        note: "Lab AKS (Phần A): Cột READY (1/1) cho biết số replica sẵn sàng. Cột EXTERNAL-IP của Service LoadBalancer sẽ cung cấp IP công khai."
       },
       {
-        title: "Kiểm tra tiến trình Rollout của Deployment",
-        desc: "Theo dõi quá trình rolling update của Deployment aks-api cho đến khi hoàn tất:",
-        code: "kubectl rollout status deploy/aks-api",
-        note: "Lab AKS: Lệnh này chặn terminal cho đến khi rollout thành công hoặc timeout. Hữu ích khi verify sau kubectl apply."
+        title: "3. Kiểm tra tiến trình Rollout Deployment",
+        desc: "Theo dõi tiến trình rolling update của Deployment aks-config-api cho đến khi hoàn tất:",
+        code: "kubectl rollout status deploy/aks-config-api",
+        note: "Lab AKS (Phần A): Lệnh này chặn terminal cho đến khi các replica cập nhật hoàn tất hoặc báo lỗi nếu timeout/crash."
       },
       {
-        title: "Liệt kê tất cả Pod đang chạy",
-        desc: "Xem danh sách pod, trạng thái (Running/Pending/Error) và số lần restart:",
+        title: "4. Liệt kê tất cả Pod đang chạy",
+        desc: "Xem danh sách pod, trạng thái thực thi (Running/Pending/CrashLoopBackOff) và số lần restart:",
         code: "kubectl get pods",
-        note: "Lab AKS: Thêm -o wide để xem thêm Node và IP của từng pod. Thêm -w để watch real-time."
+        note: "Lab AKS (Phần A): Thêm cờ -o wide để xem thêm địa chỉ IP nội bộ và tên Node k8s mà Pod đang được phân bổ."
       },
       {
-        title: "Xem chi tiết Pod (Debug Events & Config)",
-        desc: "Xem toàn bộ thông tin pod: image, biến môi trường, events, lý do crash (dùng khi debug):",
-        code: "kubectl describe pod <pod-name>",
-        note: "Lab AKS: Phần Events ở cuối output là nơi đầu tiên cần nhìn khi pod không khởi động được — lỗi ImagePullBackOff, OOMKilled hay CrashLoopBackOff đều xuất hiện tại đây."
-      },
-      {
-        title: "Xem Log của Pod (stdout/stderr)",
-        desc: "Đọc nhật ký stdout/stderr của container chính trong pod:",
+        title: "5. Xem Log của Pod (stdout/stderr)",
+        desc: "Đọc nhật ký xuất chuẩn từ container bên trong Pod:",
         code: "kubectl logs <pod-name>",
-        note: "Lab AKS: Thêm -f để stream log real-time (như tail -f). Thêm --previous để xem log của lần chạy trước khi pod bị crash."
+        note: "Lab AKS (Phần A): Thêm cờ -f để stream log theo thời gian thực (real-time stream). Thêm --previous để đọc log trước khi Pod bị restart."
+      },
+
+      // --- Phần B: ConfigMap (4 bài) ---
+      {
+        title: "6. Tạo ConfigMap từ file YAML",
+        desc: "Khởi tạo tài nguyên ConfigMap từ file manifest k8s/configmap.yaml:",
+        code: "kubectl apply -f k8s/configmap.yaml",
+        note: "Lab AKS (Phần B): Chứa các biến cấu hình không nhạy cảm như STUDENT_NAME, API_VERSION và LOG_PATH."
+      },
+      {
+        title: "7. Xem danh sách ConfigMap trong Cluster",
+        desc: "Liệt kê tất cả ConfigMap đang có trong namespace:",
+        code: "kubectl get configmap",
+        note: "Lab AKS (Phần B): Có thể viết tắt là 'kubectl get cm'. Cột DATA cho biết số lượng cặp key-value được lưu trữ."
+      },
+      {
+        title: "8. Xem chi tiết cấu hình ConfigMap",
+        desc: "Hiển thị toàn bộ dữ liệu key-value và metadata của ConfigMap api-config:",
+        code: "kubectl describe configmap api-config",
+        note: "Lab AKS (Phần B): Dùng để xác minh các giá trị cấu hình STUDENT_NAME và LOG_PATH đã nạp đúng định dạng."
+      },
+      {
+        title: "9. Rolling Restart Deployment nạp lại cấu hình",
+        desc: "Khởi động lại tuần tự các replica của Deployment để nạp lại biến từ ConfigMap vừa sửa:",
+        code: "kubectl rollout restart deployment aks-config-api",
+        note: "Lab AKS (Phần B): Khi cập nhật ConfigMap, Pod không tự động cập nhật biến môi trường, lệnh này kích hoạt rolling update an toàn zero-downtime."
+      },
+
+      // --- Phần C: Secrets (3 bài) ---
+      {
+        title: "10. Tạo Secret từ file YAML",
+        desc: "Khởi tạo tài nguyên Secret từ manifest k8s/secrets.yaml:",
+        code: "kubectl apply -f k8s/secrets.yaml",
+        note: "Lab AKS (Phần C): Sử dụng trường stringData để k8s tự động mã hóa chuỗi nhạy cảm sang định dạng base64 trong cluster."
+      },
+      {
+        title: "11. Xem danh sách Secrets trong Cluster",
+        desc: "Liệt kê các Secret đang hoạt động trong namespace:",
+        code: "kubectl get secrets",
+        note: "Lab AKS (Phần C): Cột TYPE (Opaque) và DATA (số lượng key bí mật đã lưu như secret-endpoint, secret-access-key)."
+      },
+      {
+        title: "12. Trích xuất và Decode Secret Base64",
+        desc: "Lấy giá trị mã hóa base64 của key bí mật bằng JSONPath:",
+        code: "kubectl get secret api-secrets -o jsonpath=\"{.data.secret-endpoint}\"",
+        note: "Lab AKS (Phần C): Trên terminal Linux/macOS có thể pipe tiếp `| base64 --decode` hoặc PowerShell `[System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(...))` để giải mã."
+      },
+
+      // --- Phần D: PersistentVolumeClaim (3 bài) ---
+      {
+        title: "13. Tạo PersistentVolumeClaim từ file YAML",
+        desc: "Yêu cầu cấp phát vùng lưu trữ đĩa Azure Disk bền vững từ manifest k8s/pvc.yaml:",
+        code: "kubectl apply -f k8s/pvc.yaml",
+        note: "Lab AKS (Phần D): Yêu cầu volume 1Gi với storageClassName: managed-csi và accessModes: ReadWriteOnce."
+      },
+      {
+        title: "14. Kiểm tra trạng thái PersistentVolumeClaim",
+        desc: "Xem danh sách và trạng thái gắn kết (Bound / Pending) của các PVC:",
+        code: "kubectl get pvc",
+        note: "Lab AKS (Phần D): Trạng thái 'Bound' xác nhận Azure Disk CSI driver đã cấp phát thành công Volume và gắn kết với PVC."
+      },
+      {
+        title: "15. Xem chi tiết thông số PVC & Azure Disk Storage",
+        desc: "Kiểm tra chi tiết volume capacity, access modes, storage class và events của PVC api-logs-pvc:",
+        code: "kubectl describe pvc api-logs-pvc",
+        note: "Lab AKS (Phần D): Dùng để xác minh volume đã sẵn sàng được mount vào đường dẫn /var/log/api bên trong Pod container."
       }
     ]
   }
