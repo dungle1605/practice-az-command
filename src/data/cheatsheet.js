@@ -29,9 +29,9 @@ $APP_URL = az webapp show --name $env:APP_NAME --query defaultHostName --output 
         title: "3. JMESPath Multi-hash Projection: Lọc dữ liệu bảng gọn gàng",
         desc: "Dùng cú pháp `--query \"[].{Setting:name, Value:value}\"` để định dạng lại các trường dữ liệu JSON thành bảng 2 cột trực quan khi danh sách quá dài.",
         code: `az webapp config appsettings list \\
-    --name $env:APP_NAME \\
-    --query "[].{Setting:name, Value:value}" \\
-    --output table`,
+--name $env:APP_NAME \\
+--query "[].{Setting:name, Value:value}" \\
+--output table`,
         note: "Cú pháp Multi-hash Projection xuất hiện thường xuyên trong đề thi khi hỏi về lọc dữ liệu Azure CLI."
       },
       {
@@ -280,10 +280,10 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         title: "JMESPath nâng cao: Lọc nhanh Active & Health State của Revisions",
         desc: "Dùng Multi-hash Projection để lọc nhanh danh sách 3 cột name, active, healthState:",
         code: `az containerapp revision list \\
-    --name <app-name> \\
-    --resource-group <rg> \\
-    --query "[].{name:name,active:properties.active,health:properties.healthState}" \\
-    -o table`,
+--name <app-name> \\
+--resource-group <rg> \\
+--query "[].{name:name,active:properties.active,health:properties.healthState}" \\
+-o table`,
         note: "Lab 4: Cú pháp trích xuất bảng chuyên nghiệp dành cho kỹ sư SRE và DevOps."
       },
       {
@@ -350,16 +350,16 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         title: "Truy vấn 20 log gần nhất qua KQL (Log Analytics)",
         desc: "Truy vấn log lịch sử từ bảng ContainerAppConsoleLogs_CL ngay cả khi replica đã tắt:",
         code: `az monitor log-analytics query -w $WORKSPACE_ID \\
-    --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" \\
-    -o table`,
+--analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' | project TimeGenerated, Log_s | order by TimeGenerated desc | take 20" \\
+-o table`,
         note: "Lab 4: Bảng ContainerAppConsoleLogs_CL lưu trữ toàn bộ stdout/stderr của Azure Container Apps."
       },
       {
         title: "Truy vấn log lỗi qua KQL (Error Filter)",
         desc: "Lọc nhanh các dòng nhật ký có chứa chuỗi 'error' trong 20 bản ghi mới nhất:",
         code: `az monitor log-analytics query -w $WORKSPACE_ID \\
-    --analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' and Log_s contains 'error' | order by TimeGenerated desc | take 20" \\
-    -o table`,
+--analytics-query "ContainerAppConsoleLogs_CL | where ContainerAppName_s == '<app-name>' and Log_s contains 'error' | order by TimeGenerated desc | take 20" \\
+-o table`,
         note: "Lab 4: Toán tử contains trong KQL không phân biệt chữ hoa chữ thường."
       },
       {
@@ -372,15 +372,15 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         title: "Khởi tạo Container App với System Managed Identity & Secrets (Lab 1 ACA)",
         desc: "Tạo Container App với System-assigned Managed Identity. Cờ --registry-identity system tự động gán quyền AcrPull cho identity:",
         code: `az containerapp create \\
-    --name <app-name> \\
-    --resource-group <rg> \\
-    --environment <env-name> \\
-    --image <registry>/<image> \\
-    --ingress external \\
-    --target-port <port> \\
-    --env-vars MODEL_NAME=$MODEL_NAME \\
-    --registry-server <registry> \\
-    --registry-identity system`,
+--name <app-name> \\
+--resource-group <rg> \\
+--environment <env-name> \\
+--image <registry>/<image> \\
+--ingress external \\
+--target-port <port> \\
+--env-vars MODEL_NAME=$MODEL_NAME \\
+--registry-server <registry> \\
+--registry-identity system`,
         note: "Lab 1 (ACA): Cờ --registry-identity system tự động gán quyền AcrPull cho identity mà không cần cấu hình admin user."
       },
       {
@@ -447,13 +447,13 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         title: "Khởi tạo Session Pool cho Python Code Interpreter (Lab Dynamic Sessions)",
         desc: "Tạo Session Pool cho Python code interpreter với sandbox cô lập mạng:",
         code: `az containerapp sessionpool create \\
-    --name <pool-name> \\
-    --resource-group <rg> \\
-    --location <region> \\
-    --container-type PythonLTS \\
-    --max-sessions 5 \\
-    --cooldown-period 300 \\
-    --network-status EgressDisabled`,
+--name <pool-name> \\
+--resource-group <rg> \\
+--location <region> \\
+--container-type PythonLTS \\
+--max-sessions 5 \\
+--cooldown-period 300 \\
+--network-status EgressDisabled`,
         note: "Lab Dynamic Sessions: --network-status EgressDisabled chặn toàn bộ egress ra Internet, bảo vệ an toàn khi chạy mã do LLM sinh ra."
       },
       {
