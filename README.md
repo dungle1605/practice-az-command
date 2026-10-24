@@ -15,7 +15,7 @@
 
 ## 🌟 Điểm nổi bật của Ứng dụng
 
-1. **Lộ trình phân cấp độ tăng dần (6 Levels Progression - 63 Bài Thực Hành)**:
+1. **Lộ trình phân cấp độ tăng dần (7 Levels Progression)**:
    - **Level 1: Nhập môn & Môi trường (6 bài)**: Đăng nhập Headless (`az login --use-device-code`), đăng ký Resource Provider (`Microsoft.ContainerRegistry`, `Microsoft.Web`), nạp biến môi trường tự động (`. .\.env.ps1`), gán biến thủ công (`$env:ACR_NAME="..."`), cấu hình Resource Group mặc định (`az config set defaults.group`).
    - **Level 2: Azure Container Registry (7 bài)**: Build Image trên Cloud qua ACR Tasks (`az acr build`), chạy thử container Smoke Test (`az acr run`), liệt kê Repository & Tags, kiểm tra Digest SHA256 (`az acr manifest list-metadata`), khóa Image Bất biến (`--write-enabled false`), xem lịch sử build (`az acr task list-runs`).
    - **Level 3: App Service & Container Web App (5 bài)**: Tạo App Service Plan Linux gói `P0v3`, tạo Web App từ container image, cập nhật Container Settings (`az webapp config container set`), trích xuất URL sạch (`--query defaultHostName -o tsv`), xem Log trực tiếp thời gian thực (`az webapp log tail`).
@@ -31,6 +31,11 @@
      - *Phần G (4 bài - Bổ sung Lab 1 ACA)*: Xác minh Deployment gồm trích xuất FQDN sạch (`$FQDN = az containerapp show ... -o tsv`), gọi health endpoint (`Invoke-RestMethod -Uri "https://$FQDN/health"`), gọi root endpoint kiểm tra secret (`Invoke-RestMethod -Uri "https://$FQDN/"`), và test document processing endpoint (`Invoke-RestMethod ... -Body (Get-Content -Raw document.txt)`).
      - *Phần H (3 bài - Bổ sung Lab 1 ACA)*: Troubleshooting chuyên sâu gồm kiểm tra System Managed Identity đã bật (`az containerapp identity show`), liệt kê xác nhận secrets đã tạo (`az containerapp secret list -o table`), và stream logs real-time chẩn đoán lỗi khởi động (`az containerapp logs show -n <app-name> -g <rg> --follow`).
      - *Phần I (3 bài - Bổ sung Lab Dynamic Sessions)*: AI Code Interpreter & Sandboxing gồm cài đặt extension preview (`az extension add --name containerapp --upgrade --allow-preview true --yes`), khởi tạo Session Pool cô lập mạng (`az containerapp sessionpool create ... --network-status EgressDisabled`), và phân quyền thực thi sandbox cho AI Agent (`az role assignment create --role "Azure ContainerApps Session Executor"`).
+   - **Level 7: Azure Kubernetes Service (AKS) - Cấu hình nâng cao (Bài Lab AKS Configure - 15 bài)**:
+     - *Phần A (5 bài - kubectl cơ bản)*: Lấy credentials AKS (`az aks get-credentials`), kiểm tra Deployment & Service (`kubectl get deploy,svc`), kiểm tra rollout (`kubectl rollout status`), liệt kê pods (`kubectl get pods`), xem log pod (`kubectl logs <pod-name>`).
+     - *Phần B (4 bài - ConfigMap)*: Tạo ConfigMap từ YAML (`kubectl apply -f k8s/configmap.yaml`), xem ConfigMap (`kubectl get configmap`), mô tả chi tiết (`kubectl describe configmap`), rolling restart để nạp lại cấu hình (`kubectl rollout restart deployment`).
+     - *Phần C (3 bài - Secrets)*: Tạo Secret từ YAML (`kubectl apply -f k8s/secrets.yaml`), xem Secret (`kubectl get secrets`), decode Secret base64 (`kubectl get secret -o jsonpath`).
+     - *Phần D (3 bài - PersistentVolumeClaim)*: Tạo PVC từ YAML (`kubectl apply -f k8s/pvc.yaml`), kiểm tra trạng thái PVC (`kubectl get pvc`), xem chi tiết PVC (`kubectl describe pvc`).
 
 2. **⭐ 4 Mẹo phòng thi AI-200 & Thực chiến Cốt lõi**:
    - **Dùng `-o tsv`:** Trích xuất giá trị chuỗi thuần (không chứa dấu ngoặc kép) để gán vào biến hoặc endpoint.
@@ -44,8 +49,8 @@
    - Tự động khử dấu tiếng Việt trong tên cờ lệnh (ví dụ `--úse` ➔ `--use`).
    - Dropdown gợi ý thông minh IntelliSense ngay tại vị trí con trỏ (nhấn <kbd>Tab ↹</kbd> hoặc click để tự động điền).
 
-4. **Chế độ Trắc nghiệm (19 Câu hỏi tình huống AI-200)**:
-   - Các câu hỏi tình huống thực tế bám sát chuẩn đề thi Microsoft Certified: Azure AI Engineer Associate (AI-200) bao gồm cả chuyên đề Azure Container Apps và KQL.
+4. **Chế độ Trắc nghiệm (21 Câu hỏi tình huống AI-200)**:
+   - Các câu hỏi tình huống thực tế bám sát chuẩn đề thi Microsoft Certified: Azure AI Engineer Associate (AI-200) bao gồm cả chuyên đề Azure Container Apps, Dynamic Sessions, KQL và Azure Kubernetes Service (AKS).
    - Phản hồi giải thích chi tiết ngay lập tức cho từng lựa chọn.
 
 5. **Cẩm nang tra cứu tích hợp (Live Cheatsheet)**:
