@@ -6,6 +6,7 @@
 import { LEVELS, CHALLENGES, QUIZ_QUESTIONS } from './data/challenges.js';
 import { CHEATSHEET_SECTIONS } from './data/cheatsheet.js';
 import { pythonSnippets } from './data/pythonSnippets.js';
+import { yamlSnippets } from './data/yamlSnippets.js';
 import { validateCommand } from './utils/commandValidator.js';
 import { sounds } from './utils/audio.js';
 
@@ -131,6 +132,9 @@ class AzMasterApp {
 
     // Python Snippets View Element
     this.pythonSnippetsContainer = document.getElementById('python-snippets-container');
+
+    // YAML Snippets View Element
+    this.yamlSnippetsContainer = document.getElementById('yaml-snippets-container');
 
     // Toast Container
     this.toastContainer = document.getElementById('toast-container');
@@ -274,6 +278,8 @@ class AzMasterApp {
       this.renderCheatsheet();
     } else if (tabName === 'python') {
       this.renderPythonSnippets();
+    } else if (tabName === 'yaml') {
+      this.renderYamlSnippets();
     } else if (tabName === 'stats') {
       this.renderStats();
     }
@@ -286,6 +292,7 @@ class AzMasterApp {
     this.renderQuiz();
     this.renderCheatsheet();
     this.renderPythonSnippets();
+    this.renderYamlSnippets();
     this.renderStats();
   }
 
@@ -1041,6 +1048,88 @@ class AzMasterApp {
         navigator.clipboard.writeText(code);
         sounds.playKeypress();
         this.showToast('Đã copy Python snippet vào clipboard!', 'success');
+      });
+    });
+  }
+
+  // ==========================================================================
+  // YAML MANIFESTS ENGINE (AKS / KUBERNETES)
+  // ==========================================================================
+  renderYamlSnippets() {
+    if (!this.yamlSnippetsContainer) return;
+
+    const CATEGORY_COLORS = {
+      'Workload':      { bg: 'rgba(31, 111, 235, 0.18)', color: '#58a6ff', border: 'rgba(56, 139, 253, 0.4)' },
+      'Networking':    { bg: 'rgba(13, 65, 157, 0.25)', color: '#79c0ff', border: 'rgba(88, 166, 255, 0.4)' },
+      'Configuration': { bg: 'rgba(46, 160, 67, 0.18)', color: '#56d364', border: 'rgba(63, 185, 80, 0.4)' },
+      'Scaling':       { bg: 'rgba(158, 106, 3, 0.22)', color: '#e3b341', border: 'rgba(210, 153, 34, 0.4)' },
+      'Full Stack':    { bg: 'rgba(110, 64, 201, 0.22)', color: '#bc8cff', border: 'rgba(163, 113, 247, 0.4)' }
+    };
+
+    this.yamlSnippetsContainer.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        ${yamlSnippets.map((snippet) => {
+          const style = CATEGORY_COLORS[snippet.category] || { bg: 'rgba(56, 139, 253, 0.15)', color: '#58a6ff', border: '#30363d' };
+          return `
+          <div class="cheatsheet-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h3 style="margin: 0 0 0.35rem 0; font-size: 1.15rem; color: #f0f6fc;">${this.escapeHtml(snippet.title)}</h3>
+                <p style="margin: 0; color: #8b949e; font-size: 0.88rem; line-height: 1.5;">${this.escapeHtml(snippet.description)}</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <span class="badge" style="background: ${style.bg}; color: ${style.color}; border: 1px solid ${style.border}; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;">
+                  ${this.escapeHtml(snippet.category)}
+                </span>
+                ${snippet.filename ? `<span style="font-family: monospace; font-size: 0.78rem; color: #8b949e; background: #161b22; border: 1px solid #30363d; padding: 3px 8px; border-radius: 4px;">📄 ${this.escapeHtml(snippet.filename)}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="code-block-wrapper" style="position: relative; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-top: 0.75rem;">
+              <div style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 8px;">
+                <button class="btn-copy-snippet btn-download-yaml" data-filename="${this.escapeHtml(snippet.filename || 'manifest.yaml')}" data-index="${this.escapeHtml(snippet.id)}" style="background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer;">
+                  ⬇️ Tải file
+                </button>
+                <button class="btn-copy-snippet btn-copy-yaml" data-index="${this.escapeHtml(snippet.id)}">
+                  Copy YAML
+                </button>
+              </div>
+              <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e6edf3; overflow-x: auto; max-height: 480px; padding-top: 1.5rem;"><code>${this.escapeHtml(snippet.code)}</code></pre>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    `;
+
+    // Bind copy and download buttons
+    const copyBtns = this.yamlSnippetsContainer.querySelectorAll('.btn-copy-yaml');
+    copyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-index');
+        const snippet = yamlSnippets.find(s => s.id === id);
+        if (snippet) {
+          navigator.clipboard.writeText(snippet.code);
+          sounds.playKeypress();
+          this.showToast('Đã copy YAML manifest vào clipboard!', 'success');
+        }
+      });
+    });
+
+    const downloadBtns = this.yamlSnippetsContainer.querySelectorAll('.btn-download-yaml');
+    downloadBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-index');
+        const snippet = yamlSnippets.find(s => s.id === id);
+        if (snippet) {
+          const blob = new Blob([snippet.code], { type: 'text/yaml' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = snippet.filename || 'manifest.yaml';
+          a.click();
+          URL.revokeObjectURL(url);
+          this.showToast(`Đã tải xuống file ${snippet.filename}!`, 'success');
+        }
       });
     });
   }

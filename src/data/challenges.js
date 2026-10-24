@@ -52,6 +52,14 @@ export const LEVELS = [
     badge: "ACA Specialist",
     color: "#f59e0b",
     icon: "⚡"
+  },
+  {
+    id: 7,
+    name: "Level 7: Azure Kubernetes Service (AKS)",
+    tagline: "Deploy AI Inference API, Kết nối Kubeconfig, Kiểm soát Rollout & Debug Pods",
+    badge: "AKS & K8s Master",
+    color: "#326ce5",
+    icon: "☸️"
   }
 ];
 
@@ -2433,6 +2441,298 @@ Extension 'containerapp' 1.1.0b1 successfully installed.`
   "roleDefinitionName": "Azure ContainerApps Session Executor",
   "scope": "/subscriptions/.../resourceGroups/rg-ai200/providers/Microsoft.App/sessionPools/pool-python-sandbox"
 }`
+  },
+
+  // ==========================================
+  // LEVEL 7: AZURE KUBERNETES SERVICE (AKS)
+  // DEPLOY AI INFERENCE API & K8S OPS
+  // ==========================================
+  {
+    id: "l7-provider-register-cognitive",
+    level: 7,
+    title: "Đăng ký Resource Provider Microsoft Foundry (AI)",
+    difficulty: "Cơ bản",
+    category: "Resource Provider",
+    mission: "Trước khi triển khai và kết nối ứng dụng AI Inference API với Microsoft Foundry model, bạn cần đảm bảo subscription đã đăng ký Resource Provider `Microsoft.CognitiveServices`.",
+    expectedCommand: "az provider register --namespace Microsoft.CognitiveServices",
+    aliases: [
+      "az provider register --namespace Microsoft.CognitiveServices",
+      "az provider register -n Microsoft.CognitiveServices"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.CognitiveServices"],
+    hints: [
+      "Sử dụng nhóm lệnh `az provider register`.",
+      "Chỉ định namespace `--namespace Microsoft.CognitiveServices` (hoặc `-n`)."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace Microsoft.CognitiveServices",
+      breakdown: [
+        { part: "provider register", role: "Resource Provider Enabler", desc: "Kích hoạt dịch vụ Cognitive Services trong subscription" },
+        { part: "Microsoft.CognitiveServices", role: "Target Namespace", desc: "Không gian cung cấp dịch vụ Microsoft Foundry & Azure AI" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--namespace", meaning: "Tên định danh không gian dịch vụ của Microsoft Foundry & Azure AI Services." }
+    ],
+    examNotes: "💡 Đăng ký Resource Provider chỉ cần thực hiện 1 lần duy nhất cho mỗi subscription trước khi tạo bất kỳ AI resource nào.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../providers/Microsoft.CognitiveServices",
+  "namespace": "Microsoft.CognitiveServices",
+  "registrationPolicy": "RegistrationRequired",
+  "registrationState": "Registering"
+}`
+  },
+  {
+    id: "l7-provider-register-aks",
+    level: 7,
+    title: "Đăng ký Resource Provider Azure Kubernetes Service (AKS)",
+    difficulty: "Cơ bản",
+    category: "Resource Provider",
+    mission: "Đăng ký Resource Provider `Microsoft.ContainerService` để kích hoạt khả năng tạo và quản lý cụm máy chủ Azure Kubernetes Service trong subscription.",
+    expectedCommand: "az provider register --namespace Microsoft.ContainerService",
+    aliases: [
+      "az provider register --namespace Microsoft.ContainerService",
+      "az provider register -n Microsoft.ContainerService"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.ContainerService"],
+    hints: [
+      "Sử dụng lệnh `az provider register`.",
+      "Namespace cần đăng ký cho AKS là `Microsoft.ContainerService`."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace Microsoft.ContainerService",
+      breakdown: [
+        { part: "Microsoft.ContainerService", role: "AKS Engine", desc: "Provider chịu trách nhiệm cấp phát cluster AKS, node pool và control plane" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "Microsoft.ContainerService", meaning: "Resource provider quản lý dịch vụ AKS và Azure Container Instances." }
+    ],
+    examNotes: "💡 Dùng lệnh `az provider show -n Microsoft.ContainerService --query registrationState` để kiểm tra trạng thái Registered.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../providers/Microsoft.ContainerService",
+  "namespace": "Microsoft.ContainerService",
+  "registrationPolicy": "RegistrationRequired",
+  "registrationState": "Registering"
+}`
+  },
+  {
+    id: "l7-aks-get-credentials",
+    level: 7,
+    title: "Lấy Credentials AKS & Cấu hình kubectl",
+    difficulty: "Cơ bản",
+    category: "Cluster Access",
+    mission: "Tải chứng thực (credentials) của cụm AKS `<cluster-name>` trong resource group `<rg>` về máy local và tự động merge vào `~/.kube/config` để `kubectl` có thể kết nối tới cluster.",
+    expectedCommand: "az aks get-credentials --resource-group <rg> --name <cluster-name>",
+    aliases: [
+      "az aks get-credentials --resource-group <rg> --name <cluster-name>",
+      "az aks get-credentials -g <rg> -n <cluster-name>",
+      "az aks get-credentials --name <cluster-name> --resource-group <rg>",
+      "az aks get-credentials -n <cluster-name> -g <rg>"
+    ],
+    tokens: ["az", "aks", "get-credentials", "--resource-group", "<rg>", "--name", "<cluster-name>"],
+    hints: [
+      "Dùng lệnh `az aks get-credentials`.",
+      "Cung cấp resource group qua `--resource-group <rg>` và tên cluster qua `--name <cluster-name>`."
+    ],
+    mentalModel: {
+      rule: "az aks get-credentials --resource-group <RG> --name <ClusterName>",
+      breakdown: [
+        { part: "get-credentials", role: "Kubeconfig Syncer", desc: "Kéo cert & token xác thực merge vào file cấu hình kubectl cục bộ" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "get-credentials", meaning: "Tải cert x509 và context k8s về ~/.kube/config để kết nối CLI kubectl." },
+      { param: "--overwrite-existing", meaning: "Ghi đè entry cũ nếu context cluster trùng tên trong kubeconfig." }
+    ],
+    examNotes: "💡 Trong kịch bản RBAC Entra ID, lệnh này cấu hình kubelogin để xác thực người dùng qua Azure AD Bearer token.",
+    simulatedOutput: `Merged "<cluster-name>" as current context in C:\\Users\\user\\.kube\\config`
+  },
+  {
+    id: "l7-kubectl-get-deploy-svc",
+    level: 7,
+    title: "Kiểm tra trạng thái Deployment & Service",
+    difficulty: "Cơ bản",
+    category: "Kubectl Workloads",
+    mission: "Sau khi apply manifest, hãy sử dụng công cụ `kubectl` để kiểm tra đồng thời trạng thái của tất cả Deployment và Service đang chạy trong namespace hiện tại.",
+    expectedCommand: "kubectl get deploy,svc",
+    aliases: [
+      "kubectl get deploy,svc",
+      "kubectl get deploy, svc",
+      "kubectl get deployments,services",
+      "kubectl get deployment,service"
+    ],
+    tokens: ["kubectl", "get", "deploy,svc"],
+    hints: [
+      "Bắt đầu bằng `kubectl get`.",
+      "Ghép hai tài nguyên ngăn cách bằng dấu phẩy: `deploy,svc`."
+    ],
+    mentalModel: {
+      rule: "kubectl get deploy,svc",
+      breakdown: [
+        { part: "deploy,svc", role: "Multi-resource query", desc: "Liệt kê song song cả Deployment pods controller và Service load balancer" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "deploy", meaning: "Viết tắt của Deployments (bộ điều khiển replica pods)." },
+      { param: "svc", meaning: "Viết tắt của Services (cung cấp IP nội bộ hoặc External LoadBalancer)." }
+    ],
+    examNotes: "💡 Kiểm tra cột EXTERNAL-IP của Service để lấy địa chỉ IP công cộng dùng test API inference.",
+    simulatedOutput: `NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/aks-api   1/1     1            1           3m45s
+
+NAME                      TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE
+service/aks-api-service   LoadBalancer   10.0.128.45    20.240.112.56    80:31245/TCP   3m45s
+service/kubernetes        ClusterIP      10.0.0.1       <none>           443/TCP        2d4h`
+  },
+  {
+    id: "l7-kubectl-rollout-status",
+    level: 7,
+    title: "Kiểm tra tiến trình Rollout của Deployment",
+    difficulty: "Trung bình",
+    category: "Deployment Rollout",
+    mission: "Theo dõi tiến trình triển khai cập nhật của Deployment `aks-api` cho đến khi tất cả các pod hoàn tất khởi động và sẵn sàng phục vụ.",
+    expectedCommand: "kubectl rollout status deploy/aks-api",
+    aliases: [
+      "kubectl rollout status deploy/aks-api",
+      "kubectl rollout status deployment/aks-api",
+      "kubectl rollout status deploy aks-api",
+      "kubectl rollout status deployment aks-api"
+    ],
+    tokens: ["kubectl", "rollout", "status", "deploy/aks-api"],
+    hints: [
+      "Dùng nhóm lệnh `kubectl rollout status`.",
+      "Chỉ định resource target `deploy/aks-api`."
+    ],
+    mentalModel: {
+      rule: "kubectl rollout status deploy/<name>",
+      breakdown: [
+        { part: "rollout status", role: "Watcher", desc: "Chặn dòng lệnh và theo dõi quá trình rolling update cho tới khi 100% replicas healthy" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "rollout status", meaning: "Trả về exit code 0 khi rollout hoàn tất hoặc exit code khác 0 nếu timeout/thất bại." }
+    ],
+    examNotes: "💡 Thường dùng trong CI/CD pipeline (Azure Pipelines / GitHub Actions) ngay sau lệnh kubectl apply để verify deployment.",
+    simulatedOutput: `Waiting for deployment "aks-api" rollout to finish: 0 of 1 updated replicas are available...
+deployment "aks-api" successfully rolled out`
+  },
+  {
+    id: "l7-kubectl-get-pods",
+    level: 7,
+    title: "Liệt kê danh sách Pods đang chạy",
+    difficulty: "Cơ bản",
+    category: "Pod Inspection",
+    mission: "Kiểm tra toàn bộ danh sách các Pod trong cluster, xem số lượng container sẵn sàng (READY), trạng thái (STATUS) và số lần khởi động lại (RESTARTS).",
+    expectedCommand: "kubectl get pods",
+    aliases: [
+      "kubectl get pods",
+      "kubectl get pod",
+      "kubectl get po"
+    ],
+    tokens: ["kubectl", "get", "pods"],
+    hints: [
+      "Lệnh liệt kê pods cơ bản: `kubectl get pods`."
+    ],
+    mentalModel: {
+      rule: "kubectl get pods",
+      breakdown: [
+        { part: "get pods", role: "Pod Lister", desc: "Xem nhanh trạng thái sức khỏe của các đơn vị thực thi nhỏ nhất trong K8s" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "pods", meaning: "Có thể viết tắt là po hoặc pod." }
+    ],
+    examNotes: "💡 Thêm cờ `-o wide` để xem Node IP mà Pod đang được schedule chạy trên đó.",
+    simulatedOutput: `NAME                       READY   STATUS    RESTARTS   AGE
+aks-api-7b848df749-d8s2l   1/1     Running   0          5m12s`
+  },
+  {
+    id: "l7-kubectl-describe-pod",
+    level: 7,
+    title: "Xem chi tiết Pod & Debug sự kiện lỗi (Events)",
+    difficulty: "Trung bình",
+    category: "Debugging & Troubleshooting",
+    mission: "Khi Pod không khởi động được, hãy dùng `kubectl` để xem chi tiết thông số cấu hình, biến môi trường, resource limits và danh sách các sự kiện (Events) của `<pod-name>`.",
+    expectedCommand: "kubectl describe pod <pod-name>",
+    aliases: [
+      "kubectl describe pod <pod-name>",
+      "kubectl describe pods <pod-name>",
+      "kubectl describe po <pod-name>"
+    ],
+    tokens: ["kubectl", "describe", "pod", "<pod-name>"],
+    hints: [
+      "Sử dụng lệnh `kubectl describe`.",
+      "Chỉ định loại tài nguyên `pod` và tên `<pod-name>`."
+    ],
+    mentalModel: {
+      rule: "kubectl describe pod <PodName>",
+      breakdown: [
+        { part: "describe pod", role: "Inspector & Debugger", desc: "Cung cấp cái nhìn toàn diện từ k8s control plane: mount volume, env, probes và events lỗi" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "Events", meaning: "Mục quan trọng nhất ở cuối output, hiển thị lỗi ImagePullBackOff, CrashLoopBackOff hay Liveness Probe Failed." }
+    ],
+    examNotes: "💡 Trong kỳ thi AI-200, khi câu hỏi đề cập pod bị treo không rõ nguyên nhân, `kubectl describe pod` luôn là bước đầu tiên để đọc Events.",
+    simulatedOutput: `Name:             aks-api-7b848df749-d8s2l
+Namespace:        default
+Node:             aks-nodepool1-12345678-vmss000000/10.240.0.4
+Status:           Running
+IP:               10.244.0.18
+Containers:
+  api:
+    Image:          myacr.azurecr.io/aks-api:latest
+    Port:           8000/TCP
+    Liveness:       http-get http://:8000/healthz delay=10s timeout=5s period=30s #success=1 #failure=3
+    Limits:
+      cpu:          500m
+      memory:       512Mi
+    Requests:
+      cpu:          250m
+      memory:       256Mi
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  5m20s  default-scheduler  Successfully assigned default/aks-api-7b848df749-d8s2l to aks-nodepool1-vmss000000
+  Normal  Pulled     5m18s  kubelet            Container image "myacr.azurecr.io/aks-api:latest" already present on machine
+  Normal  Created    5m18s  kubelet            Created container api
+  Normal  Started    5m17s  kubelet            Started container api`
+  },
+  {
+    id: "l7-kubectl-logs",
+    level: 7,
+    title: "Xem nhật ký Container (stdout/stderr) của Pod",
+    difficulty: "Cơ bản",
+    category: "Observability",
+    mission: "Xem luồng nhật ký ứng dụng (stdout/stderr) của container đang chạy trong pod `<pod-name>` để xác nhận model AI và web server FastAPI đã khởi tạo thành công.",
+    expectedCommand: "kubectl logs <pod-name>",
+    aliases: [
+      "kubectl logs <pod-name>",
+      "kubectl log <pod-name>",
+      "kubectl logs -f <pod-name>"
+    ],
+    tokens: ["kubectl", "logs", "<pod-name>", "-f"],
+    hints: [
+      "Sử dụng lệnh `kubectl logs`.",
+      "Truyền tên pod mục tiêu `<pod-name>`."
+    ],
+    mentalModel: {
+      rule: "kubectl logs <PodName>",
+      breakdown: [
+        { part: "kubectl logs", role: "Log Streamer", desc: "Đọc log trực tiếp từ runtime container trong pod" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-f", meaning: "Stream log liên tục theo thời gian thực (tương tự tail -f trong Linux)." },
+      { param: "--previous", meaning: "Xem log của instance container trước đó nếu vừa bị crash/restart." }
+    ],
+    examNotes: "💡 Nếu pod có nhiều container (multi-container sidecar), thêm cờ `-c <container-name>` để chỉ định container cần xem log.",
+    simulatedOutput: `INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Foundry Client initialized successfully with endpoint: https://models.inference.ai.azure.com
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`
   }
 ];
 
@@ -2667,6 +2967,30 @@ export const QUIZ_QUESTIONS = [
     ],
     correctIndex: 0,
     explanation: "Cấu hình `--network-status EgressDisabled` sẽ vô hiệu hóa hoàn toàn lưu lượng gửi ra ngoài (egress) của container sandbox, ngăn chặn triệt để mã do LLM sinh ra thực hiện các hành vi rò rỉ dữ liệu hoặc tấn công mạng bên ngoài."
+  },
+  {
+    id: "q20",
+    question: "Để tải tệp kubeconfig của cụm Azure Kubernetes Service (AKS) về máy và tự động hợp nhất với cấu hình kubectl cục bộ, câu lệnh Azure CLI nào được sử dụng?",
+    options: [
+      "az aks connect --name <cluster>",
+      "az aks get-credentials --resource-group <rg> --name <cluster-name>",
+      "az aks download-config --cluster <cluster>",
+      "az k8s kubeconfig pull --name <cluster>"
+    ],
+    correctIndex: 1,
+    explanation: "Lệnh `az aks get-credentials` tải chứng thực cluster và tự động cấu hình ngữ cảnh (context) trong tệp `~/.kube/config`, cho phép công cụ `kubectl` giao tiếp trực tiếp với AKS API server."
+  },
+  {
+    id: "q21",
+    question: "Khi một Pod triển khai API suy luận AI trên AKS gặp sự cố CrashLoopBackOff hoặc ImagePullBackOff, lệnh kubectl nào cung cấp thông tin chi tiết nhất về các sự kiện lỗi (Events) để chẩn đoán nguyên nhân?",
+    options: [
+      "kubectl top pod <pod-name>",
+      "kubectl get pods -w",
+      "kubectl describe pod <pod-name>",
+      "kubectl delete pod <pod-name>"
+    ],
+    correctIndex: 2,
+    explanation: "Lệnh `kubectl describe pod <pod-name>` hiển thị chi tiết toàn bộ thông số kỹ thuật, biến môi trường, mount volume, trạng thái probe và đặc biệt là phần 'Events' ở cuối liệt kê chi tiết mã lỗi từ Kubelet."
   }
 ];
 

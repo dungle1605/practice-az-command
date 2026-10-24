@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Terminal from "./components/Terminal";
 import Cheatsheet from "./components/Cheatsheet";
 import PythonSnippets from "./components/PythonSnippets";
+import YamlSnippets from "./components/YamlSnippets";
 
 function App() {
   const [activeTab, setActiveTab] = useState("terminal");
@@ -38,13 +39,13 @@ function App() {
               AZ-COMMAND <span style={{ color: "#00d2ff" }}>MASTER</span>
             </h1>
             <div style={{ fontSize: "12px", color: "#8b949e" }}>
-              Microsoft AI-200 • Azure CLI & Dynamic Sessions Practice Lab
+              Microsoft AI-200 • Azure CLI, AKS & Dynamic Sessions Practice Lab
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <nav style={{ display: "flex", gap: "8px", background: "#161b22", padding: "4px", borderRadius: "10px", border: "1px solid #30363d" }}>
+        <nav style={{ display: "flex", gap: "8px", background: "#161b22", padding: "4px", borderRadius: "10px", border: "1px solid #30363d", flexWrap: "wrap" }}>
           <button
             onClick={() => setActiveTab("terminal")}
             style={{
@@ -93,6 +94,22 @@ function App() {
           >
             🐍 Python Snippets
           </button>
+          <button
+            onClick={() => setActiveTab("yaml")}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "8px",
+              border: "none",
+              background: activeTab === "yaml" ? "#0078d4" : "transparent",
+              color: activeTab === "yaml" ? "#ffffff" : "#8b949e",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            📄 YAML Manifests
+          </button>
         </nav>
       </header>
 
@@ -101,6 +118,7 @@ function App() {
         {activeTab === "terminal" && <Terminal />}
         {activeTab === "cheatsheet" && <Cheatsheet />}
         {activeTab === "python" && <PythonSnippets />}
+        {activeTab === "yaml" && <YamlSnippets />}
       </main>
     </div>
   );

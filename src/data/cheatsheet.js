@@ -463,5 +463,61 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         note: "Lab Dynamic Sessions: Cấp quyền tối thiểu cho phép agent tạo phiên và thực thi code trong sandbox."
       }
     ]
+  },
+  {
+    id: "level-7-aks",
+    title: "Level 7: Azure Kubernetes Service (AKS) - Deploy AI Inference API",
+    badge: "Level 7",
+    summary: "Đăng ký Provider, lấy credentials kubectl, kiểm tra Deployment/Service/Pod và xem log chẩn đoán trong AKS cluster.",
+    items: [
+      {
+        title: "Đăng ký Provider Microsoft.CognitiveServices (Microsoft Foundry / AI model)",
+        desc: "Kích hoạt Resource Provider cho Azure AI / Microsoft Foundry trước khi tạo tài nguyên AI model:",
+        code: "az provider register --namespace Microsoft.CognitiveServices",
+        note: "Lab AKS: Bắt buộc nếu Subscription chưa bao giờ dùng Azure AI Services. Chạy song song với lệnh đăng ký AKS."
+      },
+      {
+        title: "Đăng ký Provider Microsoft.ContainerService (AKS)",
+        desc: "Kích hoạt Resource Provider cho Azure Kubernetes Service trước khi tạo cluster:",
+        code: "az provider register --namespace Microsoft.ContainerService",
+        note: "Lab AKS: Tránh lỗi 'Namespace not registered' khi tạo AKS cluster. Kiểm tra trạng thái bằng: az provider show --namespace Microsoft.ContainerService --query registrationState -o tsv"
+      },
+      {
+        title: "Lấy Credentials AKS & Cấu hình kubectl",
+        desc: "Tải kubeconfig của cluster về máy và merge vào ~/.kube/config để kubectl có thể giao tiếp với cluster:",
+        code: "az aks get-credentials --resource-group <rg> --name <cluster-name>",
+        note: "Lab AKS: Sau lệnh này, mọi lệnh kubectl sẽ tự động trỏ đến cluster được chỉ định. Thêm --overwrite-existing nếu bị conflict."
+      },
+      {
+        title: "Kiểm tra trạng thái Deployment & Service",
+        desc: "Liệt kê nhanh tất cả Deployment và Service đang chạy trong namespace hiện tại:",
+        code: "kubectl get deploy,svc",
+        note: "Lab AKS: Cột READY (ví dụ 1/1) cho biết số replica đang sẵn sàng. Cột EXTERNAL-IP của Service type LoadBalancer sẽ hiện IP công cộng để gọi API."
+      },
+      {
+        title: "Kiểm tra tiến trình Rollout của Deployment",
+        desc: "Theo dõi quá trình rolling update của Deployment aks-api cho đến khi hoàn tất:",
+        code: "kubectl rollout status deploy/aks-api",
+        note: "Lab AKS: Lệnh này chặn terminal cho đến khi rollout thành công hoặc timeout. Hữu ích khi verify sau kubectl apply."
+      },
+      {
+        title: "Liệt kê tất cả Pod đang chạy",
+        desc: "Xem danh sách pod, trạng thái (Running/Pending/Error) và số lần restart:",
+        code: "kubectl get pods",
+        note: "Lab AKS: Thêm -o wide để xem thêm Node và IP của từng pod. Thêm -w để watch real-time."
+      },
+      {
+        title: "Xem chi tiết Pod (Debug Events & Config)",
+        desc: "Xem toàn bộ thông tin pod: image, biến môi trường, events, lý do crash (dùng khi debug):",
+        code: "kubectl describe pod <pod-name>",
+        note: "Lab AKS: Phần Events ở cuối output là nơi đầu tiên cần nhìn khi pod không khởi động được — lỗi ImagePullBackOff, OOMKilled hay CrashLoopBackOff đều xuất hiện tại đây."
+      },
+      {
+        title: "Xem Log của Pod (stdout/stderr)",
+        desc: "Đọc nhật ký stdout/stderr của container chính trong pod:",
+        code: "kubectl logs <pod-name>",
+        note: "Lab AKS: Thêm -f để stream log real-time (như tail -f). Thêm --previous để xem log của lần chạy trước khi pod bị crash."
+      }
+    ]
   }
 ];

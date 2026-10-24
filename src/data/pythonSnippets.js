@@ -4,13 +4,13 @@
  */
 
 export const pythonSnippets = [
-  {
-    id: "dynamic-sessions-client",
-    title: "1. Dynamic Sessions Client (Production Ready)",
-    description: "Client hoàn chỉnh tương tác với Azure Container Apps Dynamic Sessions: xác thực Entra ID Bearer token, upload/download file an toàn (chống path-traversal), thực thi code Python trong sandbox cô lập và dọn dẹp session.",
-    category: "Dynamic Sessions",
-    filename: "dynamic_sessions_client.py",
-    code: `"""
+    {
+        id: "dynamic-sessions-client",
+        title: "1. Dynamic Sessions Client (Production Ready)",
+        description: "Client hoàn chỉnh tương tác với Azure Container Apps Dynamic Sessions: xác thực Entra ID Bearer token, upload/download file an toàn (chống path-traversal), thực thi code Python trong sandbox cô lập và dọn dẹp session.",
+        category: "Dynamic Sessions",
+        filename: "dynamic_sessions_client.py",
+        code: `"""
 Dynamic Sessions Client for Azure Container Apps.
 Dùng để chạy code AI-generated một cách an toàn trong môi trường cô lập.
 """
@@ -169,14 +169,14 @@ def get_session_client() -> DynamicSessionClient:
     credential = DefaultAzureCredential()
     return DynamicSessionClient(endpoint, credential=credential, identifier=identifier)
 `
-  },
-  {
-    id: "dynamic-sessions-openai-tool",
-    title: "2. OpenAI Function Calling với Dynamic Sessions",
-    description: "Định nghĩa Tool/Function Calling cho OpenAI GPT-4o để mô hình tự động gọi container sandbox thực thi mã Python và tính toán kết quả.",
-    category: "AI Agent & Tools",
-    filename: "openai_code_interpreter_tool.py",
-    code: `"""
+    },
+    {
+        id: "dynamic-sessions-openai-tool",
+        title: "2. OpenAI Function Calling với Dynamic Sessions",
+        description: "Định nghĩa Tool/Function Calling cho OpenAI GPT-4o để mô hình tự động gọi container sandbox thực thi mã Python và tính toán kết quả.",
+        category: "AI Agent & Tools",
+        filename: "openai_code_interpreter_tool.py",
+        code: `"""
 Tích hợp Azure Container Apps Dynamic Sessions với OpenAI Tools.
 Cho phép LLM tự do viết mã Python giải toán/phân tích dữ liệu trong Sandbox.
 """
@@ -247,14 +247,14 @@ def run_agent_loop(user_prompt: str):
                 
                 print(f"[Sandbox Output] {output}")
 `
-  },
-  {
-    id: "azure-managed-identity-auth",
-    title: "3. Xác thực Passwordless với DefaultAzureCredential",
-    description: "Chuẩn kiến trúc bảo mật Microsoft: Xác thực không mật khẩu (Passwordless) giữa ứng dụng Python chạy trên Container App và các dịch vụ Azure (ACR, OpenAI, Key Vault).",
-    category: "Bảo mật & Auth",
-    filename: "managed_identity_auth.py",
-    code: `"""
+    },
+    {
+        id: "azure-managed-identity-auth",
+        title: "3. Xác thực Passwordless với DefaultAzureCredential",
+        description: "Chuẩn kiến trúc bảo mật Microsoft: Xác thực không mật khẩu (Passwordless) giữa ứng dụng Python chạy trên Container App và các dịch vụ Azure (ACR, OpenAI, Key Vault).",
+        category: "Bảo mật & Auth",
+        filename: "managed_identity_auth.py",
+        code: `"""
 Xác thực Entra ID (Azure AD) không mật khẩu qua DefaultAzureCredential.
 Tự động nhận diện Managed Identity khi chạy trên Azure Container Apps hoặc App Service.
 """
@@ -277,5 +277,53 @@ print(f"Secret retrieved securely: {api_secret.name}")
 token = credential.get_token("https://management.azure.com/.default")
 print("Bearer token retrieved for Azure ARM API")
 `
-  }
+    },
+    // Thêm vào mảng pythonSnippets hiện có
+    {
+        id: "aks-client",
+        title: "AKS API Client",
+        description: "Client Python để test API trên AKS: health check, readiness, inference, streaming chat.",
+        category: "Azure Kubernetes Service",
+        filename: "aks_client.py",
+        code: `import requests
+
+# Lấy EXTERNAL-IP từ: kubectl get svc aks-api-service
+API_BASE_URL = "http://<EXTERNAL-IP>"
+
+def check_health():
+    """Kiểm tra liveness - giống endpoint mà Kubernetes probe gọi."""
+    response = requests.get(f"{API_BASE_URL}/healthz", timeout=10)
+    response.raise_for_status()
+    return response.json()
+
+def check_readiness():
+    """Kiểm tra readiness - xác nhận API kết nối được với Foundry."""
+    response = requests.get(f"{API_BASE_URL}/ready", timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+def send_inference(prompt: str):
+    """Gửi inference request, nhận response đầy đủ."""
+    response = requests.post(
+        f"{API_BASE_URL}/inference",
+        json={"prompt": prompt},
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.json()
+
+def stream_chat(prompt: str):
+    """Chat streaming - nhận response theo từng chunk."""
+    response = requests.post(
+        f"{API_BASE_URL}/chat",
+        json={"prompt": prompt},
+        stream=True,
+        timeout=120,
+    )
+    response.raise_for_status()
+    for chunk in response.iter_content(chunk_size=None):
+        if chunk:
+            print(chunk.decode("utf-8"), end="", flush=True)
+`,
+    },
 ];
