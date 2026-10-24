@@ -108,6 +108,8 @@ export default function Cheatsheet() {
                           fontSize: "13px",
                           color: "#79c0ff",
                           overflowX: "auto",
+                          textAlign: "left",
+                          whiteSpace: "pre",
                         }}
                       >
                         {item.code}

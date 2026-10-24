@@ -1446,6 +1446,14 @@ body {
   white-space: pre-wrap;
 }
 
+.code-block-wrapper code {
+  display: block;
+  white-space: pre;
+  text-align: left;
+  word-break: normal;
+  padding-right: 3.5rem; /* Prevent text from running under copy button */
+}
+
 .btn-copy-snippet {
   position: absolute;
   top: 8px;
