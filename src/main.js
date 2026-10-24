@@ -5,6 +5,7 @@
 
 import { LEVELS, CHALLENGES, QUIZ_QUESTIONS } from './data/challenges.js';
 import { CHEATSHEET_SECTIONS } from './data/cheatsheet.js';
+import { pythonSnippets } from './data/pythonSnippets.js';
 import { validateCommand } from './utils/commandValidator.js';
 import { sounds } from './utils/audio.js';
 
@@ -127,6 +128,9 @@ class AzMasterApp {
     this.statsOverallPercent = document.getElementById('stats-overall-percent');
     this.statsLevelGrid = document.getElementById('stats-level-grid');
     this.statsBadgesGrid = document.getElementById('stats-badges-grid');
+
+    // Python Snippets View Element
+    this.pythonSnippetsContainer = document.getElementById('python-snippets-container');
 
     // Toast Container
     this.toastContainer = document.getElementById('toast-container');
@@ -268,6 +272,8 @@ class AzMasterApp {
       this.renderQuiz();
     } else if (tabName === 'cheatsheet') {
       this.renderCheatsheet();
+    } else if (tabName === 'python') {
+      this.renderPythonSnippets();
     } else if (tabName === 'stats') {
       this.renderStats();
     }
@@ -279,6 +285,7 @@ class AzMasterApp {
     this.renderPracticeWorkstation();
     this.renderQuiz();
     this.renderCheatsheet();
+    this.renderPythonSnippets();
     this.renderStats();
   }
 
@@ -990,6 +997,52 @@ class AzMasterApp {
 
   filterCheatsheet(keyword) {
     this.renderCheatsheet(keyword);
+  }
+
+  // ==========================================================================
+  // PYTHON SNIPPETS ENGINE
+  // ==========================================================================
+  renderPythonSnippets() {
+    if (!this.pythonSnippetsContainer) return;
+
+    this.pythonSnippetsContainer.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        ${pythonSnippets.map((snippet) => `
+          <div class="cheatsheet-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <h3 style="margin: 0 0 0.35rem 0; font-size: 1.15rem; color: #f0f6fc;">${this.escapeHtml(snippet.title)}</h3>
+                <p style="margin: 0; color: #8b949e; font-size: 0.88rem; line-height: 1.5;">${this.escapeHtml(snippet.description)}</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span class="badge" style="background: rgba(56, 139, 253, 0.15); color: #58a6ff; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;">
+                  ${this.escapeHtml(snippet.category)}
+                </span>
+                ${snippet.filename ? `<span style="font-family: monospace; font-size: 0.78rem; color: #8b949e;">📁 ${this.escapeHtml(snippet.filename)}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="code-block-wrapper" style="position: relative; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-top: 0.75rem;">
+              <button class="btn-copy-snippet btn-copy-python" data-code="${this.escapeHtml(snippet.code)}" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+                Copy Python Code
+              </button>
+              <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6; color: #e6edf3; overflow-x: auto; max-height: 480px;"><code>${this.escapeHtml(snippet.code)}</code></pre>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // Bind copy buttons
+    const copyBtns = this.pythonSnippetsContainer.querySelectorAll('.btn-copy-python');
+    copyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.getAttribute('data-code');
+        navigator.clipboard.writeText(code);
+        sounds.playKeypress();
+        this.showToast('Đã copy Python snippet vào clipboard!', 'success');
+      });
+    });
   }
 
   // ==========================================================================
