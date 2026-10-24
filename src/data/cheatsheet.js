@@ -367,6 +367,75 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         desc: "Kiểm tra cấu hình probe thăm dò sức khỏe của container dưới dạng YAML:",
         code: 'az containerapp show --name <app-name> --resource-group <rg> --query "properties.template.containers[0].probes" -o yaml',
         note: "Lý thuyết: Liveness probe xác định khi nào cần restart container; Readiness probe xác định khi nào container sẵn sàng nhận traffic."
+      },
+      {
+        title: "Khởi tạo Container App với System Managed Identity & Secrets (Lab 1 ACA)",
+        desc: "Tạo Container App với System-assigned Managed Identity. Cờ --registry-identity system tự động gán quyền AcrPull cho identity:",
+        code: `az containerapp create \\
+    --name <app-name> \\
+    --resource-group <rg> \\
+    --environment <env-name> \\
+    --image <registry>/<image> \\
+    --ingress external \\
+    --target-port <port> \\
+    --env-vars MODEL_NAME=$MODEL_NAME \\
+    --registry-server <registry> \\
+    --registry-identity system`,
+        note: "Lab 1 (ACA): Cờ --registry-identity system tự động gán quyền AcrPull cho identity mà không cần cấu hình admin user."
+      },
+      {
+        title: "Tạo secret trong kho secrets của ACA (Lab 1 ACA)",
+        desc: "Tạo secret trong kho secrets của ACA (được mã hóa khi lưu trữ):",
+        code: "az containerapp secret set -n <app-name> -g <rg> --secrets <secret-name>=<secret-value>",
+        note: "Lab 1 (ACA): Secrets được mã hóa an toàn ở tầng ứng dụng, không xuất hiện ở dạng plain text."
+      },
+      {
+        title: "Tham chiếu secret từ biến môi trường (secretref:)",
+        desc: "Tham chiếu secret từ biến môi trường bằng cú pháp secretref: (tự động tạo revision mới):",
+        code: "az containerapp update -n <app-name> -g <rg> --set-env-vars <ENV_VAR>=secretref:<secret-name>",
+        note: "Lab 1 (ACA): Cú pháp secretref:<secret-name> liên kết biến môi trường trực tiếp với secret trong kho."
+      },
+      {
+        title: "Lấy FQDN tên miền đầy đủ của Container App",
+        desc: "Lấy FQDN (tên miền đầy đủ) của Container App gán vào biến PowerShell:",
+        code: "$FQDN = az containerapp show -n <app-name> -g <rg> --query properties.configuration.ingress.fqdn -o tsv",
+        note: "Lab 1 (ACA): Dùng -o tsv để trích xuất chuỗi thô sạch, không có dấu ngoặc kép."
+      },
+      {
+        title: "Kiểm tra Health Endpoint bằng Invoke-RestMethod",
+        desc: "Gọi health endpoint để kiểm tra ứng dụng backend API đã chạy hay chưa:",
+        code: 'Invoke-RestMethod -Uri "https://$FQDN/health"',
+        note: "Lab 1 (ACA): Kiểm tra sức khỏe dịch vụ trước khi gửi traffic chính thức."
+      },
+      {
+        title: "Kiểm tra Root Endpoint & Cấu hình Secret",
+        desc: "Gọi root endpoint để kiểm tra secret và app đã được cấu hình hoàn chỉnh chưa:",
+        code: 'Invoke-RestMethod -Uri "https://$FQDN/"',
+        note: "Lab 1 (ACA): Xác minh secret đã được ứng dụng đọc thành công."
+      },
+      {
+        title: "Test Document Processing Endpoint (Gửi file lên xử lý)",
+        desc: "Gửi request HTTP POST kèm nội dung file văn bản qua Get-Content -Raw:",
+        code: 'Invoke-RestMethod -Uri "https://$FQDN/process" -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+        note: "Lab 1 (ACA): Biểu thức (Get-Content -Raw document.txt) nạp toàn bộ file thành chuỗi duy nhất gửi qua body."
+      },
+      {
+        title: "Kiểm tra Managed Identity đã được bật chưa",
+        desc: "Kiểm tra xem System-Assigned Managed Identity của app đã được kích hoạt chưa:",
+        code: "az containerapp identity show -n <app-name> -g <rg>",
+        note: "Lab 1 (ACA): Xác minh principalId và tenantId khi gặp lỗi 401 Unauthorized kéo image từ ACR."
+      },
+      {
+        title: "Liệt kê secrets để xác nhận secret đã được tạo",
+        desc: "Liệt kê danh sách tên secrets trong kho của ACA dưới dạng bảng:",
+        code: "az containerapp secret list -n <app-name> -g <rg> -o table",
+        note: "Lab 1 (ACA): Xác nhận tên secret tồn tại và khớp với tên trong secretref:."
+      },
+      {
+        title: "Stream logs real-time chẩn đoán lỗi khởi động",
+        desc: "Stream logs real-time để chẩn đoán lỗi khởi động ứng dụng container:",
+        code: "az containerapp logs show -n <app-name> -g <rg> --follow",
+        note: "Lab 1 (ACA): Luồng log thời gian thực giúp phát hiện ngay các lỗi thiếu secret hoặc crash ứng dụng."
       }
     ]
   }

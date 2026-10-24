@@ -48,7 +48,7 @@ export const LEVELS = [
   {
     id: 6,
     name: "Level 6: Azure Container Apps (ACA)",
-    tagline: "Quản lý Revisions, Vòng đời Lifecycle, Chẩn đoán Troubleshooting & Log Analytics",
+    tagline: "Deploy Backend API, Managed Identity & Secrets, Revisions, Chẩn đoán & Log Analytics",
     badge: "ACA Specialist",
     color: "#f59e0b",
     icon: "⚡"
@@ -1915,6 +1915,394 @@ transport: auto`
   initialDelaySeconds: 5
   periodSeconds: 10
   type: Readiness`
+  },
+
+  // =========================================================================
+  // BỔ SUNG TỪ BÀI LAB "DEPLOY A CONTAINERIZED BACKEND API" (LAB 1 ACA)
+  // =========================================================================
+
+  // --- Phần F: Khởi tạo Container App với Managed Identity & Secrets ---
+  {
+    id: "l6-create-managed-identity",
+    level: 6,
+    title: "Khởi tạo Container App với System Managed Identity & ACR Auth",
+    difficulty: "Nâng cao",
+    category: "Deployment & Identity",
+    mission: "Trong bài lab 'Deploy a containerized backend API', hãy khởi tạo một Container App tên `<app-name>` trong Resource Group `<rg>`, Environment `<env-name>` với Image `<registry>/<image>`. Mở Ingress external với `--target-port <port>`, nạp biến môi trường `MODEL_NAME=$MODEL_NAME`, trỏ registry server `<registry>` và kích hoạt System-assigned Managed Identity tự động gán quyền AcrPull bằng cờ `--registry-identity system`.",
+    expectedCommand: "az containerapp create --name <app-name> --resource-group <rg> --environment <env-name> --image <registry>/<image> --ingress external --target-port <port> --env-vars MODEL_NAME=$MODEL_NAME --registry-server <registry> --registry-identity system",
+    aliases: [
+      "az containerapp create -n <app-name> -g <rg> --environment <env-name> --image <registry>/<image> --ingress external --target-port <port> --env-vars MODEL_NAME=$MODEL_NAME --registry-server <registry> --registry-identity system",
+      "az containerapp create --name <app-name> --resource-group <rg> --environment <env-name> --image <registry>/<image> --target-port <port> --ingress external --env-vars MODEL_NAME=$MODEL_NAME --registry-server <registry> --registry-identity system"
+    ],
+    tokens: ["az", "containerapp", "create", "--name", "<app-name>", "--resource-group", "<rg>", "--environment", "<env-name>", "--image", "<registry>/<image>", "--ingress", "external", "--target-port", "<port>", "--env-vars", "MODEL_NAME=$MODEL_NAME", "--registry-server", "<registry>", "--registry-identity", "system"],
+    hints: [
+      "Nhóm lệnh khởi tạo ứng dụng là `az containerapp create`.",
+      "Chỉ định `--ingress external` và `--target-port <port>` để mở cổng router.",
+      "Khai báo `--registry-server <registry>` và bật nhận dạng không mật khẩu bằng `--registry-identity system`."
+    ],
+    mentalModel: {
+      rule: "az containerapp create --name <App> --resource-group <RG> --environment <Env> --image <Img> ... --registry-identity system",
+      breakdown: [
+        { part: "containerapp create", role: "Resource Provisioner", desc: "Khởi tạo ứng dụng Container App mới trong ACA Environment" },
+        { part: "--ingress external", role: "Network Routing", desc: "Cấp phát IP công khai và định tuyến tên miền FQDN từ Internet" },
+        { part: "--registry-identity system", role: "Passwordless Auth", desc: "Tự động kích hoạt System Managed Identity và gán quyền AcrPull vào Registry" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--registry-identity system", meaning: "Sử dụng System-Assigned Managed Identity để xác thực kéo image từ ACR, không cần username/password tĩnh." },
+      { param: "--registry-server", meaning: "Địa chỉ FQDN của Azure Container Registry lưu trữ image." },
+      { param: "--env-vars", meaning: "Thiết lập biến môi trường khởi tạo runtime cho container." }
+    ],
+    examNotes: "💡 Điểm thi cốt lõi: Cờ `--registry-identity system` tự động gán vai trò AcrPull cho Managed Identity của app trên ACR chỉ định.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../resourceGroups/rg-ai200/providers/Microsoft.App/containerApps/ca-backend-api",
+  "location": "southeastasia",
+  "name": "ca-backend-api",
+  "properties": {
+    "configuration": {
+      "ingress": {
+        "external": true,
+        "fqdn": "ca-backend-api.bravecliff-123456.southeastasia.azurecontainerapps.io",
+        "targetPort": 8000
+      },
+      "registries": [
+        {
+          "identity": "system",
+          "server": "myacr.azurecr.io"
+        }
+      ]
+    },
+    "provisioningState": "Succeeded"
+  }
+}`
+  },
+  {
+    id: "l6-secret-set",
+    level: 6,
+    title: "Tạo Secret mã hóa trong Kho Secrets của ACA",
+    difficulty: "Cơ bản",
+    category: "Secrets & Security",
+    mission: "Để bảo vệ các chuỗi nhạy cảm (như API key, mật khẩu kết nối), hãy dùng lệnh `az containerapp secret set` để thêm secret `<secret-name>=<secret-value>` vào kho lưu trữ bí mật của app `<app-name>` trong `<rg>`.",
+    expectedCommand: "az containerapp secret set -n <app-name> -g <rg> --secrets <secret-name>=<secret-value>",
+    aliases: [
+      "az containerapp secret set --name <app-name> --resource-group <rg> --secrets <secret-name>=<secret-value>",
+      "az containerapp secret set -g <rg> -n <app-name> --secrets <secret-name>=<secret-value>",
+      "az containerapp secret set --resource-group <rg> --name <app-name> --secrets <secret-name>=<secret-value>"
+    ],
+    tokens: ["az", "containerapp", "secret", "set", "-n", "<app-name>", "-g", "<rg>", "--secrets", "<secret-name>=<secret-value>"],
+    hints: [
+      "Nhóm lệnh quản lý secret là `az containerapp secret set`.",
+      "Chỉ định tham số `--secrets <secret-name>=<secret-value>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp secret set -n <App> -g <RG> --secrets <Key>=<Val>",
+      breakdown: [
+        { part: "containerapp secret set", role: "Secret Vault Action", desc: "Lưu trữ dữ liệu nhạy cảm được mã hóa tại tầng ứng dụng ACA" },
+        { part: "--secrets", role: "Secret Payload", desc: "Cặp tên bí mật và giá trị tương ứng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--secrets", meaning: "Cung cấp danh sách các cặp name=value cần mã hóa và lưu trữ an toàn." }
+    ],
+    examNotes: "Secrets trong Azure Container Apps được mã hóa khi lưu trữ (encrypted at rest) và chỉ nạp vào bộ nhớ khi container chạy.",
+    simulatedOutput: `[
+  {
+    "name": "ai-api-key"
+  }
+]`
+  },
+  {
+    id: "l6-secretref-env",
+    level: 6,
+    title: "Tham chiếu Secret vào Biến môi trường (secretref:)",
+    difficulty: "Trung bình",
+    category: "Secrets & Config",
+    mission: "Sau khi đã lưu secret an toàn trong kho, hãy cập nhật Container App `<app-name>` (thuộc `<rg>`) để đưa secret vào container dưới dạng biến môi trường bằng cú pháp `--set-env-vars <ENV_VAR>=secretref:<secret-name>`. Thao tác này sẽ tự động tạo revision mới.",
+    expectedCommand: "az containerapp update -n <app-name> -g <rg> --set-env-vars <ENV_VAR>=secretref:<secret-name>",
+    aliases: [
+      "az containerapp update --name <app-name> --resource-group <rg> --set-env-vars <ENV_VAR>=secretref:<secret-name>",
+      "az containerapp update -g <rg> -n <app-name> --set-env-vars <ENV_VAR>=secretref:<secret-name>",
+      "az containerapp update --resource-group <rg> --name <app-name> --set-env-vars <ENV_VAR>=secretref:<secret-name>"
+    ],
+    tokens: ["az", "containerapp", "update", "-n", "<app-name>", "-g", "<rg>", "--set-env-vars", "<ENV_VAR>=secretref:<secret-name>"],
+    hints: [
+      "Lệnh cập nhật ứng dụng là `az containerapp update`.",
+      "Dùng cờ `--set-env-vars` kết hợp tiền tố `secretref:<secret-name>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp update -n <App> -g <RG> --set-env-vars <Env>=secretref:<Secret>",
+      breakdown: [
+        { part: "--set-env-vars", role: "Env Var Setter", desc: "Gán biến môi trường cho container" },
+        { part: "secretref:", role: "Secret Reference", desc: "Cú pháp liên kết biến môi trường với secret trong kho thay vì giá trị thô" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "secretref:<name>", meaning: "Cơ chế liên kết động giữa biến môi trường và secret name, tránh lộ mật khẩu dạng plain text." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Không bao giờ gán khóa API dạng plain text qua `--set-env-vars API_KEY=xyz`. Luôn dùng `secret set` kết hợp `secretref:`.",
+    simulatedOutput: `{
+  "name": "ca-backend-api",
+  "properties": {
+    "latestRevisionName": "ca-backend-api--sec-01",
+    "provisioningState": "Succeeded"
+  }
+}`
+  },
+
+  // --- Phần G: Xác minh Deployment (Bổ sung) ---
+  {
+    id: "l6-verify-fqdn",
+    level: 6,
+    title: "Trích xuất FQDN của Container App vào biến $FQDN",
+    difficulty: "Cơ bản",
+    category: "Verification",
+    mission: "Để chuẩn bị gửi request kiểm thử, hãy truy vấn tên miền đầy đủ FQDN từ Ingress của Container App `<app-name>` trong `<rg>` và gán vào biến PowerShell `$FQDN` bằng cờ `-o tsv`.",
+    expectedCommand: "$FQDN = az containerapp show -n <app-name> -g <rg> --query properties.configuration.ingress.fqdn -o tsv",
+    aliases: [
+      "$FQDN = az containerapp show --name <app-name> --resource-group <rg> --query properties.configuration.ingress.fqdn -o tsv",
+      "$FQDN = az containerapp show -n <app-name> -g <rg> --query properties.configuration.ingress.fqdn --output tsv",
+      "$FQDN = az containerapp show --resource-group <rg> --name <app-name> --query properties.configuration.ingress.fqdn -o tsv"
+    ],
+    tokens: ["$FQDN", "=", "az", "containerapp", "show", "-n", "<app-name>", "-g", "<rg>", "--query", "properties.configuration.ingress.fqdn", "-o", "tsv"],
+    hints: [
+      "Bắt đầu bằng phép gán biến `$FQDN = az containerapp show`.",
+      "Đường dẫn JMESPath là `--query properties.configuration.ingress.fqdn`.",
+      "Kết thúc bằng `-o tsv` để trích xuất chuỗi sạch."
+    ],
+    mentalModel: {
+      rule: "$FQDN = az containerapp show -n <App> -g <RG> --query ...ingress.fqdn -o tsv",
+      breakdown: [
+        { part: "$FQDN =", role: "Variable Binding", desc: "Lưu tên miền vào biến môi trường shell" },
+        { part: "properties.configuration.ingress.fqdn", role: "JMESPath Query", desc: "Trích xuất tên miền đủ điều kiện của Ingress" },
+        { part: "-o tsv", role: "Clean String", desc: "Loại bỏ ngoặc kép JSON để URL hợp lệ" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "ingress.fqdn", meaning: "Fully Qualified Domain Name do Azure Container Apps cấp phát tự động." }
+    ],
+    examNotes: "Sử dụng biến $FQDN giúp các script kiểm thử tự động linh hoạt, không phụ thuộc vào chuỗi URL cố định.",
+    simulatedOutput: "ca-backend-api.bravecliff-123456.southeastasia.azurecontainerapps.io"
+  },
+  {
+    id: "l6-verify-health",
+    level: 6,
+    title: "Kiểm tra Health Endpoint bằng Invoke-RestMethod",
+    difficulty: "Cơ bản",
+    category: "Verification",
+    mission: "Trong PowerShell, hãy dùng lệnh `Invoke-RestMethod` để gọi health endpoint `https://$FQDN/health` nhằm kiểm tra ứng dụng backend API đã chạy thành công hay chưa.",
+    expectedCommand: 'Invoke-RestMethod -Uri "https://$FQDN/health"',
+    aliases: [
+      'Invoke-RestMethod -Uri "https://$FQDN/health"',
+      'Invoke-RestMethod -Uri https://$FQDN/health',
+      'Invoke-RestMethod "https://$FQDN/health"',
+      'irm "https://$FQDN/health"',
+      'irm -Uri "https://$FQDN/health"'
+    ],
+    tokens: ["Invoke-RestMethod", "-Uri", '"https://$FQDN/health"'],
+    hints: [
+      "Cmdlet gửi HTTP request trong PowerShell là `Invoke-RestMethod`.",
+      "Tham số URL là `-Uri \"https://$FQDN/health\"`."
+    ],
+    mentalModel: {
+      rule: 'Invoke-RestMethod -Uri "https://$FQDN/health"',
+      breakdown: [
+        { part: "Invoke-RestMethod", role: "PowerShell HTTP Client", desc: "Gửi REST request và tự động giải mã JSON kết quả trả về" },
+        { part: "-Uri", role: "Target Endpoint", desc: "Địa chỉ URL đầy đủ tới endpoint /health" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-Uri", meaning: "Địa chỉ đường dẫn web endpoint cần gửi truy vấn HTTP." }
+    ],
+    examNotes: "Health probe endpoint thường trả về HTTP status 200 kèm trạng thái Healthy để xác nhận app sẵn sàng nhận traffic.",
+    simulatedOutput: `{
+  "status": "healthy",
+  "version": "1.0.0",
+  "uptime": "00:05:12"
+}`
+  },
+  {
+    id: "l6-verify-root",
+    level: 6,
+    title: "Kiểm tra Root Endpoint & Cấu hình Secret",
+    difficulty: "Cơ bản",
+    category: "Verification",
+    mission: "Hãy gọi root endpoint `https://$FQDN/` bằng `Invoke-RestMethod` để kiểm tra secret và thông tin chào mừng đã được cấu hình chuẩn xác hay chưa.",
+    expectedCommand: 'Invoke-RestMethod -Uri "https://$FQDN/"',
+    aliases: [
+      'Invoke-RestMethod -Uri "https://$FQDN/"',
+      'Invoke-RestMethod -Uri https://$FQDN/',
+      'Invoke-RestMethod "https://$FQDN/"',
+      'irm "https://$FQDN/"',
+      'irm -Uri "https://$FQDN/"'
+    ],
+    tokens: ["Invoke-RestMethod", "-Uri", '"https://$FQDN/"'],
+    hints: [
+      "Dùng `Invoke-RestMethod` với tham số `-Uri \"https://$FQDN/\"`."
+    ],
+    mentalModel: {
+      rule: 'Invoke-RestMethod -Uri "https://$FQDN/"',
+      breakdown: [
+        { part: "https://$FQDN/", role: "Root Endpoint", desc: "Endpoint gốc hiển thị thông tin metadata hoặc trạng thái ứng dụng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-Uri", meaning: "URL trỏ vào gốc của domain backend API." }
+    ],
+    examNotes: "Kiểm tra root endpoint giúp xác minh nhanh ứng dụng không bị lỗi 500 do thiếu cấu hình secret khởi tạo.",
+    simulatedOutput: `{
+  "message": "Backend API is running",
+  "model": "gpt-4o-mini",
+  "secretConfigured": true
+}`
+  },
+  {
+    id: "l6-verify-process",
+    level: 6,
+    title: "Test Endpoint Xử lý Tài liệu (POST File Content)",
+    difficulty: "Nâng cao",
+    category: "Verification",
+    mission: "Để kiểm tra tính năng xử lý tài liệu AI của backend API, hãy dùng `Invoke-RestMethod` gửi HTTP POST tới `https://$FQDN/process`, ContentType là `text/plain` và Body lấy từ nội dung file cục bộ qua biểu thức PowerShell `(Get-Content -Raw document.txt)`.",
+    expectedCommand: 'Invoke-RestMethod -Uri "https://$FQDN/process" -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+    aliases: [
+      'Invoke-RestMethod -Uri "https://$FQDN/process" -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+      'Invoke-RestMethod -Uri https://$FQDN/process -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+      'irm -Uri "https://$FQDN/process" -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+      'Invoke-RestMethod -Method Post -Uri "https://$FQDN/process" -ContentType "text/plain" -Body (Get-Content -Raw document.txt)'
+    ],
+    tokens: ["Invoke-RestMethod", "-Uri", '"https://$FQDN/process"', "-Method", "Post", "-ContentType", '"text/plain"', "-Body", "(Get-Content -Raw document.txt)"],
+    hints: [
+      "Dùng `Invoke-RestMethod -Uri \"https://$FQDN/process\"`.",
+      "Chỉ định `-Method Post` và `-ContentType \"text/plain\"`.",
+      "Đọc nội dung văn bản thô vào body bằng `-Body (Get-Content -Raw document.txt)`."
+    ],
+    mentalModel: {
+      rule: 'Invoke-RestMethod -Uri "https://$FQDN/process" -Method Post -ContentType "text/plain" -Body (Get-Content -Raw document.txt)',
+      breakdown: [
+        { part: "-Method Post", role: "HTTP Method", desc: "Gửi dữ liệu lên API để xử lý" },
+        { part: "-ContentType \"text/plain\"", role: "MIME Type", desc: "Báo cho server định dạng dữ liệu là văn bản thuần" },
+        { part: "(Get-Content -Raw ...)", role: "PowerShell Subexpression", desc: "Đọc toàn bộ file tài liệu dưới dạng một chuỗi văn bản duy nhất" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "Get-Content -Raw", meaning: "Đọc toàn bộ nội dung file thành một chuỗi văn bản hoàn chỉnh thay vì mảng các dòng." },
+      { param: "-Body", meaning: "Dữ liệu payload được gửi kèm trong phần thân của HTTP POST request." }
+    ],
+    examNotes: "💡 Thao tác test thực tế mô phỏng hoàn chỉnh luồng xử lý tài liệu AI: gửi document lên backend inference API.",
+    simulatedOutput: `{
+  "documentId": "doc-9812-af",
+  "entitiesCount": 14,
+  "summary": "Document successfully processed and vectorized.",
+  "status": "Completed"
+}`
+  },
+
+  // --- Phần H: Troubleshooting (Bổ sung) ---
+  {
+    id: "l6-troubleshoot-identity",
+    level: 6,
+    title: "Kiểm tra trạng thái Managed Identity đã được bật",
+    difficulty: "Cơ bản",
+    category: "Troubleshooting",
+    mission: "Khi container không thể kéo image từ ACR hoặc báo lỗi xác thực 401, hãy kiểm tra xem System-Assigned Managed Identity của app `<app-name>` trong `<rg>` đã được kích hoạt hay chưa bằng lệnh `az containerapp identity show`.",
+    expectedCommand: "az containerapp identity show -n <app-name> -g <rg>",
+    aliases: [
+      "az containerapp identity show --name <app-name> --resource-group <rg>",
+      "az containerapp identity show -g <rg> -n <app-name>",
+      "az containerapp identity show --resource-group <rg> --name <app-name>"
+    ],
+    tokens: ["az", "containerapp", "identity", "show", "-n", "<app-name>", "-g", "<rg>"],
+    hints: [
+      "Nhóm lệnh kiểm tra định danh là `az containerapp identity show`.",
+      "Truyền tham số `-n <app-name>` và `-g <rg>`."
+    ],
+    mentalModel: {
+      rule: "az containerapp identity show -n <App> -g <RG>",
+      breakdown: [
+        { part: "containerapp identity show", role: "Identity Prober", desc: "Đọc thông tin principalId, tenantId và loại Managed Identity" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "identity show", meaning: "Hiển thị chi tiết cấu hình Managed Identity đang được gán cho Container App." }
+    ],
+    examNotes: "Nếu trường type không phải là SystemAssigned hoặc UserAssigned, app sẽ không có danh tính Entra ID để kéo image an toàn.",
+    simulatedOutput: `{
+  "principalId": "e1f2a3b4-5678-90ab-cdef-1234567890ab",
+  "tenantId": "7820a1bc-341e-42ef-a841-f42f38d12345",
+  "type": "SystemAssigned"
+}`
+  },
+  {
+    id: "l6-troubleshoot-secret-list",
+    level: 6,
+    title: "Liệt kê và Xác nhận Secrets đã được tạo",
+    difficulty: "Cơ bản",
+    category: "Troubleshooting",
+    mission: "Để chẩn đoán xem lỗi 'Secret not found' có phải do đặt sai tên bí mật lúc cấu hình hay không, hãy liệt kê danh sách tất cả secrets hiện có của app `<app-name>` trong `<rg>` dưới dạng bảng (`-o table`).",
+    expectedCommand: "az containerapp secret list -n <app-name> -g <rg> -o table",
+    aliases: [
+      "az containerapp secret list --name <app-name> --resource-group <rg> -o table",
+      "az containerapp secret list -n <app-name> -g <rg> --output table",
+      "az containerapp secret list --name <app-name> --resource-group <rg> --output table",
+      "az containerapp secret list --resource-group <rg> --name <app-name> -o table"
+    ],
+    tokens: ["az", "containerapp", "secret", "list", "-n", "<app-name>", "-g", "<rg>", "-o", "table"],
+    hints: [
+      "Lệnh liệt kê secret là `az containerapp secret list`.",
+      "Dùng cờ `-o table` để xem dạng bảng trực quan."
+    ],
+    mentalModel: {
+      rule: "az containerapp secret list -n <App> -g <RG> -o table",
+      breakdown: [
+        { part: "secret list", role: "Secret Enumerator", desc: "Liệt kê danh sách tên các secret (giá trị thực tế luôn được giấu để bảo mật)" },
+        { part: "-o table", role: "Formatter", desc: "Xuất bảng danh sách rõ ràng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "secret list", meaning: "Chỉ hiển thị tên secret, Azure tuyệt đối không bao giờ hiển thị giá trị secret ra màn hình." }
+    ],
+    examNotes: "Xác nhận tên secret khớp chính xác từng ký tự với tên đặt sau `secretref:`.",
+    simulatedOutput: `Name         Identity
+-----------  ----------
+ai-api-key
+db-password`
+  },
+  {
+    id: "l6-troubleshoot-logs-stream",
+    level: 6,
+    title: "Stream Logs Real-time chẩn đoán lỗi khởi động Lab 1",
+    difficulty: "Cơ bản",
+    category: "Troubleshooting",
+    mission: "Khi triển khai container backend API gặp sự cố khởi động hoặc crash lúc nạp cấu hình, hãy mở luồng trực tiếp nhật ký container theo thời gian thực cho app `<app-name>` trong `<rg>` bằng cờ `--follow`.",
+    expectedCommand: "az containerapp logs show -n <app-name> -g <rg> --follow",
+    aliases: [
+      "az containerapp logs show --name <app-name> --resource-group <rg> --follow",
+      "az containerapp logs show -n <app-name> -g <rg> -f",
+      "az containerapp logs show --name <app-name> --resource-group <rg> -f",
+      "az containerapp logs show --resource-group <rg> --name <app-name> --follow"
+    ],
+    tokens: ["az", "containerapp", "logs", "show", "-n", "<app-name>", "-g", "<rg>", "--follow"],
+    hints: [
+      "Lệnh xem nhật ký là `az containerapp logs show`.",
+      "Truyền tham số `-n <app-name> -g <rg>`.",
+      "Thêm cờ `--follow` để stream log trực tiếp liên tục."
+    ],
+    mentalModel: {
+      rule: "az containerapp logs show -n <App> -g <RG> --follow",
+      breakdown: [
+        { part: "logs show", role: "Log Streamer", desc: "Đọc log stdout/stderr từ các container replica đang chạy" },
+        { part: "--follow", role: "Continuous Connection", desc: "Duy trì kết nối streaming cho đến khi ngắt kết nối" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--follow", meaning: "Truyền trực tiếp log mới nhất theo thời gian thực (tương tự tail -f)." }
+    ],
+    examNotes: "Bước chẩn đoán đầu tiên khi ứng dụng không phản hồi yêu cầu kiểm tra health endpoint.",
+    simulatedOutput: `Connecting to the container logs...
+[2026-10-24 10:00:01] [INFO] Loading AI model engine from $MODEL_NAME...
+[2026-10-24 10:00:03] [INFO] Reading secret reference from environment variable...
+[2026-10-24 10:00:04] [INFO] Secret loaded successfully.
+[2026-10-24 10:00:05] [INFO] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[2026-10-24 10:00:15] [INFO] 10.0.0.4:58210 - "GET /health HTTP/1.1" 200 OK`
   }
 ];
 
@@ -2113,5 +2501,30 @@ export const QUIZ_QUESTIONS = [
     ],
     correctIndex: 2,
     explanation: "Liveness probe phát hiện tình trạng ứng dụng bị treo để restart container; Readiness probe phát hiện khi ứng dụng đã nạp xong mô hình/dữ liệu để bắt đầu nhận traffic từ Ingress router."
+  },
+  {
+    id: "q17",
+    question: "Trong lệnh `az containerapp create`, cờ `--registry-identity system` mang lại lợi ích bảo mật gì khi kéo image từ Azure Container Registry (ACR)?",
+    options: [
+      "Bắt buộc người dùng phải gõ mật khẩu tài khoản root của ACR mỗi lần chạy.",
+      "Tự động cấu hình System-assigned Managed Identity cho Container App và tự động gán quyền AcrPull vào ACR mà không cần lưu trữ hay quản lý tài khoản admin và mật khẩu tĩnh.",
+      "Mã hóa toàn bộ source code của ứng dụng bằng thuật toán RSA-4096.",
+      "Tự động xóa ACR sau khi khởi tạo Container App xong."
+    ],
+    correctIndex: 1,
+    explanation: "Cờ `--registry-identity system` tự động gán quyền AcrPull cho System-assigned Managed Identity của Container App, hiện thực hóa kiến trúc Zero-Trust không mật khẩu (passwordless authentication) chuẩn Microsoft."
+  },
+  {
+    id: "q18",
+    question: "Trong Azure Container Apps, khi đã lưu một khóa API bí mật trong kho secrets bằng lệnh `az containerapp secret set`, cú pháp chuẩn để tham chiếu secret này vào biến môi trường của container là gì?",
+    options: [
+      "--set-env-vars ENV_VAR=@vault:secret-name",
+      "--set-env-vars ENV_VAR=secretref:<secret-name>",
+      "--set-env-vars ENV_VAR=password:<secret-name>",
+      "--set-env-vars ENV_VAR=$env:secret-name"
+    ],
+    correctIndex: 1,
+    explanation: "Azure Container Apps sử dụng tiền tố chuẩn `secretref:<secret-name>` trong tham số `--set-env-vars` để liên kết biến môi trường tới giá trị bí mật được mã hóa trong secret vault."
   }
 ];
+
