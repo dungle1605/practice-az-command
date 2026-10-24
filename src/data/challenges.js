@@ -2303,6 +2303,136 @@ db-password`
 [2026-10-24 10:00:04] [INFO] Secret loaded successfully.
 [2026-10-24 10:00:05] [INFO] Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 [2026-10-24 10:00:15] [INFO] 10.0.0.4:58210 - "GET /health HTTP/1.1" 200 OK`
+  },
+
+  // =========================================================================
+  // BỔ SUNG TỪ BÀI LAB "DYNAMIC SESSIONS" (AI CODE INTERPRETER & SANDBOX)
+  // =========================================================================
+
+  // --- Phần I: Azure Container Apps Dynamic Sessions (Lab Dynamic Sessions) ---
+  {
+    id: "l6-extension-containerapp-preview",
+    level: 6,
+    title: "Cài đặt extension Container App hỗ trợ Preview",
+    difficulty: "Cơ bản",
+    category: "Dynamic Sessions & Extension",
+    mission: "Để sử dụng các tính năng mới nhất như Dynamic Sessions (Code Interpreter cho AI Agent), hãy cài đặt hoặc cập nhật Azure CLI extension `containerapp` với cờ phiên bản thử nghiệm `--allow-preview true` và tự động đồng ý cài đặt `--yes`.",
+    expectedCommand: "az extension add --name containerapp --upgrade --allow-preview true --yes",
+    aliases: [
+      "az extension add -n containerapp --upgrade --allow-preview true --yes",
+      "az extension add -n containerapp --upgrade --allow-preview true -y",
+      "az extension add --name containerapp --upgrade --allow-preview true -y",
+      "az extension add --upgrade --allow-preview true --name containerapp --yes",
+      "az extension add -n containerapp --allow-preview true --upgrade -y"
+    ],
+    tokens: ["az", "extension", "add", "--name", "containerapp", "--upgrade", "--allow-preview", "true", "--yes"],
+    hints: [
+      "Lệnh quản lý extension là `az extension add`.",
+      "Tên extension là `containerapp`.",
+      "Kết hợp cờ `--upgrade`, `--allow-preview true` và `--yes`."
+    ],
+    mentalModel: {
+      rule: "az extension add --name containerapp --upgrade --allow-preview true --yes",
+      breakdown: [
+        { part: "extension add", role: "CLI Module Manager", desc: "Cài đặt hoặc cập nhật gói mở rộng cho Azure CLI" },
+        { part: "--upgrade", role: "Upgrade Flag", desc: "Tự động cập nhật lên bản mới nhất nếu extension đã cài" },
+        { part: "--allow-preview true", role: "Preview Enabler", desc: "Cho phép cài đặt phiên bản tính năng thử nghiệm như Dynamic Sessions" },
+        { part: "--yes", role: "Auto Confirm", desc: "Tự động chấp nhận cài đặt mà không cần xác nhận thủ công" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--allow-preview", meaning: "Kích hoạt quyền cài đặt các bản preview tính năng mới chưa phát hành GA." },
+      { param: "--upgrade", meaning: "Nâng cấp gói extension nếu đã tồn tại bản cũ trên máy." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Tính năng Dynamic Sessions của Azure Container Apps yêu cầu phiên bản extension containerapp hỗ trợ preview.",
+    simulatedOutput: `The installed extension 'containerapp' is in preview.
+Extension 'containerapp' 1.1.0b1 successfully installed.`
+  },
+  {
+    id: "l6-dynamic-sessionpool-create",
+    level: 6,
+    title: "Khởi tạo Session Pool cho Python Code Interpreter",
+    difficulty: "Nâng cao",
+    category: "Dynamic Sessions",
+    mission: "Trong bài lab Dynamic Sessions, hãy tạo một Session Pool mới tên `<pool-name>` trong Resource Group `<rg>`, vị trí `<region>`. Cấu hình loại container `--container-type PythonLTS`, số session tối đa `--max-sessions 5`, thời gian làm nguội `--cooldown-period 300` và cô lập mạng bằng cờ `--network-status EgressDisabled`.",
+    expectedCommand: "az containerapp sessionpool create --name <pool-name> --resource-group <rg> --location <region> --container-type PythonLTS --max-sessions 5 --cooldown-period 300 --network-status EgressDisabled",
+    aliases: [
+      "az containerapp sessionpool create -n <pool-name> -g <rg> -l <region> --container-type PythonLTS --max-sessions 5 --cooldown-period 300 --network-status EgressDisabled",
+      "az containerapp sessionpool create --name <pool-name> --resource-group <rg> -l <region> --container-type PythonLTS --max-sessions 5 --cooldown-period 300 --network-status EgressDisabled",
+      "az containerapp sessionpool create -n <pool-name> -g <rg> --location <region> --container-type PythonLTS --max-sessions 5 --cooldown-period 300 --network-status EgressDisabled"
+    ],
+    tokens: ["az", "containerapp", "sessionpool", "create", "--name", "<pool-name>", "--resource-group", "<rg>", "--location", "<region>", "--container-type", "PythonLTS", "--max-sessions", "5", "--cooldown-period", "300", "--network-status", "EgressDisabled"],
+    hints: [
+      "Nhóm lệnh tạo hồ chứa phiên là `az containerapp sessionpool create`.",
+      "Chỉ định `--container-type PythonLTS` cho môi trường thực thi mã Python.",
+      "Thiết lập `--max-sessions 5`, `--cooldown-period 300` và cô lập mạng bằng `--network-status EgressDisabled`."
+    ],
+    mentalModel: {
+      rule: "az containerapp sessionpool create --name <Pool> --resource-group <RG> --location <Loc> --container-type PythonLTS ...",
+      breakdown: [
+        { part: "sessionpool create", role: "AI Sandbox Provisioner", desc: "Tạo cụm sandbox an toàn chuyên chạy mã do LLM sinh ra" },
+        { part: "--container-type PythonLTS", role: "Runtime Environment", desc: "Môi trường thực thi Python dài hạn sẵn sàng nạp các thư viện AI" },
+        { part: "--network-status EgressDisabled", role: "Security Isolation", desc: "Chặn hoàn toàn lưu lượng ra ngoài để ngăn code không tin cậy rò rỉ dữ liệu" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--container-type PythonLTS", meaning: "Hình ảnh container chuẩn chứa sẵn Python LTS và các thư viện khoa học dữ liệu (numpy, pandas, matplotlib)." },
+      { param: "--cooldown-period", meaning: "Thời gian (giây) giữ session sống sau request cuối cùng trước khi tự động hủy dọn tài nguyên (300s = 5 phút)." },
+      { param: "--network-status EgressDisabled", meaning: "Ngăn chặn container truy cập Internet công cộng (sandboxing tuyệt đối cho AI Agent)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Session Pool là giải pháp tiêu chuẩn của Azure để tích hợp 'Code Interpreter' an toàn vào các mô hình LLM như GPT-4 qua LangChain hoặc Semantic Kernel.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../resourceGroups/rg-ai200/providers/Microsoft.App/sessionPools/pool-python-sandbox",
+  "location": "eastus",
+  "name": "pool-python-sandbox",
+  "properties": {
+    "containerType": "PythonLTS",
+    "cooldownPeriodInSeconds": 300,
+    "maxConcurrentSessions": 5,
+    "networkStatus": "EgressDisabled",
+    "nodeCount": 1,
+    "poolManagementType": "Dynamic",
+    "provisioningState": "Succeeded"
+  }
+}`
+  },
+  {
+    id: "l6-dynamic-session-executor-role",
+    level: 6,
+    title: "Phân quyền Azure ContainerApps Session Executor cho AI Agent",
+    difficulty: "Trung bình",
+    category: "Dynamic Sessions & RBAC",
+    mission: "Để ứng dụng backend AI hoặc Managed Identity của AI Agent có thể gửi lệnh thực thi code vào Session Pool vừa tạo, hãy gán vai trò RBAC 'Azure ContainerApps Session Executor' cho định danh `<principal-id>` tại phạm vi `<session-pool-id>`.",
+    expectedCommand: 'az role assignment create --assignee <principal-id> --role "Azure ContainerApps Session Executor" --scope <session-pool-id>',
+    aliases: [
+      'az role assignment create --assignee <principal-id> --role "Azure ContainerApps Session Executor" --scope <session-pool-id>',
+      "az role assignment create --assignee <principal-id> --role 'Azure ContainerApps Session Executor' --scope <session-pool-id>",
+      'az role assignment create --assignee <principal-id> --role Azure ContainerApps Session Executor --scope <session-pool-id>'
+    ],
+    tokens: ["az", "role", "assignment", "create", "--assignee", "<principal-id>", "--role", '"Azure ContainerApps Session Executor"', "--scope", "<session-pool-id>"],
+    hints: [
+      "Lệnh gán quyền là `az role assignment create`.",
+      "Tên role bảo mật là `\"Azure ContainerApps Session Executor\"`.",
+      "Truyền phạm vi tài nguyên `--scope <session-pool-id>` và người nhận quyền `--assignee <principal-id>`."
+    ],
+    mentalModel: {
+      rule: 'az role assignment create --assignee <PrincipalID> --role "Azure ContainerApps Session Executor" --scope <PoolID>',
+      breakdown: [
+        { part: "role assignment create", role: "RBAC Grantor", desc: "Cấp quyền truy cập dựa trên vai trò cho danh tính Entra ID" },
+        { part: "Azure ContainerApps Session Executor", role: "Built-in Role", desc: "Vai trò đặc thù cấp quyền tạo phiên và thực thi mã trong Session Pool" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "Azure ContainerApps Session Executor", meaning: "Vai trò dựng sẵn (built-in) tối thiểu cho phép gọi API thực thi code trong sandbox mà không có quyền xóa hay cấu hình lại pool." },
+      { param: "--scope", meaning: "Định danh tài nguyên đầy đủ của Session Pool (/subscriptions/.../sessionPools/<pool>)." }
+    ],
+    examNotes: "💡 Nguyên tắc Least Privilege: Chỉ gán role 'Session Executor' cho AI Agent, không gán Contributor hay Owner.",
+    simulatedOutput: `{
+  "id": "/subscriptions/.../providers/Microsoft.Authorization/roleAssignments/fa4891b2-...",
+  "principalId": "e1f2a3b4-5678-90ab-cdef-1234567890ab",
+  "roleDefinitionName": "Azure ContainerApps Session Executor",
+  "scope": "/subscriptions/.../resourceGroups/rg-ai200/providers/Microsoft.App/sessionPools/pool-python-sandbox"
+}`
   }
 ];
 
@@ -2525,6 +2655,19 @@ export const QUIZ_QUESTIONS = [
     ],
     correctIndex: 1,
     explanation: "Azure Container Apps sử dụng tiền tố chuẩn `secretref:<secret-name>` trong tham số `--set-env-vars` để liên kết biến môi trường tới giá trị bí mật được mã hóa trong secret vault."
+  },
+  {
+    id: "q19",
+    question: "Trong tính năng Azure Container Apps Dynamic Sessions (Code Interpreter cho AI Agent), tùy chọn cấu hình nào giúp bảo vệ an toàn tuyệt đối cho hệ thống bằng cách ngăn chặn mã độc thực thi trong sandbox gửi dữ liệu ra mạng Internet?",
+    options: [
+      "--network-status EgressDisabled",
+      "--firewall block-all",
+      "--internet false",
+      "--isolate-cpu true"
+    ],
+    correctIndex: 0,
+    explanation: "Cấu hình `--network-status EgressDisabled` sẽ vô hiệu hóa hoàn toàn lưu lượng gửi ra ngoài (egress) của container sandbox, ngăn chặn triệt để mã do LLM sinh ra thực hiện các hành vi rò rỉ dữ liệu hoặc tấn công mạng bên ngoài."
   }
 ];
+
 

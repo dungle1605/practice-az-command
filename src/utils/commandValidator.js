@@ -15,6 +15,7 @@ const FLAG_ALIASES = {
   '-t': '--image',
   '-w': '--workspace',
   '-f': '--follow',
+  '-y': '--yes',
   '--rg': '--resource-group',
   '--write-enable': '--write-enabled'
 };

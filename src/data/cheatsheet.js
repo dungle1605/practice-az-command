@@ -436,6 +436,31 @@ az webapp config set --resource-group $env:RESOURCE_GROUP --name $env:APP_NAME -
         desc: "Stream logs real-time để chẩn đoán lỗi khởi động ứng dụng container:",
         code: "az containerapp logs show -n <app-name> -g <rg> --follow",
         note: "Lab 1 (ACA): Luồng log thời gian thực giúp phát hiện ngay các lỗi thiếu secret hoặc crash ứng dụng."
+      },
+      {
+        title: "Cài đặt extension Container App hỗ trợ Preview (Lab Dynamic Sessions)",
+        desc: "Cài đặt/cập nhật extension Container App (cần cho Dynamic Sessions preview):",
+        code: "az extension add --name containerapp --upgrade --allow-preview true --yes",
+        note: "Lab Dynamic Sessions: Module containerapp bản preview hỗ trợ các nhóm lệnh sessionpool."
+      },
+      {
+        title: "Khởi tạo Session Pool cho Python Code Interpreter (Lab Dynamic Sessions)",
+        desc: "Tạo Session Pool cho Python code interpreter với sandbox cô lập mạng:",
+        code: `az containerapp sessionpool create \\
+    --name <pool-name> \\
+    --resource-group <rg> \\
+    --location <region> \\
+    --container-type PythonLTS \\
+    --max-sessions 5 \\
+    --cooldown-period 300 \\
+    --network-status EgressDisabled`,
+        note: "Lab Dynamic Sessions: --network-status EgressDisabled chặn toàn bộ egress ra Internet, bảo vệ an toàn khi chạy mã do LLM sinh ra."
+      },
+      {
+        title: "Gán role Azure ContainerApps Session Executor cho AI Agent (Lab Dynamic Sessions)",
+        desc: "Gán role cho phép thực thi code trong session pool:",
+        code: 'az role assignment create --assignee <principal-id> --role "Azure ContainerApps Session Executor" --scope <session-pool-id>',
+        note: "Lab Dynamic Sessions: Cấp quyền tối thiểu cho phép agent tạo phiên và thực thi code trong sandbox."
       }
     ]
   }
