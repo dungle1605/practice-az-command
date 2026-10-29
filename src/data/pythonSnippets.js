@@ -385,4 +385,453 @@ if __name__ == "__main__":
     view_log_summary()
 `,
     },
+    {
+        id: "cosmos-vector-container-setup",
+        title: "5. Cosmos DB Vector Container Setup (DiskANN & Vector Policy)",
+        description: "Khởi tạo Container Cosmos DB for NoSQL hỗ trợ Vector Search bằng Python SDK: cấu hình vector_embedding_policy (path /embedding, float32, cosine, 256 dimensions) và indexing_policy (DiskANN + exclude /embedding/* khỏi B-tree). Xác thực Entra ID qua DefaultAzureCredential.",
+        category: "Cosmos DB Vector Search",
+        filename: "setup_container.py",
+        code: `"""
+Setup script for creating the Cosmos DB container with vector search policies.
+This script configures the vector embedding policy and indexing policy required
+for vector similarity search using the VectorDistance function.
+"""
+import os
+from azure.cosmos import CosmosClient, PartitionKey
+from azure.identity import DefaultAzureCredential
+
+
+def get_database():
+    """Lấy tham chiếu Database Cosmos DB thông qua xác thực Entra ID."""
+    endpoint = os.environ.get("COSMOS_ENDPOINT")
+    database_name = os.environ.get("COSMOS_DATABASE", "vectorstore")
+
+    if not endpoint or not database_name:
+        raise ValueError(
+            "COSMOS_ENDPOINT and COSMOS_DATABASE environment variables must be set"
+        )
+
+    credential = DefaultAzureCredential()
+    client = CosmosClient(endpoint, credential=credential)
+    database = client.get_database_client(database_name)
+    return database
+
+
+def create_vector_container():
+    """
+    Tạo Container với các chính sách Vector Embedding và Indexing Policy DiskANN.
+    """
+    database = get_database()
+    container_name = os.environ.get("COSMOS_CONTAINER", "vectors")
+
+    # 1. Định nghĩa Vector Embedding Policy
+    # Báo cho Cosmos DB biết cấu trúc của mảng embedding tại đường dẫn /embedding
+    vector_embedding_policy = {
+        "vectorEmbeddings": [
+            {
+                "path": "/embedding",
+                "dataType": "float32",
+                "distanceFunction": "cosine",
+                "dimensions": 256
+            }
+        ]
+    }
+
+    # 2. Định nghĩa Indexing Policy với DiskANN
+    # - DiskANN cung cấp thuật toán tìm kiếm Nearest Neighbor (ANN) hiệu quả cao trên SSD
+    # - BẮT BUỘC loại trừ /embedding/* khỏi standard B-Tree indexing để tối ưu RU/s
+    indexing_policy = {
+        "indexingMode": "consistent",
+        "automatic": True,
+        "includedPaths": [
+            {"path": "/*"}
+        ],
+        "excludedPaths": [
+            {"path": "/embedding/*"}
+        ],
+        "vectorIndexes": [
+            {
+                "path": "/embedding",
+                "type": "diskANN"
+            }
+        ]
+    }
+
+    # 3. Tạo Container với Partition Key /documentId và Policies đã định nghĩa
+    container = database.create_container_if_not_exists(
+        id=container_name,
+        partition_key=PartitionKey(path="/documentId"),
+        indexing_policy=indexing_policy,
+        vector_embedding_policy=vector_embedding_policy
+    )
+    return container
+
+
+def main():
+    print("Creating vector container with embedding policies...")
+    container = create_vector_container()
+    print(f"✓ Container created successfully: {container.id}")
+    print("  - Partition Key: /documentId")
+    print("  - Vector Index: DiskANN (256 dims, cosine)")
+
+
+if __name__ == "__main__":
+    main()
+`,
+    },
+    {
+        id: "cosmos-vector-search-engine",
+        title: "6. Cosmos DB Vector Search Engine & Filtering (VectorDistance SQL)",
+        description: "Triển khai các hàm lưu trữ tài liệu kèm vector embedding (upsert_item & RU charge), tìm kiếm vector tương đồng Nearest Neighbor bằng hàm VectorDistance trong câu lệnh SQL và tìm kiếm kết hợp lọc metadata (Filtered Vector Search) chuẩn Microsoft AI-200.",
+        category: "Cosmos DB Vector Search",
+        filename: "vector_functions.py",
+        code: `"""
+Vector search functions for storing and retrieving documents with embeddings from Cosmos DB.
+Interfaces between the application and Cosmos DB vector search.
+"""
+import os
+from datetime import datetime
+from azure.cosmos import CosmosClient
+from azure.identity import DefaultAzureCredential
+
+
+def get_container():
+    """Lấy container client Cosmos DB với DefaultAzureCredential."""
+    endpoint = os.environ.get("COSMOS_ENDPOINT")
+    database_name = os.environ.get("COSMOS_DATABASE", "vectorstore")
+    container_name = os.environ.get("COSMOS_CONTAINER", "vectors")
+
+    if not endpoint or not database_name or not container_name:
+        raise ValueError("COSMOS_ENDPOINT, COSMOS_DATABASE, and COSMOS_CONTAINER must be set")
+
+    credential = DefaultAzureCredential()
+    client = CosmosClient(endpoint, credential=credential)
+    return client.get_database_client(database_name).get_container_client(container_name)
+
+
+def store_vector_document(document_id: str, chunk_id: str, content: str, embedding: list, metadata: dict) -> dict:
+    """Lưu trữ tài liệu và vector embedding vào Cosmos DB container, trích xuất Request Charge (RU)."""
+    container = get_container()
+    item = {
+        "id": chunk_id,
+        "documentId": document_id,
+        "chunkId": chunk_id,
+        "content": content,
+        "embedding": embedding,
+        "metadata": metadata,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    response = container.upsert_item(body=item)
+    request_charge = float(container.client_connection.last_response_headers.get("x-ms-request-charge", 0.0))
+    return {"item": response, "ru_charge": request_charge}
+
+
+def vector_similarity_search(query_embedding: list, top_n: int = 5) -> list:
+    """Tìm kiếm k tài liệu tương đồng nhất bằng hàm VectorDistance trong NoSQL SQL query."""
+    container = get_container()
+    query = """
+    SELECT TOP @top_n c.id, c.documentId, c.chunkId, c.content, c.metadata,
+           VectorDistance(c.embedding, @query_embedding) AS similarity_score
+    FROM c
+    ORDER BY VectorDistance(c.embedding, @query_embedding)
+    """
+    parameters = [
+        {"name": "@top_n", "value": top_n},
+        {"name": "@query_embedding", "value": query_embedding}
+    ]
+    items = container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+    return [
+        {
+            "document_id": item.get("documentId"),
+            "chunk_id": item.get("chunkId"),
+            "content": item.get("content"),
+            "similarity_score": item.get("similarity_score", 0.0),
+            "category": item.get("metadata", {}).get("category", ""),
+            "tags": item.get("metadata", {}).get("tags", [])
+        }
+        for item in items
+    ]
+
+
+def filtered_vector_search(query_embedding: list, category: str = None, top_n: int = 5) -> list:
+    """Tìm kiếm vector kết hợp bộ lọc trường metadata (ví dụ c.metadata.category = @category)."""
+    container = get_container()
+    if category:
+        query = """
+        SELECT TOP @top_n c.id, c.documentId, c.chunkId, c.content, c.metadata,
+               VectorDistance(c.embedding, @query_embedding) AS similarity_score
+        FROM c
+        WHERE c.metadata.category = @category
+        ORDER BY VectorDistance(c.embedding, @query_embedding)
+        """
+        parameters = [
+            {"name": "@top_n", "value": top_n},
+            {"name": "@query_embedding", "value": query_embedding},
+            {"name": "@category", "value": category}
+        ]
+    else:
+        query = """
+        SELECT TOP @top_n c.id, c.documentId, c.chunkId, c.content, c.metadata,
+               VectorDistance(c.embedding, @query_embedding) AS similarity_score
+        FROM c
+        ORDER BY VectorDistance(c.embedding, @query_embedding)
+        """
+        parameters = [
+            {"name": "@top_n", "value": top_n},
+            {"name": "@query_embedding", "value": query_embedding}
+        ]
+
+    items = container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+    return [
+        {
+            "document_id": item.get("documentId"),
+            "chunk_id": item.get("chunkId"),
+            "content": item.get("content"),
+            "similarity_score": item.get("similarity_score", 0.0),
+            "category": item.get("metadata", {}).get("category", ""),
+            "tags": item.get("metadata", {}).get("tags", [])
+        }
+        for item in items
+    ]
+`,
+    },
+    {
+        id: "cosmos-rag-query-engine",
+        title: "7. Cosmos DB RAG Query Engine (Point Read, In-Partition & ARRAY_CONTAINS)",
+        description: "Tối ưu hóa chi phí RU và hiệu năng cho RAG Document Store trên Cosmos DB NoSQL: Point Read (1.0 RU), Single-Partition Query (không fan-out), Cross-Partition Metadata Search với ARRAY_CONTAINS và thực thi câu lệnh SQL tùy biến kèm phân trang OFFSET/LIMIT.",
+        category: "Cosmos DB RAG & Queries",
+        filename: "rag_functions.py",
+        code: `"""
+Azure Cosmos DB for NoSQL RAG Query Engine (Microsoft AI-200)
+Tối ưu hóa chi phí và tốc độ truy vấn cho hệ thống Retrieval-Augmented Generation (RAG).
+"""
+import os
+from datetime import datetime
+from azure.cosmos import CosmosClient, exceptions
+from azure.identity import DefaultAzureCredential
+
+
+def get_container():
+    """Lấy tham chiếu Cosmos DB container bằng DefaultAzureCredential."""
+    endpoint = os.environ.get("COSMOS_ENDPOINT")
+    database_name = os.environ.get("COSMOS_DATABASE", "ragstore")
+    container_name = os.environ.get("COSMOS_CONTAINER", "chunks")
+
+    credential = DefaultAzureCredential()
+    client = CosmosClient(endpoint, credential=credential)
+    return client.get_database_client(database_name).get_container_client(container_name)
+
+
+# 1. POINT READ (Chi phí thấp nhất: đúng 1.0 RU, < 5ms)
+def get_chunk_by_id(document_id: str, chunk_id: str) -> dict | None:
+    """
+    Point Read đọc trực tiếp dữ liệu qua partition key và id.
+    Tuyệt đối không cần phân tích cú pháp SQL -> Cực nhanh và tiết kiệm RU nhất.
+    """
+    try:
+        container = get_container()
+        item = container.read_item(item=chunk_id, partition_key=document_id)
+        ru_charge = float(container.client_connection.last_response_headers.get("x-ms-request-charge", 1.0))
+        return {
+            "document_id": item.get("documentId"),
+            "chunk_id": item.get("chunkId", item.get("id")),
+            "content": item.get("content"),
+            "metadata": item.get("metadata", {}),
+            "ru_charge": ru_charge
+        }
+    except exceptions.CosmosResourceNotFoundError:
+        return None
+
+
+# 2. SINGLE-PARTITION QUERY (Chỉ định hướng vào 1 partition vật lý)
+def get_chunks_by_document(document_id: str) -> list[dict]:
+    """
+    Lấy toàn bộ chunk của 1 tài liệu theo thứ tự chunkIndex.
+    Có partition_key=document_id giúp Cosmos DB tránh quét đa phân vùng (Cross-Partition Fan-out).
+    """
+    container = get_container()
+    query = """
+    SELECT * FROM c
+    WHERE c.documentId = @document_id
+    ORDER BY c.metadata.chunkIndex
+    """
+    parameters = [{"name": "@document_id", "value": document_id}]
+    items = container.query_items(
+        query=query,
+        parameters=parameters,
+        partition_key=document_id  # Điểm mấu chốt để tối ưu RU!
+    )
+    return [
+        {
+            "document_id": item.get("documentId"),
+            "chunk_id": item.get("chunkId", item.get("id")),
+            "chunk_index": item.get("metadata", {}).get("chunkIndex", 0),
+            "content": item.get("content"),
+            "metadata": item.get("metadata", {})
+        }
+        for item in items
+    ]
+
+
+# 3. CROSS-PARTITION METADATA SEARCH (Sử dụng ARRAY_CONTAINS)
+def search_chunks_by_metadata(filters: dict) -> list[dict]:
+    """
+    Tìm kiếm chunk theo category hoặc tags.
+    Dùng hàm ARRAY_CONTAINS(c.metadata.tags, @tag) để kiểm tra phần tử trong mảng JSON.
+    """
+    container = get_container()
+    conditions = []
+    parameters = []
+
+    if "category" in filters and filters["category"]:
+        conditions.append("c.metadata.category = @category")
+        parameters.append({"name": "@category", "value": filters["category"]})
+
+    if "tags" in filters and filters["tags"]:
+        for i, tag in enumerate(filters["tags"]):
+            param_name = f"@tag_{i}"
+            conditions.append(f"ARRAY_CONTAINS(c.metadata.tags, {param_name})")
+            parameters.append({"name": param_name, "value": tag})
+
+    where_clause = " AND ".join(conditions) if conditions else "1=1"
+    query = f"SELECT * FROM c WHERE {where_clause}"
+
+    items = container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    )
+    return [
+        {
+            "document_id": item.get("documentId"),
+            "chunk_id": item.get("chunkId", item.get("id")),
+            "chunk_index": item.get("metadata", {}).get("chunkIndex", 0),
+            "content": item.get("content"),
+            "metadata": item.get("metadata", {})
+        }
+        for item in items
+    ]
+
+
+# 4. AD-HOC QUERY EXECUTOR KÈM PHÂN TRANG (OFFSET / LIMIT)
+def execute_rag_query(sql_query: str) -> dict:
+    """
+    Thực thi câu truy vấn SQL với phân trang OFFSET ... LIMIT ... và đo lường Request Charge (RU).
+    Ví dụ: SELECT c.id, c.documentId, c.content FROM c OFFSET 0 LIMIT 10
+    """
+    container = get_container()
+    items = container.query_items(query=sql_query, enable_cross_partition_query=True)
+    results = list(items)
+    ru_charge = float(container.client_connection.last_response_headers.get("x-ms-request-charge", 0.0))
+    return {
+        "results": results,
+        "count": len(results),
+        "ru_charge": ru_charge
+    }
+`,
+    },
+    {
+        id: "cosmos-vector-index-benchmark",
+        title: "8. Cosmos DB Vector Index Benchmark (Flat vs QuantizedFlat vs DiskANN)",
+        description: "So sánh 3 chiến lược Vector Index trong Cosmos DB NoSQL: Flat (Exact k-NN cho tập dữ liệu nhỏ < 5K), QuantizedFlat (Nén scalar quantization cho tập dữ liệu trung bình 10K-100K) và DiskANN (Approximate Nearest Neighbor tối ưu SSD cho Production > 100K). Đánh giá RU charge và thời gian thực thi (ms).",
+        category: "Vector Index Optimization",
+        filename: "setup_containers.py",
+        code: `"""
+Azure Cosmos DB for NoSQL Vector Index Optimization & Benchmark (Microsoft AI-200)
+Khởi tạo và so sánh 3 chiến lược Vector Indexing:
+1. 'flat': Exact Nearest Neighbor (k-NN), so khớp toàn bộ vector (100% recall, chi phí RU cao khi dữ liệu lớn)
+2. 'quantizedFlat': Nén scalar quantization, giảm bộ nhớ cho tập dữ liệu trung bình (10K - 100K vectors)
+3. 'diskANN': Graph-based Approximate Nearest Neighbor (ANN) by Microsoft Research, chuẩn Production (>100K vectors)
+"""
+import os
+import time
+from azure.cosmos import CosmosClient, PartitionKey
+from azure.identity import DefaultAzureCredential
+
+
+CONTAINER_FLAT = "vectors-flat"
+CONTAINER_QUANTIZED = "vectors-quantized"
+CONTAINER_DISKANN = "vectors-diskann"
+
+
+def get_database():
+    endpoint = os.environ.get("COSMOS_ENDPOINT")
+    database_name = os.environ.get("COSMOS_DATABASE", "indexoptimize")
+
+    credential = DefaultAzureCredential()
+    client = CosmosClient(endpoint, credential=credential)
+    return client.get_database_client(database_name)
+
+
+# KHỞI TẠO CONTAINER THEO LOẠI INDEX (flat | quantizedFlat | diskANN)
+def create_vector_container_by_type(container_name: str, index_type: str):
+    database = get_database()
+
+    vector_embedding_policy = {
+        "vectorEmbeddings": [
+            {
+                "path": "/embedding",
+                "dataType": "float32",
+                "distanceFunction": "cosine",
+                "dimensions": 256
+            }
+        ]
+    }
+
+    indexing_policy = {
+        "indexingMode": "consistent",
+        "automatic": True,
+        "includedPaths": [{"path": "/*"}],
+        "excludedPaths": [{"path": "/embedding/*"}],  # Bắt buộc loại trừ khỏi B-Tree
+        "vectorIndexes": [
+            {
+                "path": "/embedding",
+                "type": index_type  # "flat", "quantizedFlat", hoặc "diskANN"
+            }
+        ]
+    }
+
+    container = database.create_container_if_not_exists(
+        id=container_name,
+        partition_key=PartitionKey(path="/documentId"),
+        indexing_policy=indexing_policy,
+        vector_embedding_policy=vector_embedding_policy
+    )
+    print(f"✓ Created '{container_name}' with vector index '{index_type}'")
+    return container
+
+
+# SO SÁNH HIỆU NĂNG TRUY VẤN VÀ RU CONSUMPTION
+def benchmark_search_query(container_name: str, query_embedding: list, top_n: int = 5) -> dict:
+    database = get_database()
+    container = database.get_container_client(container_name)
+
+    start_time = time.time()
+    query = """
+    SELECT TOP @topN c.id, c.documentId, c.content, c.metadata,
+           VectorDistance(c.embedding, @queryVector) AS similarityScore
+    FROM c
+    ORDER BY VectorDistance(c.embedding, @queryVector)
+    """
+    parameters = [
+        {"name": "@topN", "value": top_n},
+        {"name": "@queryVector", "value": query_embedding}
+    ]
+
+    items = list(container.query_items(
+        query=query,
+        parameters=parameters,
+        enable_cross_partition_query=True
+    ))
+    execution_time_ms = (time.time() - start_time) * 1000
+    ru_charge = float(container.client_connection.last_response_headers.get('x-ms-request-charge', 0.0))
+
+    return {
+        "container": container_name,
+        "count": len(items),
+        "execution_time_ms": round(execution_time_ms, 2),
+        "ru_charge": ru_charge
+    }
+`,
+    },
 ];

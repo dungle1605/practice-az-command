@@ -1,7 +1,7 @@
 /**
- * Challenge & Quiz Dataset based on Useful_Command.md
- * Designed for Microsoft AI-200 and Azure DevOps practical mastery.
- * Covers all 5 Levels: Environment Setup, ACR & Tasks, App Service Container, RBAC & App Settings, and Sidecar Containers.
+ * Challenge & Quiz Dataset based on Useful_Command.md & Microsoft AI-200 Labs
+ * Covers all 8 Levels: Environment Setup, ACR & Tasks, App Service Container, RBAC & App Settings,
+ * Sidecar Containers, Azure Container Apps (ACA), Azure Kubernetes Service (AKS), and Azure Cosmos DB Vector Search.
  */
 
 export const LEVELS = [
@@ -60,6 +60,14 @@ export const LEVELS = [
     badge: "AKS & K8s Master",
     color: "#326ce5",
     icon: "☸️"
+  },
+  {
+    id: 8,
+    name: "Level 8: Cosmos DB Vector Search & RAG Store",
+    tagline: "NoSQL Serverless, Kích hoạt Vector Search, DiskANN Indexing, RAG Document Queries & RBAC Data Plane",
+    badge: "Vector DB Architect",
+    color: "#00b294",
+    icon: "🪐"
   }
 ];
 
@@ -2956,6 +2964,572 @@ Events:
   ----    ------                 ----   ----                                                                     -------
   Normal  Provisioning           2m30s  disk.csi.azure.com_aks-nodepool1-12345678-vmss000000_...                 External provisioner is provisioning volume for claim "default/api-logs-pvc"
   Normal  ProvisioningSucceeded  2m16s  disk.csi.azure.com_aks-nodepool1-12345678-vmss000000_...                 Successfully provisioned volume pvc-8f2c3109-1a42-4f86-9db8-5089304e9c71`
+  },
+
+  // ==========================================
+  // LEVEL 8: AZURE COSMOS DB VECTOR SEARCH
+  // ==========================================
+  {
+    id: "l8-check-name",
+    level: 8,
+    title: "1. Kiểm tra Tên Tài khoản Cosmos DB Toàn cầu",
+    difficulty: "Cơ bản",
+    category: "Pre-flight & Validation",
+    mission: "Tên tài khoản Cosmos DB dùng để sinh ra endpoint public `https://<account-name>.documents.azure.com:443/` nên phải duy nhất trên toàn cầu (Globally Unique). Hãy dùng Azure CLI kiểm tra xem tên tài khoản `$env:COSMOS_ACCOUNT` đã tồn tại hay chưa.",
+    expectedCommand: "az cosmosdb check-name-exists --name $env:COSMOS_ACCOUNT",
+    aliases: [
+      "az cosmosdb check-name-exists -n $env:COSMOS_ACCOUNT",
+      "az cosmosdb check-name-exists --name <account-name>"
+    ],
+    tokens: ["az", "cosmosdb", "check-name-exists", "--name", "$env:COSMOS_ACCOUNT"],
+    hints: [
+      "Lệnh thuộc nhóm `az cosmosdb`.",
+      "Hành động kiểm tra tên là `check-name-exists`.",
+      "Truyền cờ `--name` với giá trị `$env:COSMOS_ACCOUNT`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb check-name-exists --name <AccountName>",
+      breakdown: [
+        { part: "az cosmosdb", role: "Service Group", desc: "Quản lý dịch vụ cơ sở dữ liệu phân tán toàn cầu Azure Cosmos DB" },
+        { part: "check-name-exists", role: "Action", desc: "Kiểm tra tính khả dụng toàn cầu của tên tài khoản" },
+        { part: "--name", role: "Target Name", desc: "Tên định danh tài khoản cần kiểm tra" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name", meaning: "Tên tài khoản Cosmos DB (chỉ gồm chữ thường, số, dấu gạch ngang, 3-44 ký tự)." }
+    ],
+    examNotes: "Nếu kết quả trả về `false`, tên tài khoản hoàn toàn sẵn sàng và chưa bị ai chiếm dụng.",
+    simulatedOutput: "false"
+  },
+  {
+    id: "l8-create-account",
+    level: 8,
+    title: "2. Tạo Tài khoản Cosmos DB NoSQL với Vector Search & Serverless",
+    difficulty: "Trung bình",
+    category: "Resource Provisioning",
+    mission: "Khởi tạo tài khoản Azure Cosmos DB for NoSQL trong Resource Group `$env:RESOURCE_GROUP` với tên `$env:COSMOS_ACCOUNT`, vị trí `southeastasia`. Cấu hình khả năng Serverless và Vector Search (`EnableServerless EnableNoSQLVectorSearch`), mức nhất quán mặc định là `Session`.",
+    expectedCommand: "az cosmosdb create --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --locations regionName=southeastasia --capabilities EnableServerless EnableNoSQLVectorSearch --default-consistency-level Session",
+    aliases: [
+      "az cosmosdb create -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT --locations regionName=southeastasia --capabilities EnableServerless EnableNoSQLVectorSearch --default-consistency-level Session",
+      "az cosmosdb create --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --locations regionName=southeastasia --capabilities EnableNoSQLVectorSearch EnableServerless --default-consistency-level Session"
+    ],
+    tokens: ["az", "cosmosdb", "create", "--resource-group", "$env:RESOURCE_GROUP", "--name", "$env:COSMOS_ACCOUNT", "--locations", "regionName=southeastasia", "--capabilities", "EnableServerless", "EnableNoSQLVectorSearch", "--default-consistency-level", "Session"],
+    hints: [
+      "Dùng lệnh `az cosmosdb create`.",
+      "Cờ `--locations regionName=southeastasia` chỉ định khu vực triển khai.",
+      "Cờ `--capabilities` truyền 2 tính năng: `EnableServerless EnableNoSQLVectorSearch`.",
+      "Mức nhất quán chỉ định qua `--default-consistency-level Session`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb create --resource-group <RG> --name <Name> --locations regionName=<Region> --capabilities EnableServerless EnableNoSQLVectorSearch --default-consistency-level Session",
+      breakdown: [
+        { part: "az cosmosdb create", role: "Provisioning", desc: "Tạo tài khoản Azure Cosmos DB mới" },
+        { part: "--capabilities EnableNoSQLVectorSearch", role: "AI Vector Feature", desc: "Kích hoạt tính năng tìm kiếm vector và hàm VectorDistance" },
+        { part: "--capabilities EnableServerless", role: "Capacity Mode", desc: "Chế độ tính cước theo lượng RU thực dùng, tối ưu chi phí cho lab" },
+        { part: "--default-consistency-level Session", role: "Consistency", desc: "Mức nhất quán tối ưu và phổ biến nhất cho ứng dụng web (Read-your-writes)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--capabilities", meaning: "Kích hoạt các tính năng đặc thù như EnableServerless và EnableNoSQLVectorSearch." },
+      { param: "--default-consistency-level", meaning: "Mức nhất quán mặc định: Strong, BoundedStaleness, Session, ConsistentPrefix, Eventual." }
+    ],
+    examNotes: "💡 Điểm quan trọng AI-200: Tính năng Vector Search trong Cosmos DB NoSQL phải được bật ở cấp độ tài khoản bằng capability `EnableNoSQLVectorSearch`.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6",
+  "name": "cosmos-vector-9e9994d6",
+  "provisioningState": "Succeeded",
+  "documentEndpoint": "https://cosmos-vector-9e9994d6.documents.azure.com:443/",
+  "capabilities": [
+    { "name": "EnableServerless" },
+    { "name": "EnableNoSQLVectorSearch" }
+  ]
+}`
+  },
+  {
+    id: "l8-show-capabilities",
+    level: 8,
+    title: "3. Xác minh Capability EnableNoSQLVectorSearch",
+    difficulty: "Cơ bản",
+    category: "Inspection",
+    mission: "Sau khi tạo tài khoản, hãy kiểm tra xem tính năng Vector Search đã thực sự được kích hoạt trên tài khoản `$env:COSMOS_ACCOUNT` hay chưa bằng cách truy vấn danh sách capabilities và xuất ra dạng văn bản sạch (tsv).",
+    expectedCommand: 'az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query "capabilities[].name" -o tsv',
+    aliases: [
+      "az cosmosdb show -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT --query \"capabilities[].name\" -o tsv",
+      "az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query 'capabilities[].name' -o tsv"
+    ],
+    tokens: ["az", "cosmosdb", "show", "--resource-group", "$env:RESOURCE_GROUP", "--name", "$env:COSMOS_ACCOUNT", "--query", "capabilities[].name", "-o", "tsv"],
+    hints: [
+      "Dùng lệnh `az cosmosdb show`.",
+      "Dùng JMESPath `--query \"capabilities[].name\"` để lấy mảng tên capabilities.",
+      "Thêm `-o tsv` để nhận chuỗi text sạch không có dấu ngoặc kép."
+    ],
+    mentalModel: {
+      rule: 'az cosmosdb show --resource-group <RG> --name <Account> --query "capabilities[].name" -o tsv',
+      breakdown: [
+        { part: "az cosmosdb show", role: "Inspection", desc: "Lấy metadata cấu hình của tài khoản Cosmos DB" },
+        { part: '--query "capabilities[].name"', role: "JMESPath Projection", desc: "Trích xuất danh sách tên các tính năng đã bật" },
+        { part: "-o tsv", role: "Output Format", desc: "Định dạng dạng text phân tách bằng tab/dòng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: '--query "capabilities[].name"', meaning: "Bộ lọc JMESPath duyệt qua từng phần tử mảng capabilities và lấy thuộc tính name." }
+    ],
+    examNotes: "Kết quả hiển thị `EnableNoSQLVectorSearch` đảm bảo các hàm VectorDistance và DiskANN index được chấp thuận.",
+    simulatedOutput: `EnableServerless\nEnableNoSQLVectorSearch`
+  },
+  {
+    id: "l8-create-database",
+    level: 8,
+    title: "4. Tạo Database NoSQL trong Cosmos DB",
+    difficulty: "Cơ bản",
+    category: "Data Structure",
+    mission: "Tạo một database NoSQL mới có tên là `vectorstore` bên trong tài khoản Cosmos DB `$env:COSMOS_ACCOUNT` thuộc Resource Group `$env:RESOURCE_GROUP`.",
+    expectedCommand: "az cosmosdb sql database create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --name vectorstore",
+    aliases: [
+      "az cosmosdb sql database create -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -n vectorstore",
+      "az cosmosdb sql database create -g $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --name vectorstore"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "database", "create", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--name", "vectorstore"],
+    hints: [
+      "Nhóm lệnh quản lý NoSQL database là `az cosmosdb sql database create`.",
+      "Chỉ định tên tài khoản qua `--account-name $env:COSMOS_ACCOUNT`.",
+      "Chỉ định tên database qua `--name vectorstore`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql database create --resource-group <RG> --account-name <Account> --name <Database>",
+      breakdown: [
+        { part: "az cosmosdb sql database create", role: "Data Structure", desc: "Tạo vùng chứa logic (Database) trong tài khoản Cosmos DB API for NoSQL" },
+        { part: "--account-name", role: "Target Server", desc: "Tên tài khoản Cosmos DB lưu trữ database" },
+        { part: "--name vectorstore", role: "Database ID", desc: "Tên của database mới" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--account-name", meaning: "Tên của Cosmos DB account." },
+      { param: "--name", meaning: "Tên định danh của Database (id)." }
+    ],
+    examNotes: "Database là đơn vị logic chứa các Containers lưu trữ tài liệu JSON.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/sqlDatabases/vectorstore",
+  "name": "vectorstore",
+  "resource": {
+    "id": "vectorstore"
+  }
+}`
+  },
+  {
+    id: "l8-create-container-vector",
+    level: 8,
+    title: "5. Tạo Container với Vector Policy & DiskANN Indexing",
+    difficulty: "Nâng cao",
+    category: "Vector Indexing Policy",
+    mission: "Tạo container `vectors` trong database `vectorstore` của tài khoản `$env:COSMOS_ACCOUNT`. Đặt partition key là `/documentId`, truyền chính sách index từ `@indexing-policy.json` và chính sách vector embedding từ `@embedding-policy.json`.",
+    expectedCommand: "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name vectorstore --name vectors --partition-key-path /documentId --idx @indexing-policy.json --vector-embeddings @embedding-policy.json",
+    aliases: [
+      "az cosmosdb sql container create -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d vectorstore -n vectors --partition-key-path /documentId --idx @indexing-policy.json --vector-embeddings @embedding-policy.json",
+      "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name vectorstore --name vectors --partition-key-path /documentId --idx @indexing-policy.json --vector-embeddings @embedding-policy.json"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "create", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "vectorstore", "--name", "vectors", "--partition-key-path", "/documentId", "--idx", "@indexing-policy.json", "--vector-embeddings", "@embedding-policy.json"],
+    hints: [
+      "Lệnh tạo container NoSQL là `az cosmosdb sql container create`.",
+      "Partition key chỉ định qua `--partition-key-path /documentId`.",
+      "Chính sách index truyền qua cờ `--idx @indexing-policy.json`.",
+      "Chính sách vector embedding truyền qua cờ `--vector-embeddings @embedding-policy.json`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql container create --resource-group <RG> --account-name <Account> --database-name <DB> --name <Container> --partition-key-path <Path> --idx <IndexPolicy> --vector-embeddings <EmbeddingPolicy>",
+      breakdown: [
+        { part: "--partition-key-path /documentId", role: "Partition Key", desc: "Định nghĩa khóa phân vùng vật lý phân bổ dữ liệu" },
+        { part: "--idx @indexing-policy.json", role: "DiskANN Index", desc: "Cấu hình vectorIndexes kiểu DiskANN và loại trừ /embedding/* khỏi B-tree index" },
+        { part: "--vector-embeddings @embedding-policy.json", role: "Embedding Spec", desc: "Định nghĩa đường dẫn /embedding, kiểu dữ liệu float32, khoảng cách cosine, kích thước 256 chiều" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--partition-key-path", meaning: "Đường dẫn thuộc tính JSON dùng làm partition key." },
+      { param: "--idx", meaning: "Chính sách đánh chỉ mục JSON hoặc đường dẫn tệp JSON (@path)." },
+      { param: "--vector-embeddings", meaning: "Chính sách định nghĩa mảng vector (dataType, distanceFunction, dimensions)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200 then chốt: Đường dẫn vector `/embedding/*` bắt buộc phải đưa vào `excludedPaths` của indexing policy để tránh chỉ mục B-tree mặc định làm tăng đột biến chi phí RU/s và dung lượng.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/sqlDatabases/vectorstore/containers/vectors",
+  "name": "vectors",
+  "resource": {
+    "id": "vectors",
+    "partitionKey": {
+      "paths": ["/documentId"],
+      "kind": "Hash"
+    },
+    "indexingPolicy": {
+      "indexingMode": "consistent",
+      "automatic": true,
+      "includedPaths": [{ "path": "/*" }],
+      "excludedPaths": [{ "path": "/embedding/*" }],
+      "vectorIndexes": [{ "path": "/embedding", "type": "diskANN" }]
+    },
+    "vectorEmbeddingPolicy": {
+      "vectorEmbeddings": [
+        { "path": "/embedding", "dataType": "float32", "distanceFunction": "cosine", "dimensions": 256 }
+      ]
+    }
+  }
+}`
+  },
+  {
+    id: "l8-create-rag-container",
+    level: 8,
+    title: "6. Tạo Container Chunks cho RAG với Partition Key /documentId",
+    difficulty: "Trung bình",
+    category: "RAG Data Storage",
+    mission: "Tạo một container NoSQL mới tên `chunks` trong database `ragstore` của tài khoản `$env:COSMOS_ACCOUNT`. Đặt partition key là `/documentId` để gom nhóm toàn bộ các đoạn văn bản (chunks) của cùng một tài liệu vào chung một phân vùng vật lý.",
+    expectedCommand: "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks --partition-key-path /documentId",
+    aliases: [
+      "az cosmosdb sql container create -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d ragstore -n chunks --partition-key-path /documentId",
+      "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks --partition-key-path /documentId"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "create", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "ragstore", "--name", "chunks", "--partition-key-path", "/documentId"],
+    hints: [
+      "Lệnh tạo container NoSQL là `az cosmosdb sql container create`.",
+      "Chỉ định database qua `--database-name ragstore`.",
+      "Chỉ định tên container qua `--name chunks`.",
+      "Khóa phân vùng được đặt qua cờ `--partition-key-path /documentId`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql container create --resource-group <RG> --account-name <Account> --database-name <DB> --name <Container> --partition-key-path /documentId",
+      breakdown: [
+        { part: "az cosmosdb sql container create", role: "Container Provisioning", desc: "Tạo container lưu trữ các chunks văn bản phục vụ RAG" },
+        { part: "--partition-key-path /documentId", role: "Partition Strategy", desc: "Đảm bảo truy vấn lấy toàn bộ chunks của 1 document luôn là Single-Partition Query" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--partition-key-path", meaning: "Đường dẫn JSON xác định khóa phân vùng cho container." }
+    ],
+    examNotes: "💡 Điểm thi AI-200 then chốt: Sử dụng `/documentId` làm Partition Key giúp tránh triệt để tình trạng Cross-Partition Query tốn kém RU khi LLM cần nạp toàn bộ ngữ cảnh của 1 tài liệu.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/sqlDatabases/ragstore/containers/chunks",
+  "name": "chunks",
+  "resource": {
+    "id": "chunks",
+    "partitionKey": {
+      "paths": ["/documentId"],
+      "kind": "Hash"
+    }
+  }
+}`
+  },
+  {
+    id: "l8-list-containers",
+    level: 8,
+    title: "7. Liệt kê các Container trong Database NoSQL",
+    difficulty: "Cơ bản",
+    category: "Inspection",
+    mission: "Hiển thị danh sách toàn bộ các container đang có bên trong database `ragstore` của tài khoản Cosmos DB `$env:COSMOS_ACCOUNT` dưới dạng bảng trực quan.",
+    expectedCommand: "az cosmosdb sql container list --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore -o table",
+    aliases: [
+      "az cosmosdb sql container list -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d ragstore -o table",
+      "az cosmosdb sql container list --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --output table"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "list", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "ragstore", "-o", "table"],
+    hints: [
+      "Lệnh liệt kê container là `az cosmosdb sql container list`.",
+      "Chỉ định `--database-name ragstore`.",
+      "Định dạng bảng với `-o table`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql container list --resource-group <RG> --account-name <Account> --database-name <DB> -o table",
+      breakdown: [
+        { part: "az cosmosdb sql container list", role: "List Action", desc: "Liệt kê các containers bên trong một NoSQL database cụ thể" },
+        { part: "-o table", role: "Output Format", desc: "Hiển thị kết quả dạng bảng 2 chiều" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--database-name", meaning: "Tên database cần tra cứu danh sách container." }
+    ],
+    examNotes: "Cho phép nhanh chóng xác minh danh sách container và partition key tương ứng.",
+    simulatedOutput: `Name    PartitionKey    DefaultTtl
+------  --------------  ------------
+chunks  /documentId`
+  },
+  {
+    id: "l8-show-throughput",
+    level: 8,
+    title: "8. Kiểm tra Cấu hình Throughput RU/s của Container",
+    difficulty: "Trung bình",
+    category: "Performance & Cost",
+    mission: "Kiểm tra thông số Throughput (mức RU/s được cấp phát) của container `chunks` trong database `ragstore` của tài khoản Cosmos DB `$env:COSMOS_ACCOUNT`.",
+    expectedCommand: "az cosmosdb sql container throughput show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks",
+    aliases: [
+      "az cosmosdb sql container throughput show -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d ragstore -n chunks",
+      "az cosmosdb sql container throughput show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "throughput", "show", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "ragstore", "--name", "chunks"],
+    hints: [
+      "Lệnh kiểm tra throughput là `az cosmosdb sql container throughput show`.",
+      "Chỉ định database qua `--database-name ragstore`.",
+      "Chỉ định container qua `--name chunks`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql container throughput show --resource-group <RG> --account-name <Account> --database-name <DB> --name <Container>",
+      breakdown: [
+        { part: "az cosmosdb sql container throughput show", role: "Throughput Inspection", desc: "Xem chi tiết dung lượng Request Units (RU/s) hoặc trạng thái Serverless" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "throughput show", meaning: "Xem cấu hình thông lượng tính phí (Provisioned throughput hoặc Serverless)." }
+    ],
+    examNotes: "Nếu tài khoản ở chế độ Serverless (`EnableServerless`), container sẽ không thiết lập throughput cố định mà tự động scale theo tải thực tế.",
+    simulatedOutput: `{
+  "resource": {
+    "throughput": null,
+    "minimumThroughput": null,
+    "offerReplacePending": "false"
+  }
+}`
+  },
+  {
+    id: "l8-get-cosmos-id",
+    level: 8,
+    title: "9. Lấy Resource ID của Cosmos DB cho RBAC",
+    difficulty: "Cơ bản",
+    category: "Identity & RBAC",
+    mission: "Lấy chuỗi Resource ID đầy đủ (ARM ID) của tài khoản Cosmos DB `$env:COSMOS_ACCOUNT` dưới định dạng text sạch và gán vào biến PowerShell `$COSMOS_ID` để sử dụng làm phạm vi (scope) phân quyền RBAC.",
+    expectedCommand: "$COSMOS_ID = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query id -o tsv",
+    aliases: [
+      "$COSMOS_ID = az cosmosdb show -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT --query id -o tsv",
+      "$COSMOS_ID = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query id --output tsv"
+    ],
+    tokens: ["$COSMOS_ID", "=", "az", "cosmosdb", "show", "--resource-group", "$env:RESOURCE_GROUP", "--name", "$env:COSMOS_ACCOUNT", "--query", "id", "-o", "tsv"],
+    hints: [
+      "Bắt đầu bằng `$COSMOS_ID = `.",
+      "Dùng lệnh `az cosmosdb show`.",
+      "Dùng `--query id -o tsv` để nhận Resource ID không có dấu ngoặc kép."
+    ],
+    mentalModel: {
+      rule: "$COSMOS_ID = az cosmosdb show --resource-group <RG> --name <Account> --query id -o tsv",
+      breakdown: [
+        { part: "$COSMOS_ID =", role: "Variable Assignment", desc: "Lưu ARM Scope ID vào biến shell" },
+        { part: "--query id", role: "JMESPath", desc: "Lọc lấy chuỗi /subscriptions/.../databaseAccounts/..." },
+        { part: "-o tsv", role: "Clean String", desc: "Bỏ ngoặc kép bao quanh chuỗi ID" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-o tsv", meaning: "Xuất dữ liệu text thuần không có dấu ngoặc kép JSON." }
+    ],
+    examNotes: "Resource ID này được dùng làm `--scope` cho cả Control Plane RBAC và Data Plane RBAC.",
+    simulatedOutput: "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6"
+  },
+  {
+    id: "l8-rbac-control-plane",
+    level: 8,
+    title: "10. Gán quyền ARM Contributor (Control Plane)",
+    difficulty: "Trung bình",
+    category: "Identity & RBAC",
+    mission: "Gán vai trò Azure RBAC `Contributor` cho người dùng `$USER_ID` trên phạm vi tài khoản Cosmos DB `$COSMOS_ID` để cho phép tạo/quản lý database và container thông qua Azure Resource Manager.",
+    expectedCommand: "az role assignment create --assignee $USER_ID --scope $COSMOS_ID --role Contributor",
+    aliases: [
+      "az role assignment create --assignee $USER_ID --role Contributor --scope $COSMOS_ID"
+    ],
+    tokens: ["az", "role", "assignment", "create", "--assignee", "$USER_ID", "--scope", "$COSMOS_ID", "--role", "Contributor"],
+    hints: [
+      "Lệnh gán quyền RBAC cấp Azure là `az role assignment create`.",
+      "Truyền danh tính qua `--assignee $USER_ID`.",
+      "Truyền phạm vi tài khoản qua `--scope $COSMOS_ID`.",
+      "Vai trò là `--role Contributor`."
+    ],
+    mentalModel: {
+      rule: "az role assignment create --assignee <User/App> --scope <Scope> --role Contributor",
+      breakdown: [
+        { part: "az role assignment create", role: "Azure RBAC", desc: "Quản trị quyền truy cập tầng điều khiển (Control Plane / ARM)" },
+        { part: "--role Contributor", role: "Management Role", desc: "Quyền quản lý cấu hình hạ tầng tài nguyên (tạo container, đổi vùng, scale RU)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--assignee", meaning: "Object ID hoặc User Principal Name của người dùng/Managed Identity." },
+      { param: "--scope", meaning: "Phạm vi áp dụng quyền (Resource ID của tài khoản Cosmos DB)." }
+    ],
+    examNotes: "⚠️ Lưu ý thi AI-200: Quyền Contributor ở tầng ARM chỉ quản lý cấu hình, KHÔNG tự động cấp quyền truy vấn hay ghi dữ liệu documents trong container!",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/providers/Microsoft.Authorization/roleAssignments/role-contrib-12345",
+  "principalId": "00000000-0000-0000-0000-000000000001",
+  "roleDefinitionName": "Contributor",
+  "scope": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6"
+}`
+  },
+  {
+    id: "l8-rbac-data-plane",
+    level: 8,
+    title: "11. Gán quyền Data Plane 'Cosmos DB Built-in Data Contributor'",
+    difficulty: "Nâng cao",
+    category: "Identity & RBAC",
+    mission: "Để ứng dụng Python hoặc người dùng có thể thực hiện truy vấn Vector Search và lưu document vào container mà không cần dùng Access Key tĩnh (Zero Trust), hãy gán quyền Data Plane `Cosmos DB Built-in Data Contributor` cho `$USER_ID`.",
+    expectedCommand: 'az cosmosdb sql role assignment create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --role-definition-name "Cosmos DB Built-in Data Contributor" --principal-id $USER_ID --scope $COSMOS_ID',
+    aliases: [
+      "az cosmosdb sql role assignment create -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT --role-definition-name \"Cosmos DB Built-in Data Contributor\" --principal-id $USER_ID --scope $COSMOS_ID",
+      "az cosmosdb sql role assignment create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --role-definition-name 'Cosmos DB Built-in Data Contributor' --principal-id $USER_ID --scope $COSMOS_ID"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "role", "assignment", "create", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--role-definition-name", "Cosmos DB Built-in Data Contributor", "--principal-id", "$USER_ID", "--scope", "$COSMOS_ID"],
+    hints: [
+      "Lệnh phân quyền Data Plane riêng của Cosmos DB là `az cosmosdb sql role assignment create`.",
+      'Tên định nghĩa vai trò là `--role-definition-name "Cosmos DB Built-in Data Contributor"`.',
+      "Định danh người nhận quyền truyền qua cờ `--principal-id $USER_ID`.",
+      "Phạm vi áp dụng truyền qua `--scope $COSMOS_ID`."
+    ],
+    mentalModel: {
+      rule: 'az cosmosdb sql role assignment create --resource-group <RG> --account-name <Account> --role-definition-name "Cosmos DB Built-in Data Contributor" --principal-id <ID> --scope <Scope>',
+      breakdown: [
+        { part: "az cosmosdb sql role assignment create", role: "Data Plane RBAC", desc: "Hệ thống RBAC nội bộ cấp dữ liệu của Cosmos DB NoSQL" },
+        { part: '--role-definition-name "Cosmos DB Built-in Data Contributor"', role: "Data Role", desc: "Cấp quyền đọc, ghi, truy vấn VectorDistance trên tất cả containers" },
+        { part: "--principal-id", role: "Identity", desc: "Object ID của Entra ID User hoặc Managed Identity của App" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--role-definition-name", meaning: "Tên vai trò dữ liệu dựng sẵn: 'Cosmos DB Built-in Data Reader' hoặc 'Cosmos DB Built-in Data Contributor'." },
+      { param: "--principal-id", meaning: "Object ID của danh tính Entra ID." }
+    ],
+    examNotes: "Đây là cách duy nhất để sử dụng `DefaultAzureCredential()` từ SDK mà không cần lưu trữ chuỗi kết nối chứa master key (AccountKey).",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/sqlRoleAssignments/data-contrib-67890",
+  "principalId": "00000000-0000-0000-0000-000000000001",
+  "roleDefinitionId": "/subscriptions/.../sqlRoleDefinitions/00000000-0000-0000-0000-000000000002",
+  "scope": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6"
+}`
+  },
+  {
+    id: "l8-get-endpoint",
+    level: 8,
+    title: "12. Lấy Document Endpoint sạch để cấu hình SDK",
+    difficulty: "Cơ bản",
+    category: "SDK Configuration",
+    mission: "Trích xuất URL `documentEndpoint` của tài khoản Cosmos DB `$env:COSMOS_ACCOUNT` dạng chuỗi sạch không có dấu ngoặc kép và lưu vào biến `$COSMOS_ENDPOINT` để chuẩn bị cho tệp cấu hình `.env`.",
+    expectedCommand: "$COSMOS_ENDPOINT = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query documentEndpoint -o tsv",
+    aliases: [
+      "$COSMOS_ENDPOINT = az cosmosdb show -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT --query documentEndpoint -o tsv",
+      "$COSMOS_ENDPOINT = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query documentEndpoint --output tsv"
+    ],
+    tokens: ["$COSMOS_ENDPOINT", "=", "az", "cosmosdb", "show", "--resource-group", "$env:RESOURCE_GROUP", "--name", "$env:COSMOS_ACCOUNT", "--query", "documentEndpoint", "-o", "tsv"],
+    hints: [
+      "Bắt đầu bằng `$COSMOS_ENDPOINT = `.",
+      "Dùng lệnh `az cosmosdb show`.",
+      "Thuộc tính endpoint là `--query documentEndpoint`.",
+      "Kết thúc bằng `-o tsv`."
+    ],
+    mentalModel: {
+      rule: "$COSMOS_ENDPOINT = az cosmosdb show --resource-group <RG> --name <Account> --query documentEndpoint -o tsv",
+      breakdown: [
+        { part: "--query documentEndpoint", role: "JMESPath Property", desc: "Trích xuất trường HTTPS URL của tài khoản Cosmos DB" },
+        { part: "-o tsv", role: "Clean String", desc: "Loại bỏ ngoặc kép bao quanh URL" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query documentEndpoint", meaning: "Địa chỉ HTTPS dùng cho CosmosClient trong Python SDK." }
+    ],
+    examNotes: "Endpoint trả về có cấu trúc: `https://<account-name>.documents.azure.com:443/`.",
+    simulatedOutput: "https://cosmos-vector-9e9994d6.documents.azure.com:443/"
+  },
+  {
+    id: "l8-create-container-quantized",
+    level: 8,
+    title: "13. Tạo Container với Vector Index 'quantizedFlat'",
+    difficulty: "Nâng cao",
+    category: "Vector Index Optimization",
+    mission: "Tạo container `vectors-quantized` trong database `indexoptimize` của tài khoản `$env:COSMOS_ACCOUNT`. Đặt partition key là `/documentId`, nạp chính sách index nén scalar quantization từ `@indexing-policy-quantized.json` và chính sách embedding từ `@embedding-policy.json`.",
+    expectedCommand: "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --partition-key-path /documentId --idx @indexing-policy-quantized.json --vector-embeddings @embedding-policy.json",
+    aliases: [
+      "az cosmosdb sql container create -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d indexoptimize -n vectors-quantized --partition-key-path /documentId --idx @indexing-policy-quantized.json --vector-embeddings @embedding-policy.json",
+      "az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --partition-key-path /documentId --idx @indexing-policy-quantized.json --vector-embeddings @embedding-policy.json"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "create", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "indexoptimize", "--name", "vectors-quantized", "--partition-key-path", "/documentId", "--idx", "@indexing-policy-quantized.json", "--vector-embeddings", "@embedding-policy.json"],
+    hints: [
+      "Lệnh tạo container là `az cosmosdb sql container create`.",
+      "Chỉ định database qua `--database-name indexoptimize`.",
+      "Chỉ định tên container qua `--name vectors-quantized`.",
+      "Cờ `--idx @indexing-policy-quantized.json` chứa cấu hình type 'quantizedFlat'."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb sql container create --resource-group <RG> --account-name <Account> --database-name indexoptimize --name vectors-quantized --partition-key-path /documentId --idx <Policy> --vector-embeddings <Embedding>",
+      breakdown: [
+        { part: "vectors-quantized", role: "Target Container", desc: "Container tối ưu hóa bộ nhớ RAM thông qua nén scalar quantization" },
+        { part: "--idx @indexing-policy-quantized.json", role: "Quantized Index", desc: "Chính sách index kiểu quantizedFlat" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--idx", meaning: "Tệp JSON chứa vectorIndexes kiểu quantizedFlat." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: quantizedFlat phù hợp cho các tập dữ liệu từ 10,000 đến 100,000 vectors cần cân bằng giữa độ chính xác và mức tiết kiệm RAM.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-cosmos-vector-lab/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-vector-9e9994d6/sqlDatabases/indexoptimize/containers/vectors-quantized",
+  "name": "vectors-quantized",
+  "resource": {
+    "id": "vectors-quantized",
+    "partitionKey": { "paths": ["/documentId"], "kind": "Hash" },
+    "indexingPolicy": {
+      "vectorIndexes": [{ "path": "/embedding", "type": "quantizedFlat" }]
+    }
+  }
+}`
+  },
+  {
+    id: "l8-show-vector-indexes",
+    level: 8,
+    title: "14. Kiểm tra Cấu hình Vector Index Policy bằng JMESPath",
+    difficulty: "Trung bình",
+    category: "Inspection",
+    mission: "Sử dụng Azure CLI và bộ lọc JMESPath để trích xuất mảng `vectorIndexes` của container `vectors-quantized` trong database `indexoptimize` nhằm xác nhận loại chỉ mục `quantizedFlat` đã được thiết lập chính xác.",
+    expectedCommand: 'az cosmosdb sql container show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --query "indexingPolicy.vectorIndexes"',
+    aliases: [
+      "az cosmosdb sql container show -g $env:RESOURCE_GROUP -a $env:COSMOS_ACCOUNT -d indexoptimize -n vectors-quantized --query \"indexingPolicy.vectorIndexes\"",
+      "az cosmosdb sql container show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --query 'indexingPolicy.vectorIndexes'"
+    ],
+    tokens: ["az", "cosmosdb", "sql", "container", "show", "--resource-group", "$env:RESOURCE_GROUP", "--account-name", "$env:COSMOS_ACCOUNT", "--database-name", "indexoptimize", "--name", "vectors-quantized", "--query", "indexingPolicy.vectorIndexes"],
+    hints: [
+      "Lệnh xem thông tin container là `az cosmosdb sql container show`.",
+      "Bộ lọc JMESPath là `--query \"indexingPolicy.vectorIndexes\"`."
+    ],
+    mentalModel: {
+      rule: 'az cosmosdb sql container show --resource-group <RG> --account-name <Account> --database-name <DB> --name <Container> --query "indexingPolicy.vectorIndexes"',
+      breakdown: [
+        { part: '--query "indexingPolicy.vectorIndexes"', role: "JMESPath Projection", desc: "Trích xuất danh sách cấu hình các vector index đang áp dụng" }
+      ]
+    },
+    parametersExplanation: [
+      { param: '--query "indexingPolicy.vectorIndexes"', meaning: "Chỉ lấy thông số cấu hình mảng vectorIndexes của container." }
+    ],
+    examNotes: "Giúp xác minh cấu hình loại vector index (flat, quantizedFlat, hoặc diskANN) mà không cần xem toàn bộ tài liệu cấu hình JSON khổng lồ.",
+    simulatedOutput: `[
+  {
+    "path": "/embedding",
+    "type": "quantizedFlat"
+  }
+]`
+  },
+  {
+    id: "l8-delete-account",
+    level: 8,
+    title: "15. Dọn dẹp và Xóa Tài khoản Cosmos DB",
+    difficulty: "Cơ bản",
+    category: "Cleanup",
+    mission: "Sau khi hoàn thành thử nghiệm lab và đánh giá mô hình vector, hãy dùng lệnh Azure CLI xóa tài khoản Cosmos DB `$env:COSMOS_ACCOUNT` trong Resource Group `$env:RESOURCE_GROUP` kèm cờ xác nhận tự động (`--yes`).",
+    expectedCommand: "az cosmosdb delete --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --yes",
+    aliases: [
+      "az cosmosdb delete -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT --yes",
+      "az cosmosdb delete -g $env:RESOURCE_GROUP -n $env:COSMOS_ACCOUNT -y",
+      "az cosmosdb delete --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT -y"
+    ],
+    tokens: ["az", "cosmosdb", "delete", "--resource-group", "$env:RESOURCE_GROUP", "--name", "$env:COSMOS_ACCOUNT", "--yes"],
+    hints: [
+      "Lệnh xóa là `az cosmosdb delete`.",
+      "Thêm cờ `--yes` (hoặc `-y`) để bỏ qua bước prompt hỏi xác nhận `y/n`."
+    ],
+    mentalModel: {
+      rule: "az cosmosdb delete --resource-group <RG> --name <Account> --yes",
+      breakdown: [
+        { part: "az cosmosdb delete", role: "Destruction Action", desc: "Xóa toàn bộ tài khoản Cosmos DB cùng mọi cơ sở dữ liệu và containers bên trong" },
+        { part: "--yes", role: "Auto Confirmation", desc: "Bỏ qua hộp thoại xác nhận trong kịch bản tự động hóa CI/CD" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--yes", meaning: "Không hiển thị câu hỏi xác nhận Do you want to continue?." }
+    ],
+    examNotes: "Tên tài khoản sau khi xóa sẽ được Azure giải phóng trong vòng vài phút để có thể tái sử dụng.",
+    simulatedOutput: ""
   }
 ];
 
@@ -3214,6 +3788,138 @@ export const QUIZ_QUESTIONS = [
     ],
     correctIndex: 2,
     explanation: "Lệnh `kubectl describe pod <pod-name>` hiển thị chi tiết toàn bộ thông số kỹ thuật, biến môi trường, mount volume, trạng thái probe và đặc biệt là phần 'Events' ở cuối liệt kê chi tiết mã lỗi từ Kubelet."
+  },
+  {
+    id: "q22",
+    question: "Khi cấu hình tính năng Vector Search trên Azure Cosmos DB for NoSQL, loại chỉ mục vector nào (vector index type) sử dụng thuật toán đồ thị của Microsoft Research để tối ưu hóa truy vấn Nearest Neighbor (ANN) trên ổ đĩa SSD với độ trễ thấp?",
+    options: [
+      "flat (brute-force k-NN)",
+      "diskANN",
+      "inverted-index (IVF)",
+      "hash-lsh"
+    ],
+    correctIndex: 1,
+    explanation: "DiskANN là thuật toán tìm kiếm vector láng giềng gần nhất xấp xỉ (Approximate Nearest Neighbor - ANN) hiệu năng cao do Microsoft Research phát triển, được tối ưu hóa đặc biệt cho ổ đĩa SSD với chi phí RU thấp và độ chính xác cao vượt trội so với flat."
+  },
+  {
+    id: "q23",
+    question: "Tại sao trong chính sách đánh chỉ mục (Indexing Policy) của container Cosmos DB hỗ trợ vector search, trường chứa mảng vector như `/embedding/*` bắt buộc phải được đưa vào danh sách `excludedPaths`?",
+    options: [
+      "Để kích hoạt mã hóa dữ liệu đầu cuối cho mảng số thực.",
+      "Để ngăn Cosmos DB đánh chỉ mục B-Tree chuẩn lên mảng số thực hàng trăm chiều, tránh gây phình to dung lượng lưu trữ và tiêu tốn RU/s đột biến khi nạp tài liệu.",
+      "Vì hệ thống NoSQL không cho phép đọc mảng float32.",
+      "Để cho phép sao lưu container lên Azure Blob Storage."
+    ],
+    correctIndex: 1,
+    explanation: "Mặc định Cosmos DB sẽ tự động đánh chỉ mục B-Tree cho mọi thuộc tính JSON (`/*`). Việc loại trừ `/embedding/*` trong `excludedPaths` ngăn B-Tree index đánh chỉ mục từng số float trong vector, để toàn bộ việc tìm kiếm vector do chuyên biệt DiskANN index trong `vectorIndexes` đảm nhiệm."
+  },
+  {
+    id: "q24",
+    question: "Trong câu lệnh SQL của Azure Cosmos DB for NoSQL, hàm tích hợp sẵn nào được sử dụng để tính toán khoảng cách hoặc độ tương đồng giữa embedding lưu trong tài liệu và vector câu hỏi của người dùng?",
+    options: [
+      "VectorDistance(c.embedding, @query_embedding)",
+      "CosineSimilarity(c.embedding, @query_embedding)",
+      "DistanceTo(c.embedding, @query_embedding)",
+      "VectorMatch(c.embedding, @query_embedding)"
+    ],
+    correctIndex: 0,
+    explanation: "Hàm chuẩn được tích hợp sẵn trong Cosmos DB NoSQL là `VectorDistance(c.path, @vector)` và có thể dùng trong mệnh đề `ORDER BY VectorDistance(...)` để sắp xếp kết quả tương đồng nhất."
+  },
+  {
+    id: "q25",
+    question: "Trong kiến trúc bảo mật Azure Entra ID (Zero Trust) cho Cosmos DB, sự khác biệt then chốt giữa Azure RBAC Contributor và Data Plane Role 'Cosmos DB Built-in Data Contributor' là gì?",
+    options: [
+      "Không có sự khác biệt nào, hai vai trò có quyền hoàn toàn như nhau.",
+      "Azure RBAC Contributor chỉ có quyền quản trị tài nguyên qua ARM (tạo/xóa database, container), còn để ứng dụng đọc/ghi dữ liệu và thực hiện truy vấn Vector Search qua DefaultAzureCredential thì bắt buộc phải gán quyền Data Plane 'Cosmos DB Built-in Data Contributor'.",
+      "Azure RBAC Contributor chỉ áp dụng cho máy chủ Windows.",
+      "Data Plane role chỉ dành riêng cho quản trị viên thanh toán cước phí."
+    ],
+    correctIndex: 1,
+    explanation: "Azure Cosmos DB tách bạch rạch ròi giữa Control Plane (ARM RBAC) và Data Plane (Cosmos DB SQL RBAC). Gán Azure Contributor qua `az role assignment create` không cho phép đọc/ghi document; bạn bắt buộc phải dùng `az cosmosdb sql role assignment create` để cấp quyền Data Plane cho `DefaultAzureCredential()`."
+  },
+  {
+    id: "q26",
+    question: "Trong Azure Cosmos DB for NoSQL, phương thức truy xuất nào dưới đây có độ trễ thấp nhất (< 5ms) và tiêu tốn lượng Request Unit (RU) tối thiểu cố định chỉ 1.0 RU khi đọc tài liệu có kích thước dưới 1 KB?",
+    options: [
+      "Câu lệnh SQL SELECT * FROM c WHERE c.id = @id",
+      "Point Read thông qua hàm container.read_item(item=id, partition_key=pk)",
+      "Truy vấn SQL có phân trang OFFSET 0 LIMIT 1",
+      "Đọc thông qua Azure Synapse Link"
+    ],
+    correctIndex: 1,
+    explanation: "Point Read đọc trực tiếp dữ liệu từ phân vùng vật lý dựa trên cặp khóa (id, partitionKey) mà không cần đi qua bộ biên dịch và tối ưu hóa truy vấn SQL, đảm bảo chi phí thấp nhất (đúng 1.0 RU cho item <= 1KB) và độ trễ dưới 5ms."
+  },
+  {
+    id: "q27",
+    question: "Khi thiết kế cấu trúc lưu trữ các đoạn văn bản (chunks) cho kiến trúc RAG (Retrieval-Augmented Generation) trên Cosmos DB NoSQL, tại sao chọn `/documentId` làm Partition Key lại tối ưu hơn việc dùng trường `/id` ngẫu nhiên?",
+    options: [
+      "Vì Cosmos DB quy định mọi container lưu text bắt buộc phải có partition key là /documentId.",
+      "Để gom toàn bộ các chunks thuộc cùng một tài liệu vào chung một phân vùng vật lý, giúp câu lệnh truy xuất toàn bộ ngữ cảnh tài liệu cho LLM luôn là Single-Partition Query (chỉ ~2.5 - 3.5 RU) thay vì phải Fan-out ra toàn bộ hệ thống.",
+      "Để tự động xóa tài liệu sau 30 ngày.",
+      "Để giảm kích thước vector embedding xuống một nửa."
+    ],
+    correctIndex: 1,
+    explanation: "Bằng cách chọn `/documentId` làm Partition Key, tất cả các chunk sinh ra từ cùng một văn bản nguồn sẽ nằm chung một logical/physical partition. Khi LLM cần đọc toàn bộ tài liệu theo thứ tự chunkIndex, Cosmos DB chỉ cần truy vấn trên 1 phân vùng duy nhất, tối ưu chi phí RU và loại bỏ Cross-Partition Fan-out."
+  },
+  {
+    id: "q28",
+    question: "Trong câu lệnh truy vấn NoSQL SQL của Azure Cosmos DB, hàm tích hợp sẵn nào được dùng để kiểm tra xem một giá trị có nằm trong mảng JSON (ví dụ mảng tags: ['azure', 'nosql', 'rag']) hay không?",
+    options: [
+      "CONTAINS(c.metadata.tags, 'nosql')",
+      "ARRAY_CONTAINS(c.metadata.tags, 'nosql')",
+      "IN_ARRAY(c.metadata.tags, 'nosql')",
+      "HAS_ITEM(c.metadata.tags, 'nosql')"
+    ],
+    correctIndex: 1,
+    explanation: "Hàm chuẩn của Cosmos DB NoSQL là `ARRAY_CONTAINS(c.path.to.array, value)` để lọc các tài liệu có mảng chứa phần tử cần tìm."
+  },
+  {
+    id: "q29",
+    question: "Khi tương tác với Cosmos DB bằng Azure SDK (Python), thuộc tính HTTP header phản hồi nào cho phép lập trình viên đo lường chính xác lượng Request Units (RU) đã tiêu hao sau mỗi thao tác để phân tích và tối ưu hóa chi phí hệ thống?",
+    options: [
+      "x-ms-request-charge",
+      "x-ms-ru-consumed",
+      "x-ms-billing-rate",
+      "x-ms-cost-metric"
+    ],
+    correctIndex: 0,
+    explanation: "Mọi thao tác thành công trên Cosmos DB đều trả về header `x-ms-request-charge` thể hiện chính xác số RU đã tiêu tốn (ví dụ: `container.client_connection.last_response_headers['x-ms-request-charge']`)."
+  },
+  {
+    id: "q30",
+    question: "Trong 3 loại Vector Index của Azure Cosmos DB for NoSQL (flat, quantizedFlat, diskANN), loại chỉ mục nào sử dụng kỹ thuật nén Scalar Quantization để giảm dung lượng bộ nhớ RAM nhưng vẫn duy trì độ chính xác tìm kiếm cao trên tập dữ liệu trung bình (10,000 - 100,000 vectors)?",
+    options: [
+      "flat",
+      "quantizedFlat",
+      "diskANN",
+      "inverted-index"
+    ],
+    correctIndex: 1,
+    explanation: "Chỉ mục `quantizedFlat` nén các vector số thực 32-bit (float32) thành các giá trị biểu diễn nén kích thước nhỏ hơn thông qua kỹ thuật Scalar Quantization, giúp giảm đáng kể bộ nhớ tiêu thụ trong khi vẫn giữ được chất lượng tìm kiếm rất gần với exact search."
+  },
+  {
+    id: "q31",
+    question: "Trong chính sách Vector Embedding Policy của Azure Cosmos DB for NoSQL, dịch vụ hỗ trợ những hàm đo khoảng cách vector (distanceFunction) nào dưới đây?",
+    options: [
+      "cosine, dotproduct, euclidean",
+      "manhattan, hamming, jaccard",
+      "haversine, chebyshev, minkowski",
+      "chỉ duy nhất hàm cosine"
+    ],
+    correctIndex: 0,
+    explanation: "Azure Cosmos DB for NoSQL hỗ trợ 3 hàm khoảng cách vector chuẩn: `cosine` (khoảng cách cosin), `dotproduct` (tích vô hướng), và `euclidean` (khoảng cách Ơ-clit)."
+  },
+  {
+    id: "q32",
+    question: "Giới hạn số chiều (dimensions) tối đa cho một vector embedding được lưu trữ và đánh chỉ mục trong Azure Cosmos DB for NoSQL là bao nhiêu?",
+    options: [
+      "256 chiều",
+      "1,536 chiều",
+      "4,096 chiều",
+      "8,192 chiều"
+    ],
+    correctIndex: 2,
+    explanation: "Azure Cosmos DB for NoSQL hỗ trợ kích thước vector tối đa lên đến 4,096 chiều (dimensions), tương thích hoàn hảo với các mô hình embedding tiên tiến nhất như text-embedding-3-large (3,072 dims) của OpenAI hay Cohere Embed."
   }
 ];
 

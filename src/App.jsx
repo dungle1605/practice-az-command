@@ -39,7 +39,7 @@ function App() {
               AZ-COMMAND <span style={{ color: "#00d2ff" }}>MASTER</span>
             </h1>
             <div style={{ fontSize: "12px", color: "#8b949e" }}>
-              Microsoft AI-200 • Azure CLI, AKS & Dynamic Sessions Practice Lab
+              Microsoft AI-200 • Azure CLI, AKS, Dynamic Sessions & Cosmos DB Vector Search
             </div>
           </div>
         </div>

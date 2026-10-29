@@ -1,6 +1,6 @@
 # TỔNG HỢP CÂU LỆNH AZURE CLI THỰC CHIẾN (MICROSOFT AI-200)
 
-> Tài liệu tra cứu toàn diện 63 câu lệnh Azure CLI (`az`) thực hành qua 6 cấp độ (ACR, App Service, RBAC, Sidecar, Container Apps & Dynamic Sessions).
+> Tài liệu tra cứu toàn diện các câu lệnh Azure CLI (`az`) thực hành qua 8 cấp độ (ACR, App Service, RBAC, Sidecar, Container Apps, Dynamic Sessions, AKS & Azure Cosmos DB Vector Search).
 
 ---
 
@@ -182,3 +182,25 @@
   `az containerapp sessionpool create --name <pool-name> --resource-group <rg> --location <region> --container-type PythonLTS --max-sessions 5 --cooldown-period 300 --network-status EgressDisabled`
 - Gán vai trò Azure ContainerApps Session Executor cho AI Agent:
   `az role assignment create --assignee <principal-id> --role "Azure ContainerApps Session Executor" --scope <session-pool-id>`
+
+---
+
+## Level 8: Azure Cosmos DB Vector Search & NoSQL
+
+| Câu lệnh | Giải thích | Mục đích |
+|---|---|---|
+| `az cosmosdb check-name-exists --name $env:COSMOS_ACCOUNT` | Kiểm tra tên tài khoản khả dụng toàn cầu | Tránh lỗi trùng tên endpoint *.documents.azure.com |
+| `az cosmosdb create --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --locations regionName=southeastasia --capabilities EnableServerless EnableNoSQLVectorSearch --default-consistency-level Session` | Tạo tài khoản Cosmos DB NoSQL Serverless | Kích hoạt tính năng tìm kiếm Vector và hàm VectorDistance |
+| `az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query "capabilities[].name" -o tsv` | Xác minh các capability đã kích hoạt | Đảm bảo tính năng EnableNoSQLVectorSearch đã bật |
+| `az cosmosdb sql database create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --name vectorstore` | Tạo Database NoSQL | Vùng chứa logic gom nhóm các container |
+| `az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name vectorstore --name vectors --partition-key-path /documentId --idx @indexing-policy.json --vector-embeddings @embedding-policy.json` | Tạo Container với Vector Embedding & DiskANN Indexing | Lưu trữ embedding và tối ưu tìm kiếm tương đồng trên SSD |
+| `az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks --partition-key-path /documentId` | Tạo Container Chunks cho RAG với Partition Key /documentId | Gom nhóm chunks của 1 document vào 1 partition vật lý |
+| `az cosmosdb sql container list --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore -o table` | Liệt kê các container trong Database NoSQL | Kiểm tra danh sách container và partition key tương ứng |
+| `az cosmosdb sql container throughput show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name ragstore --name chunks` | Kiểm tra cấu hình Throughput (RU/s) của container | Xác minh chế độ Serverless hoặc mức RU được cấp phát |
+| `az cosmosdb sql container create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --partition-key-path /documentId --idx @indexing-policy-quantized.json --vector-embeddings @embedding-policy.json` | Tạo Container với Vector Index quantizedFlat (Nén) | Tiết kiệm RAM cho tập dữ liệu trung bình 10K-100K |
+| `az cosmosdb sql container show --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --database-name indexoptimize --name vectors-quantized --query "indexingPolicy.vectorIndexes"` | Trích xuất cấu hình Vector Index bằng JMESPath | Xác minh loại chỉ mục đang hoạt động của container |
+| `$COSMOS_ID = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query id -o tsv` | Trích xuất Resource ID sạch của Cosmos DB | Làm scope cho phân quyền RBAC Control Plane & Data Plane |
+| `az role assignment create --assignee $USER_ID --scope $COSMOS_ID --role Contributor` | Phân quyền ARM Contributor (Control Plane) | Cho phép quản lý tài nguyên (tạo/xóa database, container) |
+| `az cosmosdb sql role assignment create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --role-definition-name "Cosmos DB Built-in Data Contributor" --principal-id $USER_ID --scope $COSMOS_ID` | Phân quyền Data Plane cho Cosmos DB NoSQL | Cho phép CRUD documents và truy vấn VectorDistance qua Entra ID |
+| `$COSMOS_ENDPOINT = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query documentEndpoint -o tsv` | Lấy Document Endpoint sạch | Cấu hình biến môi trường kết nối SDK Python |
+| `az cosmosdb delete --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --yes` | Xóa tài khoản Cosmos DB tự động xác nhận | Dọn dẹp tài nguyên sau khi hoàn thành lab |

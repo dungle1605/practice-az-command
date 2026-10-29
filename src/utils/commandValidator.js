@@ -16,9 +16,19 @@ const FLAG_ALIASES = {
   '-w': '--workspace',
   '-f': '--follow',
   '-y': '--yes',
+  '-a': '--account-name',
+  '-d': '--database-name',
   '--rg': '--resource-group',
   '--write-enable': '--write-enabled'
 };
+
+const MULTI_VALUE_FLAGS = [
+  '--capabilities',
+  '--settings',
+  '--secrets',
+  '--setting-names',
+  '--tags'
+];
 
 /**
  * Clean and standardize raw command input
@@ -77,8 +87,8 @@ export function parseCliCommand(rawCmd) {
     // If it's a known CLI command or dot-sourcing
     baseWords.push(tokens[i]);
     i++;
-    // Usually az + service + subservice + action has 2 to 4 words
-    if (baseWords[0] === 'az' && baseWords.length >= 4) {
+    // In Azure CLI, command paths can have up to 6 words (e.g., az cosmosdb sql role assignment create)
+    if (baseWords[0] === 'az' && baseWords.length >= 6) {
       break;
     }
   }
@@ -92,15 +102,32 @@ export function parseCliCommand(rawCmd) {
       if (canonicalFlag.startsWith('-') && !canonicalFlag.startsWith('--') && canonicalFlag.length > 2) {
         canonicalFlag = '-' + canonicalFlag;
       }
-      // Check if next token is a value or another flag
-      const nextToken = tokens[i + 1];
-      if (nextToken !== undefined && !nextToken.startsWith('-')) {
-        flags[canonicalFlag] = nextToken;
-        i += 2;
+
+      if (MULTI_VALUE_FLAGS.includes(canonicalFlag)) {
+        const valTokens = [];
+        let j = i + 1;
+        while (j < tokens.length && !tokens[j].startsWith('-')) {
+          valTokens.push(tokens[j]);
+          j++;
+        }
+        if (valTokens.length > 0) {
+          flags[canonicalFlag] = valTokens.join(' ');
+          i = j;
+        } else {
+          flags[canonicalFlag] = true;
+          i += 1;
+        }
       } else {
-        // Boolean flag (e.g., --is-linux, --no-logs)
-        flags[canonicalFlag] = true;
-        i += 1;
+        // Check if next token is a value or another flag
+        const nextToken = tokens[i + 1];
+        if (nextToken !== undefined && !nextToken.startsWith('-')) {
+          flags[canonicalFlag] = nextToken;
+          i += 2;
+        } else {
+          // Boolean flag (e.g., --is-linux, --no-logs)
+          flags[canonicalFlag] = true;
+          i += 1;
+        }
       }
     } else {
       positionals.push(token);
@@ -127,6 +154,15 @@ function matchesExpectedValue(expectedVal, userVal) {
 
   if (cleanExp === cleanUser) {
     return true;
+  }
+
+  // Handle space-separated multi-value flags (like --capabilities EnableServerless EnableNoSQLVectorSearch)
+  if (cleanExp.includes(' ') && cleanUser.includes(' ')) {
+    const expParts = cleanExp.split(/\s+/).sort();
+    const userParts = cleanUser.split(/\s+/).sort();
+    if (expParts.length === userParts.length && expParts.every((val, idx) => matchesExpectedValue(val, userParts[idx]))) {
+      return true;
+    }
   }
 
   // Handle generic single placeholder e.g. <app-name>, <rg>, <port>, <var_name>, <revision-name>, <env-name>, <digest>

@@ -15,7 +15,7 @@
 
 ## 🌟 Điểm nổi bật của Ứng dụng
 
-1. **Lộ trình phân cấp độ tăng dần (7 Levels Progression)**:
+1. **Lộ trình phân cấp độ tăng dần (8 Levels Progression)**:
    - **Level 1: Nhập môn & Môi trường (6 bài)**: Đăng nhập Headless (`az login --use-device-code`), đăng ký Resource Provider (`Microsoft.ContainerRegistry`, `Microsoft.Web`), nạp biến môi trường tự động (`. .\.env.ps1`), gán biến thủ công (`$env:ACR_NAME="..."`), cấu hình Resource Group mặc định (`az config set defaults.group`).
    - **Level 2: Azure Container Registry (7 bài)**: Build Image trên Cloud qua ACR Tasks (`az acr build`), chạy thử container Smoke Test (`az acr run`), liệt kê Repository & Tags, kiểm tra Digest SHA256 (`az acr manifest list-metadata`), khóa Image Bất biến (`--write-enabled false`), xem lịch sử build (`az acr task list-runs`).
    - **Level 3: App Service & Container Web App (5 bài)**: Tạo App Service Plan Linux gói `P0v3`, tạo Web App từ container image, cập nhật Container Settings (`az webapp config container set`), trích xuất URL sạch (`--query defaultHostName -o tsv`), xem Log trực tiếp thời gian thực (`az webapp log tail`).
@@ -36,6 +36,11 @@
      - *Phần B (4 bài - ConfigMap)*: Tạo ConfigMap từ YAML (`kubectl apply -f k8s/configmap.yaml`), xem ConfigMap (`kubectl get configmap`), mô tả chi tiết (`kubectl describe configmap`), rolling restart để nạp lại cấu hình (`kubectl rollout restart deployment`).
      - *Phần C (3 bài - Secrets)*: Tạo Secret từ YAML (`kubectl apply -f k8s/secrets.yaml`), xem Secret (`kubectl get secrets`), decode Secret base64 (`kubectl get secret -o jsonpath`).
      - *Phần D (3 bài - PersistentVolumeClaim)*: Tạo PVC từ YAML (`kubectl apply -f k8s/pvc.yaml`), kiểm tra trạng thái PVC (`kubectl get pvc`), xem chi tiết PVC (`kubectl describe pvc`).
+   - **Level 8: Azure Cosmos DB Vector Search, RAG Store & Index Optimization (Bài Lab Cosmos Toàn diện - 15 bài)**:
+     - *Phần A (3 bài - Pre-flight & Khởi tạo)*: Kiểm tra tính duy nhất toàn cầu của tên tài khoản (`az cosmosdb check-name-exists`), tạo tài khoản Cosmos DB NoSQL Serverless kích hoạt Vector Search (`--capabilities EnableServerless EnableNoSQLVectorSearch --default-consistency-level Session`), xác minh capabilities đã kích hoạt (`--query "capabilities[].name" -o tsv`).
+     - *Phần B (7 bài - Database, Vector, RAG & Optimized Index Containers)*: Tạo Database NoSQL (`az cosmosdb sql database create --name vectorstore`), tạo Container với Partition Key `/documentId`, chính sách DiskANN Indexing loại trừ `/embedding/*` khỏi B-tree và Vector Embedding Policy 256 chiều Cosine (`az cosmosdb sql container create ... --idx @indexing-policy.json --vector-embeddings @embedding-policy.json`), tạo RAG Chunks Container tối ưu Single-Partition Query (`az cosmosdb sql container create --database-name ragstore --name chunks --partition-key-path /documentId`), liệt kê các container trong Database (`az cosmosdb sql container list -o table`), kiểm tra cấu hình throughput RU/s của container (`az cosmosdb sql container throughput show`), tạo container với vector index `quantizedFlat` nén bộ nhớ (`az cosmosdb sql container create --database-name indexoptimize --name vectors-quantized ...`), và trích xuất cấu hình vectorIndexes bằng JMESPath (`az cosmosdb sql container show --query "indexingPolicy.vectorIndexes"`).
+     - *Phần C (4 bài - Bảo mật RBAC Hai Lớp & SDK)*: Trích xuất Resource ID sạch (`$COSMOS_ID = ...`), phân quyền ARM Contributor tầng Control Plane (`az role assignment create --role Contributor`), phân quyền Data Plane tầng NoSQL (`az cosmosdb sql role assignment create --role-definition-name "Cosmos DB Built-in Data Contributor"`), lấy Document Endpoint sạch (`$COSMOS_ENDPOINT = ...`).
+     - *Phần D (1 bài - Dọn dẹp tài nguyên)*: Xóa tài khoản Cosmos DB với cờ xác nhận tự động (`az cosmosdb delete --yes`).
 
 2. **⭐ 4 Mẹo phòng thi AI-200 & Thực chiến Cốt lõi**:
    - **Dùng `-o tsv`:** Trích xuất giá trị chuỗi thuần (không chứa dấu ngoặc kép) để gán vào biến hoặc endpoint.
@@ -49,8 +54,8 @@
    - Tự động khử dấu tiếng Việt trong tên cờ lệnh (ví dụ `--úse` ➔ `--use`).
    - Dropdown gợi ý thông minh IntelliSense ngay tại vị trí con trỏ (nhấn <kbd>Tab ↹</kbd> hoặc click để tự động điền).
 
-4. **Chế độ Trắc nghiệm (21 Câu hỏi tình huống AI-200)**:
-   - Các câu hỏi tình huống thực tế bám sát chuẩn đề thi Microsoft Certified: Azure AI Engineer Associate (AI-200) bao gồm cả chuyên đề Azure Container Apps, Dynamic Sessions, KQL và Azure Kubernetes Service (AKS).
+4. **Chế độ Trắc nghiệm (32 Câu hỏi tình huống AI-200)**:
+   - Các câu hỏi tình huống thực tế bám sát chuẩn đề thi Microsoft Certified: Azure AI Engineer Associate (AI-200) bao gồm cả chuyên đề Azure Container Apps, Dynamic Sessions, KQL, Azure Kubernetes Service (AKS), Azure Cosmos DB Vector Search (DiskANN, VectorDistance, RBAC Data Plane), tối ưu hóa RAG NoSQL Queries (Point Read 1.0 RU, Single-Partition vs Cross-Partition, ARRAY_CONTAINS), và chiến lược Vector Indexing (Flat, QuantizedFlat, DiskANN, Dimensions & Distance Functions).
    - Phản hồi giải thích chi tiết ngay lập tức cho từng lựa chọn.
 
 5. **Cẩm nang tra cứu tích hợp (Live Cheatsheet)**:
