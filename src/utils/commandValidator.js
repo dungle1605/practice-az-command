@@ -19,6 +19,12 @@ const FLAG_ALIASES = {
   '-a': '--account-name',
   '-d': '--database-name',
   '--rg': '--resource-group',
+  '--server': '--server-name',
+  '--cluster': '--cluster-name',
+  '--topic': '--topic-name',
+  '--namespace': '--namespace-name',
+  '--db-name': '--database-name',
+  '--database': '--database-name',
   '--write-enable': '--write-enabled'
 };
 

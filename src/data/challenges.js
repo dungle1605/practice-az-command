@@ -68,6 +68,38 @@ export const LEVELS = [
     badge: "Vector DB Architect",
     color: "#00b294",
     icon: "🪐"
+  },
+  {
+    id: 9,
+    name: "Level 9: PostgreSQL Flexible Server & pgvector",
+    tagline: "Flexible Server, pgvector Extension Allow-listing, Entra ID Authentication, HNSW vs IVFFlat Indexing & Agent Memory",
+    badge: "PostgreSQL & Vector Master",
+    color: "#336791",
+    icon: "🐘"
+  },
+  {
+    id: 10,
+    name: "Level 10: Azure Managed Redis & RediSearch Vector",
+    tagline: "In-Memory Caching, Entra ID Auth Port 10000, Pub/Sub Event Streaming & RediSearch HNSW Vector Queries",
+    badge: "Redis In-Memory Architect",
+    color: "#dc382d",
+    icon: "🔴"
+  },
+  {
+    id: 11,
+    name: "Level 11: Backend Services Integration (Service Bus, Event Grid & Functions)",
+    tagline: "Enterprise Message Queues, CloudEvents Push/Pull, Durable Workflows & MCP Server",
+    badge: "Enterprise Integration Master",
+    color: "#8957e5",
+    icon: "⚡"
+  },
+  {
+    id: 12,
+    name: "Level 12: Azure Key Vault & App Configuration",
+    tagline: "Secrets Management, RBAC Data Plane, Label Stacking, Key Vault References & Sentinel Refresh",
+    badge: "Security & Config Architect",
+    color: "#059669",
+    icon: "🔐"
   }
 ];
 
@@ -3531,6 +3563,2325 @@ chunks  /documentId`
     examNotes: "Tên tài khoản sau khi xóa sẽ được Azure giải phóng trong vòng vài phút để có thể tái sử dụng.",
     simulatedOutput: ""
   }
+,
+  // ==========================================
+  // LEVEL 9: AZURE DATABASE FOR POSTGRESQL & PGVECTOR
+  // ==========================================
+  {
+    id: "l9-register-provider",
+    level: 9,
+    title: "1. Đăng ký Resource Provider Microsoft.DBforPostgreSQL",
+    difficulty: "Cơ bản",
+    category: "Pre-flight & Provider Setup",
+    mission: "Trước khi tạo Azure Database for PostgreSQL Flexible Server, Azure Subscription cần phải đăng ký Resource Provider `Microsoft.DBforPostgreSQL`. Hãy sử dụng Azure CLI để kích hoạt việc đăng ký provider này.",
+    expectedCommand: "az provider register --namespace Microsoft.DBforPostgreSQL",
+    aliases: [
+      "az provider register -n Microsoft.DBforPostgreSQL"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.DBforPostgreSQL"],
+    hints: [
+      "Dùng nhóm lệnh `az provider`.",
+      "Hành động là `register`.",
+      "Cờ `--namespace` nhận giá trị `Microsoft.DBforPostgreSQL`."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace <Namespace>",
+      breakdown: [
+        { part: "az provider register", role: "Registration Action", desc: "Đăng ký resource provider cần thiết cho subscription" },
+        { part: "--namespace Microsoft.DBforPostgreSQL", role: "Target Service", desc: "Namespace cung cấp dịch vụ Azure Database for PostgreSQL" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--namespace", meaning: "Namespace của nhà cung cấp tài nguyên Azure (Resource Provider)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Nếu subscription chưa đăng ký Microsoft.DBforPostgreSQL, lệnh tạo Flexible Server sẽ báo lỗi ProviderNotRegistered.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/providers/Microsoft.DBforPostgreSQL",
+  "namespace": "Microsoft.DBforPostgreSQL",
+  "registrationPolicy": "RegistrationRequired",
+  "registrationState": "Registering"
+}`
+  },
+  {
+    id: "l9-create-flexible-server",
+    level: 9,
+    title: "2. Khởi tạo PostgreSQL Flexible Server với Entra Authentication",
+    difficulty: "Nâng cao",
+    category: "Resource Provisioning",
+    mission: "Tạo Azure Database for PostgreSQL Flexible Server với tên `$env:PG_SERVER` trong RG `$env:RG`, vị trí `$env:LOCATION`. Sử dụng SKU `Standard_B1ms`, tầng `Burstable`, dung lượng lưu trữ `32` GB, phiên bản PostgreSQL `16`. Kích hoạt truy cập công khai (`--public-access Enabled`), bật xác thực Microsoft Entra (`--microsoft-entra-auth Enabled`) và xác thực mật khẩu (`--password-auth Enabled`), chỉ định admin ban đầu là `pgadmin` với mật khẩu `$env:ADMIN_PASSWORD` và cờ `--yes`.",
+    expectedCommand: "az postgres flexible-server create --resource-group $env:RG --name $env:PG_SERVER --location $env:LOCATION --sku-name Standard_B1ms --tier Burstable --storage-size 32 --version 16 --public-access Enabled --microsoft-entra-auth Enabled --password-auth Enabled --admin-user pgadmin --admin-password $env:ADMIN_PASSWORD --yes",
+    aliases: [
+      "az postgres flexible-server create -g $env:RG -n $env:PG_SERVER -l $env:LOCATION --sku-name Standard_B1ms --tier Burstable --storage-size 32 --version 16 --public-access Enabled --microsoft-entra-auth Enabled --password-auth Enabled --admin-user pgadmin --admin-password $env:ADMIN_PASSWORD --yes",
+      "az postgres flexible-server create --resource-group $env:RG --name $env:PG_SERVER --location $env:LOCATION --sku-name Standard_B1ms --tier Burstable --storage-size 32 --version 16 --microsoft-entra-auth Enabled --password-auth Enabled --public-access Enabled --admin-user pgadmin --admin-password $env:ADMIN_PASSWORD --yes"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "create", "--resource-group", "$env:RG", "--name", "$env:PG_SERVER", "--location", "$env:LOCATION", "--sku-name", "Standard_B1ms", "--tier", "Burstable", "--storage-size", "32", "--version", "16", "--public-access", "Enabled", "--microsoft-entra-auth", "Enabled", "--password-auth", "Enabled", "--admin-user", "pgadmin", "--admin-password", "$env:ADMIN_PASSWORD", "--yes"],
+    hints: [
+      "Nhóm lệnh là `az postgres flexible-server create`.",
+      "Chỉ định SKU và tier: `--sku-name Standard_B1ms --tier Burstable --storage-size 32`.",
+      "Chỉ định phiên bản và mạng: `--version 16 --public-access Enabled`.",
+      "Kích hoạt xác thực kép ban đầu: `--microsoft-entra-auth Enabled --password-auth Enabled`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server create --resource-group <RG> --name <Server> --sku-name Standard_B1ms --tier Burstable --version 16 --microsoft-entra-auth Enabled --password-auth Enabled --admin-user <Admin> --admin-password <Password> --yes",
+      breakdown: [
+        { part: "az postgres flexible-server create", role: "Provisioning Action", desc: "Tạo máy chủ PostgreSQL Flexible Server mới" },
+        { part: "--sku-name Standard_B1ms --tier Burstable", role: "Compute Tier", desc: "SKU tiết kiệm chi phí tối ưu cho môi trường Dev/Lab" },
+        { part: "--version 16", role: "PostgreSQL Engine", desc: "Phiên bản PostgreSQL 16 hiện đại hỗ trợ đầy đủ pgvector" },
+        { part: "--microsoft-entra-auth Enabled", role: "Modern Identity", desc: "Kích hoạt xác thực định danh Microsoft Entra ID không cần mật khẩu tĩnh" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--sku-name", meaning: "Tên mã máy ảo (SKU) cho PostgreSQL, ví dụ Standard_B1ms." },
+      { param: "--tier", meaning: "Tầng định giá: Burstable, GeneralPurpose, hoặc MemoryOptimized." },
+      { param: "--microsoft-entra-auth", meaning: "Bật hoặc tắt tính năng đăng nhập bằng tài khoản Microsoft Entra (Azure AD)." },
+      { param: "--password-auth", meaning: "Bật hoặc tắt phương thức đăng nhập bằng tên người dùng và mật khẩu cục bộ." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Microsoft khuyến nghị sử dụng mô hình Entra ID Authentication để loại bỏ hoàn toàn mật khẩu lưu trong code hoặc tệp cấu hình.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6",
+  "name": "psql-vector-9e9994d6",
+  "location": "southeastasia",
+  "sku": {
+    "name": "Standard_B1ms",
+    "tier": "Burstable"
+  },
+  "version": "16",
+  "state": "Ready",
+  "fullyQualifiedDomainName": "psql-vector-9e9994d6.postgres.database.azure.com",
+  "authConfig": {
+    "activeDirectoryAuth": "Enabled",
+    "passwordAuth": "Enabled"
+  }
+}`
+  },
+  {
+    id: "l9-show-server-state",
+    level: 9,
+    title: "3. Kiểm tra Trạng thái Sẵn sàng của PostgreSQL Server",
+    difficulty: "Cơ bản",
+    category: "Monitoring & Health Check",
+    mission: "Truy vấn thuộc tính trạng thái `properties.state` của máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` và trả về dưới dạng chuỗi sạch (TSV) để kiểm tra xem máy chủ đã đạt trạng thái 'Ready' hay chưa.",
+    expectedCommand: "az postgres flexible-server show --resource-group $env:RG --name $env:PG_SERVER --query properties.state -o tsv",
+    aliases: [
+      "az postgres flexible-server show -g $env:RG -n $env:PG_SERVER --query properties.state -o tsv",
+      "az postgres flexible-server show --resource-group $env:RG --name $env:PG_SERVER --query \"properties.state\" -o tsv"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "show", "--resource-group", "$env:RG", "--name", "$env:PG_SERVER", "--query", "properties.state", "-o", "tsv"],
+    hints: [
+      "Lệnh xem thông tin là `az postgres flexible-server show`.",
+      "Trích xuất trường trạng thái: `--query properties.state`.",
+      "Định dạng chuỗi sạch: `-o tsv`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server show --resource-group <RG> --name <Server> --query properties.state -o tsv",
+      breakdown: [
+        { part: "az postgres flexible-server show", role: "Inspection", desc: "Xem chi tiết cấu hình máy chủ PostgreSQL" },
+        { part: "--query properties.state", role: "JMESPath Filter", desc: "Trích xuất giá trị trường state trong properties" },
+        { part: "-o tsv", role: "Clean String", desc: "Loại bỏ ngoặc kép JSON để so khớp trực tiếp trong script" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query", meaning: "Biểu thức JMESPath để lọc thuộc tính JSON mong muốn." },
+      { param: "-o tsv", meaning: "Định dạng ngõ ra dạng chuỗi thô Tab-Separated Values." }
+    ],
+    examNotes: "Khi trạng thái trả về là 'Ready', máy chủ đã hoàn tất quá trình cấp phát và sẵn sàng nhận kết nối mạng.",
+    simulatedOutput: "Ready"
+  },
+  {
+    id: "l9-create-entra-admin",
+    level: 9,
+    title: "4. Cấu hình Microsoft Entra Administrator cho Server",
+    difficulty: "Trung bình",
+    category: "Identity & RBAC",
+    mission: "Thiết lập tài khoản người dùng hiện tại làm Microsoft Entra Administrator cho máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG`. Sử dụng tên hiển thị `$env:USER_UPN`, Object ID `$env:USER_OBJECT_ID` và loại đối tượng là `User`.",
+    expectedCommand: "az postgres flexible-server microsoft-entra-admin create --resource-group $env:RG --server-name $env:PG_SERVER --display-name $env:USER_UPN --object-id $env:USER_OBJECT_ID --type User",
+    aliases: [
+      "az postgres flexible-server microsoft-entra-admin create -g $env:RG --server-name $env:PG_SERVER --display-name $env:USER_UPN --object-id $env:USER_OBJECT_ID --type User",
+      "az postgres flexible-server microsoft-entra-admin create --resource-group $env:RG -s $env:PG_SERVER --display-name $env:USER_UPN --object-id $env:USER_OBJECT_ID --type User"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "microsoft-entra-admin", "create", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "--display-name", "$env:USER_UPN", "--object-id", "$env:USER_OBJECT_ID", "--type", "User"],
+    hints: [
+      "Nhóm lệnh quản trị Entra: `az postgres flexible-server microsoft-entra-admin create`.",
+      "Chỉ định tên máy chủ bằng cờ `--server-name $env:PG_SERVER`.",
+      "Truyền UPN, Object ID và Type: `--display-name $env:USER_UPN --object-id $env:USER_OBJECT_ID --type User`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server microsoft-entra-admin create --resource-group <RG> --server-name <Server> --display-name <UPN> --object-id <OID> --type User",
+      breakdown: [
+        { part: "az postgres flexible-server microsoft-entra-admin create", role: "Entra Config", desc: "Gán quản trị viên Microsoft Entra ID cấp cao cho máy chủ PostgreSQL" },
+        { part: "--server-name", role: "Target Server", desc: "Tên máy chủ Flexible Server nhận cấu hình" },
+        { part: "--display-name", role: "User Identity", desc: "Tên đăng nhập UPN của người dùng (email tài khoản Azure)" },
+        { part: "--object-id", role: "Security ID", desc: "Định danh duy nhất GUID của đối tượng trong Microsoft Entra ID" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--display-name", meaning: "Tên hiển thị hoặc User Principal Name (UPN) của quản trị viên." },
+      { param: "--object-id", meaning: "Mã Object ID (GUID) trong Microsoft Entra tenant." },
+      { param: "--type", meaning: "Loại định danh Entra: User hoặc Group hoặc ServicePrincipal." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Người dùng được cấu hình làm Entra Administrator sẽ có toàn quyền superuser trong PostgreSQL và có thể đăng nhập bằng access token lấy qua Azure CLI.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6/administrators/e82b79a1-871d-40a2-b91c-198273645012",
+  "name": "e82b79a1-871d-40a2-b91c-198273645012",
+  "objectId": "e82b79a1-871d-40a2-b91c-198273645012",
+  "principalName": "dugle1605@gmail.com",
+  "principalType": "User"
+}`
+  },
+  {
+    id: "l9-list-entra-admins",
+    level: 9,
+    title: "5. Liệt kê Danh sách Microsoft Entra Admins",
+    difficulty: "Cơ bản",
+    category: "Identity & RBAC",
+    mission: "Liệt kê danh sách các quản trị viên Microsoft Entra đã được cấu hình trên máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` dưới dạng bảng (table).",
+    expectedCommand: "az postgres flexible-server microsoft-entra-admin list --resource-group $env:RG --server-name $env:PG_SERVER -o table",
+    aliases: [
+      "az postgres flexible-server microsoft-entra-admin list -g $env:RG --server-name $env:PG_SERVER -o table",
+      "az postgres flexible-server microsoft-entra-admin list --resource-group $env:RG -s $env:PG_SERVER -o table"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "microsoft-entra-admin", "list", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "-o", "table"],
+    hints: [
+      "Lệnh liệt kê là `az postgres flexible-server microsoft-entra-admin list`.",
+      "Chỉ định cờ `--server-name $env:PG_SERVER`.",
+      "Định dạng bảng với `-o table`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server microsoft-entra-admin list --resource-group <RG> --server-name <Server> -o table",
+      breakdown: [
+        { part: "microsoft-entra-admin list", role: "Auditing", desc: "Xem toàn bộ các tài khoản Entra ID đang giữ quyền quản trị viên" },
+        { part: "-o table", role: "Presentation", desc: "Xuất dữ liệu dạng bảng dễ đọc" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-o table", meaning: "Hiển thị ngõ ra dưới dạng bảng định dạng trực quan." }
+    ],
+    examNotes: "Xác thực cấu hình trước khi chuyển sang bước vô hiệu hóa xác thực mật khẩu truyền thống.",
+    simulatedOutput: `PrincipalName          ObjectId                              PrincipalType
+---------------------  ------------------------------------  ---------------
+dugle1605@gmail.com    e82b79a1-871d-40a2-b91c-198273645012  User`
+  },
+  {
+    id: "l9-disable-password-auth",
+    level: 9,
+    title: "6. Vô hiệu hóa Xác thực Mật khẩu (Zero-Trust Entra Only)",
+    difficulty: "Trung bình",
+    category: "Security Hardening",
+    mission: "Để đảm bảo an toàn tuyệt đối theo mô hình Zero-Trust và loại bỏ hoàn toàn nguy cơ lộ mật khẩu tĩnh, hãy cập nhật máy chủ `$env:PG_SERVER` để giữ bật `--microsoft-entra-auth Enabled` đồng thời vô hiệu hóa xác thực mật khẩu tĩnh (`--password-auth Disabled`) với cờ `--yes`.",
+    expectedCommand: "az postgres flexible-server update --resource-group $env:RG --name $env:PG_SERVER --microsoft-entra-auth Enabled --password-auth Disabled --yes",
+    aliases: [
+      "az postgres flexible-server update -g $env:RG -n $env:PG_SERVER --microsoft-entra-auth Enabled --password-auth Disabled --yes",
+      "az postgres flexible-server update --resource-group $env:RG --name $env:PG_SERVER --password-auth Disabled --microsoft-entra-auth Enabled --yes"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "update", "--resource-group", "$env:RG", "--name", "$env:PG_SERVER", "--microsoft-entra-auth", "Enabled", "--password-auth", "Disabled", "--yes"],
+    hints: [
+      "Dùng lệnh `az postgres flexible-server update`.",
+      "Cờ cấu hình xác thực: `--microsoft-entra-auth Enabled --password-auth Disabled`.",
+      "Bỏ qua xác nhận với `--yes`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server update --resource-group <RG> --name <Server> --microsoft-entra-auth Enabled --password-auth Disabled --yes",
+      breakdown: [
+        { part: "az postgres flexible-server update", role: "Update Configuration", desc: "Cập nhật cấu hình bảo mật máy chủ" },
+        { part: "--password-auth Disabled", role: "Zero-Trust Enforcement", desc: "Khóa hoàn toàn cổng đăng nhập bằng username/password cục bộ" },
+        { part: "--microsoft-entra-auth Enabled", role: "Identity Access", desc: "Chỉ cho phép đăng nhập qua token định danh Entra ID ngắn hạn" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--password-auth Disabled", meaning: "Ngắt phương thức xác thực bằng mật khẩu tĩnh, ngăn chặn brute-force và rò rỉ credential." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Trong môi trường doanh nghiệp an toàn, Azure Database for PostgreSQL nên cấu hình Entra-only authentication.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6",
+  "name": "psql-vector-9e9994d6",
+  "state": "Ready",
+  "authConfig": {
+    "activeDirectoryAuth": "Enabled",
+    "passwordAuth": "Disabled"
+  }
+}`
+  },
+  {
+    id: "l9-create-firewall-rule",
+    level: 9,
+    title: "7. Tạo Quy tắc Firewall Cho phép Kết nối Mạng",
+    difficulty: "Cơ bản",
+    category: "Network Security",
+    mission: "Tạo quy tắc tường lửa (firewall rule) có tên `AllowAll` trên máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` với dải IP từ `0.0.0.0` đến `255.255.255.255` để cho phép môi trường lab và máy trạm lập trình kết nối vào cơ sở dữ liệu.",
+    expectedCommand: "az postgres flexible-server firewall-rule create --resource-group $env:RG --server-name $env:PG_SERVER --name AllowAll --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255",
+    aliases: [
+      "az postgres flexible-server firewall-rule create -g $env:RG --server-name $env:PG_SERVER --name AllowAll --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255",
+      "az postgres flexible-server firewall-rule create --resource-group $env:RG -s $env:PG_SERVER --name AllowAll --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "firewall-rule", "create", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "--name", "AllowAll", "--start-ip-address", "0.0.0.0", "--end-ip-address", "255.255.255.255"],
+    hints: [
+      "Nhóm lệnh là `az postgres flexible-server firewall-rule create`.",
+      "Tên rule là `--name AllowAll`.",
+      "Dải IP chỉ định qua `--start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server firewall-rule create --resource-group <RG> --server-name <Server> --name <RuleName> --start-ip-address <StartIP> --end-ip-address <EndIP>",
+      breakdown: [
+        { part: "firewall-rule create", role: "Network Opening", desc: "Tạo luật định tuyến tường lửa cho phép dải IP kết nối qua cổng 5432" },
+        { part: "--start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255", role: "IP Range", desc: "Cho phép toàn bộ IP kết nối cho môi trường học tập và lab demo" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--start-ip-address", meaning: "Địa chỉ IP bắt đầu của dải mạng được phép truy cập." },
+      { param: "--end-ip-address", meaning: "Địa chỉ IP kết thúc của dải mạng." }
+    ],
+    examNotes: "Trong thực tế sản xuất, bạn nên giới hạn IP cụ thể của ứng dụng hoặc dùng Private Endpoint (VNet Integration).",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6/firewallRules/AllowAll",
+  "name": "AllowAll",
+  "startIpAddress": "0.0.0.0",
+  "endIpAddress": "255.255.255.255"
+}`
+  },
+  {
+    id: "l9-list-firewall-rules",
+    level: 9,
+    title: "8. Kiểm tra Danh sách Firewall Rules",
+    difficulty: "Cơ bản",
+    category: "Network Security",
+    mission: "Liệt kê tất cả các quy tắc firewall đang hoạt động trên máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` dưới dạng bảng (table).",
+    expectedCommand: "az postgres flexible-server firewall-rule list --resource-group $env:RG --server-name $env:PG_SERVER -o table",
+    aliases: [
+      "az postgres flexible-server firewall-rule list -g $env:RG --server-name $env:PG_SERVER -o table",
+      "az postgres flexible-server firewall-rule list --resource-group $env:RG -s $env:PG_SERVER -o table"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "firewall-rule", "list", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "-o", "table"],
+    hints: [
+      "Lệnh xem danh sách là `az postgres flexible-server firewall-rule list`.",
+      "Chỉ định cờ `--server-name $env:PG_SERVER`.",
+      "Xuất bảng với `-o table`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server firewall-rule list --resource-group <RG> --server-name <Server> -o table",
+      breakdown: [
+        { part: "firewall-rule list", role: "Inspection", desc: "Liệt kê các quy tắc tường lửa hiện hành" },
+        { part: "-o table", role: "Format", desc: "Xuất bảng thông tin dải IP được phép" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--server-name", meaning: "Tên máy chủ PostgreSQL Flexible Server cần kiểm tra." }
+    ],
+    examNotes: "Xác minh quy tắc AllowAll đã tồn tại để tránh lỗi 'Connection timed out' khi kết nối psql.",
+    simulatedOutput: `Name      StartIpAddress    EndIpAddress
+--------  ----------------  ----------------
+AllowAll  0.0.0.0           255.255.255.255`
+  },
+  {
+    id: "l9-allowlist-vector-extension",
+    level: 9,
+    title: "9. Cấu hình Tham số Cho phép Tiện ích pgvector (azure.extensions)",
+    difficulty: "Trung bình",
+    category: "Vector Extension Setup",
+    mission: "Trong Azure Database for PostgreSQL, extension pgvector không thể bật tự do nếu chưa được cấp phép trong danh sách cho phép (allow-list) cấp server. Hãy cấu hình tham số server `azure.extensions` với giá trị `vector` trên máy chủ `$env:PG_SERVER` trong RG `$env:RG`.",
+    expectedCommand: "az postgres flexible-server parameter set --resource-group $env:RG --server-name $env:PG_SERVER --name azure.extensions --value vector",
+    aliases: [
+      "az postgres flexible-server parameter set -g $env:RG --server-name $env:PG_SERVER --name azure.extensions --value vector",
+      "az postgres flexible-server parameter set --resource-group $env:RG -s $env:PG_SERVER --name azure.extensions --value vector",
+      "az postgres flexible-server parameter set --resource-group $env:RG --server-name $env:PG_SERVER --name azure.extensions --value \"vector\""
+    ],
+    tokens: ["az", "postgres", "flexible-server", "parameter", "set", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "--name", "azure.extensions", "--value", "vector"],
+    hints: [
+      "Nhóm lệnh tham số: `az postgres flexible-server parameter set`.",
+      "Tên tham số cần đặt là `--name azure.extensions`.",
+      "Giá trị thiết lập là `--value vector`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server parameter set --resource-group <RG> --server-name <Server> --name azure.extensions --value vector",
+      breakdown: [
+        { part: "parameter set", role: "Configuration", desc: "Đặt giá trị tham số cấu hình cấp máy chủ PostgreSQL" },
+        { part: "--name azure.extensions", role: "Target Parameter", desc: "Tham số kiểm soát danh sách tiện ích mở rộng được phép cài đặt trong Azure PostgreSQL" },
+        { part: "--value vector", role: "Allow-list Item", desc: "Cấp quyền cho tiện ích pgvector (lưu trữ và tìm kiếm vector)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name azure.extensions", meaning: "Tham số đặc biệt của Azure PostgreSQL quản lý danh mục extension được phép cài đặt." },
+      { param: "--value", meaning: "Danh sách extension cho phép, phân tách bằng dấu phẩy nếu có nhiều tiện ích (ví dụ: vector,azure_ai)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Nếu không cấu hình azure.extensions=vector trước, lệnh 'CREATE EXTENSION vector;' trong psql sẽ thất bại với lỗi extension not in allow-list.",
+    simulatedOutput: `{
+  "name": "azure.extensions",
+  "value": "vector",
+  "source": "user-override",
+  "defaultValue": "",
+  "description": "List of extensions to be loaded by the server at startup"
+}`
+  },
+  {
+    id: "l9-show-parameter-extension",
+    level: 9,
+    title: "10. Xác thực Tham số azure.extensions bằng JMESPath",
+    difficulty: "Cơ bản",
+    category: "Verification",
+    mission: "Truy vấn giá trị của tham số máy chủ `azure.extensions` trên `$env:PG_SERVER` trong RG `$env:RG` dưới dạng TSV để xác nhận tiện ích `vector` đã được cho phép thành công.",
+    expectedCommand: "az postgres flexible-server parameter show --resource-group $env:RG --server-name $env:PG_SERVER --name azure.extensions --query value -o tsv",
+    aliases: [
+      "az postgres flexible-server parameter show -g $env:RG --server-name $env:PG_SERVER --name azure.extensions --query value -o tsv",
+      "az postgres flexible-server parameter show --resource-group $env:RG -s $env:PG_SERVER --name azure.extensions --query value -o tsv"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "parameter", "show", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "--name", "azure.extensions", "--query", "value", "-o", "tsv"],
+    hints: [
+      "Dùng lệnh `az postgres flexible-server parameter show`.",
+      "Chỉ định `--name azure.extensions`.",
+      "Lọc trường giá trị bằng `--query value -o tsv`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server parameter show --resource-group <RG> --server-name <Server> --name azure.extensions --query value -o tsv",
+      breakdown: [
+        { part: "parameter show", role: "Inspection", desc: "Xem chi tiết một tham số cụ thể trên máy chủ" },
+        { part: "--query value -o tsv", role: "Output Extraction", desc: "Trích xuất giá trị sạch để kiểm tra xem đã chứa 'vector' chưa" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name", meaning: "Tên tham số cần kiểm tra (azure.extensions)." }
+    ],
+    examNotes: "Kết quả mong đợi trả về chuỗi 'vector', chứng minh pgvector đã được allow-list thành công.",
+    simulatedOutput: "vector"
+  },
+  {
+    id: "l9-get-access-token",
+    level: 9,
+    title: "11. Lấy Access Token Entra ID cho PostgreSQL (oss-rdbms)",
+    difficulty: "Nâng cao",
+    category: "Authentication & Security",
+    mission: "Lấy Bearer Access Token từ Microsoft Entra ID dành cho dịch vụ cơ sở dữ liệu quan hệ mã nguồn mở (OSS RDBMS) bằng cách sử dụng cờ `--resource-type oss-rdbms`. Trích xuất trường `accessToken` dưới dạng chuỗi sạch (TSV) để gán làm mật khẩu kết nối `PGPASSWORD`.",
+    expectedCommand: "az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv",
+    aliases: [
+      "az account get-access-token --resource-type oss-rdbms --query \"accessToken\" -o tsv",
+      "az account get-access-token --resource-type oss-rdbms -o tsv --query accessToken"
+    ],
+    tokens: ["az", "account", "get-access-token", "--resource-type", "oss-rdbms", "--query", "accessToken", "-o", "tsv"],
+    hints: [
+      "Lệnh tài khoản là `az account get-access-token`.",
+      "Cờ loại tài nguyên là `--resource-type oss-rdbms`.",
+      "Lọc token thô với `--query accessToken -o tsv`."
+    ],
+    mentalModel: {
+      rule: "az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv",
+      breakdown: [
+        { part: "az account get-access-token", role: "Token Retrieval", desc: "Yêu cầu Microsoft Entra ID phát hành access token" },
+        { part: "--resource-type oss-rdbms", role: "Target Audience", desc: "Scope đối tượng dành riêng cho cơ sở dữ liệu OSS RDBMS của Azure (PostgreSQL / MySQL)" },
+        { part: "--query accessToken -o tsv", role: "Secret Extraction", desc: "Lấy JWT token sạch để gán vào biến môi trường $env:PGPASSWORD" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--resource-type oss-rdbms", meaning: "Chỉ định scope đối tượng token là https://ossrdbms-aad.database.windows.net/.default." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Token này có thời hạn sống khoảng 1 giờ (~60 phút). Khi hết hạn, client ứng dụng hoặc script cần refresh token mới.",
+    simulatedOutput: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IjJa..."
+  },
+  {
+    id: "l9-create-agent-database",
+    level: 9,
+    title: "12. Tạo Database agent_memory cho Lưu trữ Trạng thái AI Agent",
+    difficulty: "Trung bình",
+    category: "Database Operations",
+    mission: "Tạo một cơ sở dữ liệu mới có tên `agent_memory` trên máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` để phục vụ việc lưu trữ lịch sử hội thoại, ngữ cảnh và các điểm checkpoint tác vụ của AI Agent.",
+    expectedCommand: "az postgres flexible-server db create --resource-group $env:RG --server-name $env:PG_SERVER --database-name agent_memory",
+    aliases: [
+      "az postgres flexible-server db create -g $env:RG --server-name $env:PG_SERVER --database-name agent_memory",
+      "az postgres flexible-server db create --resource-group $env:RG -s $env:PG_SERVER -d agent_memory",
+      "az postgres flexible-server db create --resource-group $env:RG --server-name $env:PG_SERVER -d agent_memory"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "db", "create", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "--database-name", "agent_memory"],
+    hints: [
+      "Nhóm lệnh quản lý database: `az postgres flexible-server db create`.",
+      "Chỉ định `--server-name $env:PG_SERVER`.",
+      "Tên cơ sở dữ liệu đặt qua `--database-name agent_memory`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server db create --resource-group <RG> --server-name <Server> --database-name <DbName>",
+      breakdown: [
+        { part: "az postgres flexible-server db create", role: "Database Provisioning", desc: "Tạo database mới bên trong Flexible Server" },
+        { part: "--database-name agent_memory", role: "Database Name", desc: "Cơ sở dữ liệu dành riêng cho lưu trữ trí nhớ dài hạn và checkpoint của AI Agent" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--database-name", meaning: "Tên database cần tạo (hỗ trợ chữ thường, số, gạch dưới)." }
+    ],
+    examNotes: "Việc tách biệt database cho Agent Memory giúp cô lập dữ liệu nghiệp vụ với dữ liệu hội thoại và checkpoint trạng thái của mô hình AI.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6/databases/agent_memory",
+  "name": "agent_memory",
+  "charset": "UTF8",
+  "collation": "en_US.utf8"
+}`
+  },
+  {
+    id: "l9-list-databases",
+    level: 9,
+    title: "13. Liệt kê Danh sách Database trên Flexible Server",
+    difficulty: "Cơ bản",
+    category: "Database Operations",
+    mission: "Liệt kê toàn bộ các cơ sở dữ liệu đang có trên máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` dưới dạng bảng (table).",
+    expectedCommand: "az postgres flexible-server db list --resource-group $env:RG --server-name $env:PG_SERVER -o table",
+    aliases: [
+      "az postgres flexible-server db list -g $env:RG --server-name $env:PG_SERVER -o table",
+      "az postgres flexible-server db list --resource-group $env:RG -s $env:PG_SERVER -o table"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "db", "list", "--resource-group", "$env:RG", "--server-name", "$env:PG_SERVER", "-o", "table"],
+    hints: [
+      "Dùng lệnh `az postgres flexible-server db list`.",
+      "Chỉ định cờ `--server-name $env:PG_SERVER`.",
+      "Xuất bảng với `-o table`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server db list --resource-group <RG> --server-name <Server> -o table",
+      breakdown: [
+        { part: "az postgres flexible-server db list", role: "Inspection", desc: "Xem danh sách cơ sở dữ liệu hiện có" },
+        { part: "-o table", role: "Table Format", desc: "Trình bày danh sách dạng bảng trực quan" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-o table", meaning: "Hiển thị ngõ ra dưới dạng bảng định dạng trực quan." }
+    ],
+    examNotes: "Danh sách bao gồm các database mặc định của hệ thống (postgres, azure_maintenance, azure_sys) và database người dùng vừa tạo (agent_memory).",
+    simulatedOutput: `Name               Charset    Collation
+-----------------  ---------  -----------
+postgres           UTF8       en_US.utf8
+azure_maintenance  UTF8       en_US.utf8
+azure_sys          UTF8       en_US.utf8
+agent_memory       UTF8       en_US.utf8`
+  },
+  {
+    id: "l9-restart-server",
+    level: 9,
+    title: "14. Khởi động lại PostgreSQL Server để Áp dụng Cấu hình",
+    difficulty: "Trung bình",
+    category: "Maintenance & Operations",
+    mission: "Khởi động lại máy chủ Azure Database for PostgreSQL Flexible Server `$env:PG_SERVER` trong RG `$env:RG` để áp dụng triệt để các tham số hệ thống và tiện ích mở rộng vừa thay đổi.",
+    expectedCommand: "az postgres flexible-server restart --resource-group $env:RG --name $env:PG_SERVER",
+    aliases: [
+      "az postgres flexible-server restart -g $env:RG -n $env:PG_SERVER"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "restart", "--resource-group", "$env:RG", "--name", "$env:PG_SERVER"],
+    hints: [
+      "Lệnh khởi động lại là `az postgres flexible-server restart`.",
+      "Truyền tham số RG và tên server: `--resource-group $env:RG --name $env:PG_SERVER`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server restart --resource-group <RG> --name <Server>",
+      breakdown: [
+        { part: "az postgres flexible-server restart", role: "Server Action", desc: "Khởi động lại tiến trình PostgreSQL Flexible Server" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name", meaning: "Tên máy chủ PostgreSQL Flexible Server cần khởi động lại." }
+    ],
+    examNotes: "Một số tham số cấp máy chủ yêu cầu khởi động lại (restart) máy chủ mới có hiệu lực hoàn toàn.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-postgresql-lab/providers/Microsoft.DBforPostgreSQL/flexibleServers/psql-vector-9e9994d6",
+  "name": "psql-vector-9e9994d6",
+  "state": "Ready"
+}`
+  },
+  {
+    id: "l9-cleanup-server",
+    level: 9,
+    title: "15. Dọn dẹp & Xóa Máy chủ PostgreSQL Flexible Server",
+    difficulty: "Cơ bản",
+    category: "Cleanup",
+    mission: "Sau khi hoàn thành bài lab kiểm thử hiệu năng vector và AI agent memory, hãy xóa máy chủ PostgreSQL `$env:PG_SERVER` trong RG `$env:RG` với cờ `--yes` để giải phóng toàn bộ tài nguyên cloud.",
+    expectedCommand: "az postgres flexible-server delete --resource-group $env:RG --name $env:PG_SERVER --yes",
+    aliases: [
+      "az postgres flexible-server delete -g $env:RG -n $env:PG_SERVER --yes",
+      "az postgres flexible-server delete --resource-group $env:RG --name $env:PG_SERVER -y"
+    ],
+    tokens: ["az", "postgres", "flexible-server", "delete", "--resource-group", "$env:RG", "--name", "$env:PG_SERVER", "--yes"],
+    hints: [
+      "Dùng lệnh `az postgres flexible-server delete`.",
+      "Truyền cờ tự động đồng ý: `--yes`."
+    ],
+    mentalModel: {
+      rule: "az postgres flexible-server delete --resource-group <RG> --name <Server> --yes",
+      breakdown: [
+        { part: "az postgres flexible-server delete", role: "Destruction Action", desc: "Hủy bỏ và xóa hoàn toàn máy chủ PostgreSQL cùng toàn bộ dữ liệu" },
+        { part: "--yes", role: "Auto Confirm", desc: "Bỏ qua yêu cầu gõ xác nhận để chạy mượt mà trong kịch bản CI/CD" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--yes", meaning: "Xác nhận xóa tài nguyên không cần hiển thị prompt cảnh báo." }
+    ],
+    examNotes: "Xóa tài nguyên sau khi hoàn thành thực hành giúp ngăn ngừa chi phí phát sinh không mong muốn.",
+    simulatedOutput: ""
+  }
+,
+  // ==========================================
+  // LEVEL 10: AZURE MANAGED REDIS (AMR) & REDISEARCH
+  // ==========================================
+  {
+    id: "l10-register-provider",
+    level: 10,
+    title: "1. Đăng ký Resource Provider Microsoft.Cache",
+    difficulty: "Cơ bản",
+    category: "Pre-flight & Provider Setup",
+    mission: "Trước khi tạo cụm Azure Managed Redis (AMR) hoặc Redis Enterprise, subscription cần phải đăng ký Resource Provider `Microsoft.Cache`. Hãy chạy lệnh Azure CLI để kích hoạt việc đăng ký provider này.",
+    expectedCommand: "az provider register --namespace Microsoft.Cache",
+    aliases: [
+      "az provider register -n Microsoft.Cache"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.Cache"],
+    hints: [
+      "Nhóm lệnh `az provider`.",
+      "Hành động là `register`.",
+      "Tham số `--namespace Microsoft.Cache`."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace <Namespace>",
+      breakdown: [
+        { part: "az provider register", role: "Registration Action", desc: "Đăng ký resource provider dịch vụ bộ đệm in-memory trên Azure" },
+        { part: "--namespace Microsoft.Cache", role: "Target Namespace", desc: "Namespace cung cấp Azure Managed Redis và Azure Cache for Redis" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--namespace", meaning: "Tên namespace nhà cung cấp tài nguyên đám mây Azure (Microsoft.Cache)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Nếu subscription chưa đăng ký Microsoft.Cache, việc khởi tạo Redis Enterprise cluster sẽ trả về lỗi ProviderNotRegistered.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/providers/Microsoft.Cache",
+  "namespace": "Microsoft.Cache",
+  "registrationPolicy": "RegistrationRequired",
+  "registrationState": "Registering"
+}`
+  },
+  {
+    id: "l10-create-redis-cluster",
+    level: 10,
+    title: "2. Khởi tạo Azure Managed Redis Enterprise Cluster",
+    difficulty: "Nâng cao",
+    category: "Resource Provisioning",
+    mission: "Tạo cụm Azure Managed Redis mang tên `$env:REDIS_NAME` trong Resource Group `$env:RG`, vị trí `$env:LOCATION`. Sử dụng SKU `Balanced_B0`, cho phép truy cập mạng công cộng (`--public-network-access Enabled`) và hoãn tạo database ban đầu (`--no-database`) để cấu hình tùy chỉnh ở bước sau.",
+    expectedCommand: "az redisenterprise create --resource-group $env:RG --name $env:REDIS_NAME --location $env:LOCATION --sku Balanced_B0 --public-network-access Enabled --no-database",
+    aliases: [
+      "az redisenterprise create -g $env:RG -n $env:REDIS_NAME -l $env:LOCATION --sku Balanced_B0 --public-network-access Enabled --no-database",
+      "az redisenterprise create --resource-group $env:RG --name $env:REDIS_NAME --location $env:LOCATION --sku Balanced_B0 --no-database --public-network-access Enabled"
+    ],
+    tokens: ["az", "redisenterprise", "create", "--resource-group", "$env:RG", "--name", "$env:REDIS_NAME", "--location", "$env:LOCATION", "--sku", "Balanced_B0", "--public-network-access", "Enabled", "--no-database"],
+    hints: [
+      "Nhóm lệnh Azure Managed Redis là `az redisenterprise create`.",
+      "Chỉ định SKU là `Balanced_B0` (dòng Balanced cho workloads AI/vector).",
+      "Mở truy cập công cộng với `--public-network-access Enabled`.",
+      "Thêm cờ `--no-database` để tạo cluster trước mà chưa khởi tạo DB mặc định."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise create --resource-group <RG> --name <Name> --location <Region> --sku Balanced_B0 --public-network-access Enabled --no-database",
+      breakdown: [
+        { part: "az redisenterprise create", role: "Cluster Provisioning", desc: "Tạo cụm hạ tầng phần cứng Azure Managed Redis Enterprise" },
+        { part: "--sku Balanced_B0", role: "Compute Tier", desc: "Dòng SKU cân bằng bộ nhớ RAM và CPU, hỗ trợ đầy đủ RediSearch & Vector Search" },
+        { part: "--no-database", role: "Two-step Setup", desc: "Tách biệt việc dựng cụm và cấu hình database chuyên sâu (port, protocol, eviction)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--sku", meaning: "Tên SKU của Azure Managed Redis: Balanced (B0-B1000), MemoryOptimized, hoặc ComputeOptimized." },
+      { param: "--no-database", meaning: "Tạo cụm rỗng không tạo cơ sở dữ liệu mặc định." }
+    ],
+    examNotes: "Azure Managed Redis (AMR) là phiên bản thế hệ mới thay thế Azure Cache for Redis truyền thống, tích hợp sẵn RediSearch và RedisJSON trong bộ nhớ RAM tốc độ cao.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-redis-lab/providers/Microsoft.Cache/redisEnterprise/amr-exercise-9e9994d6",
+  "name": "amr-exercise-9e9994d6",
+  "location": "southeastasia",
+  "sku": {
+    "name": "Balanced_B0",
+    "capacity": 2
+  },
+  "provisioningState": "Creating",
+  "resourceState": "Creating"
+}`
+  },
+  {
+    id: "l10-show-cluster-state",
+    level: 10,
+    title: "3. Kiểm tra Trạng thái Cụm AMR (provisioningState)",
+    difficulty: "Cơ bản",
+    category: "Health & Monitoring",
+    mission: "Truy vấn thuộc tính `provisioningState` của cụm Azure Managed Redis `$env:REDIS_NAME` trong RG `$env:RG` dưới dạng chuỗi sạch (TSV) để kiểm tra xem cụm đã chuyển sang trạng thái 'Succeeded' hay chưa.",
+    expectedCommand: "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query provisioningState -o tsv",
+    aliases: [
+      "az redisenterprise show -g $env:RG -n $env:REDIS_NAME --query provisioningState -o tsv",
+      "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query \"provisioningState\" -o tsv"
+    ],
+    tokens: ["az", "redisenterprise", "show", "--resource-group", "$env:RG", "--name", "$env:REDIS_NAME", "--query", "provisioningState", "-o", "tsv"],
+    hints: [
+      "Lệnh xem thông tin cụm là `az redisenterprise show`.",
+      "Trích xuất trường trạng thái: `--query provisioningState`.",
+      "Định dạng chuỗi sạch: `-o tsv`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise show --resource-group <RG> --name <Name> --query provisioningState -o tsv",
+      breakdown: [
+        { part: "az redisenterprise show", role: "Cluster Inspection", desc: "Xem chi tiết cụm Redis Enterprise" },
+        { part: "--query provisioningState -o tsv", role: "JMESPath Filter", desc: "Lấy chuỗi trạng thái cấp phát (Succeeded/Creating/Failed)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query", meaning: "Trích xuất giá trị trường JSON mong muốn." },
+      { param: "-o tsv", meaning: "Trả về giá trị thô không kèm dấu ngoặc kép." }
+    ],
+    examNotes: "Cụm AMR mất khoảng 5-10 phút để hoàn tất khởi tạo. Chỉ tiếp tục tạo database khi trạng thái đạt 'Succeeded'.",
+    simulatedOutput: "Succeeded"
+  },
+  {
+    id: "l10-create-database",
+    level: 10,
+    title: "4. Khởi tạo Database với Mã hóa TLS & Chính sách Eviction AllKeysLRU",
+    difficulty: "Nâng cao",
+    category: "Database Configuration",
+    mission: "Khởi tạo database mặc định cho cụm `$env:REDIS_NAME` trong RG `$env:RG`. Cấu hình giao thức client mã hóa TLS (`--client-protocol Encrypted`), chính sách clustering `NoCluster`, chính sách giải phóng bộ nhớ LRU khi đầy (`--eviction-policy AllKeysLRU`) và cổng kết nối tiêu chuẩn `10000`.",
+    expectedCommand: "az redisenterprise database create --resource-group $env:RG --cluster-name $env:REDIS_NAME --client-protocol Encrypted --clustering-policy NoCluster --eviction-policy AllKeysLRU --port 10000",
+    aliases: [
+      "az redisenterprise database create -g $env:RG --cluster-name $env:REDIS_NAME --client-protocol Encrypted --clustering-policy NoCluster --eviction-policy AllKeysLRU --port 10000",
+      "az redisenterprise database create --resource-group $env:RG --cluster $env:REDIS_NAME --client-protocol Encrypted --clustering-policy NoCluster --eviction-policy AllKeysLRU --port 10000"
+    ],
+    tokens: ["az", "redisenterprise", "database", "create", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--client-protocol", "Encrypted", "--clustering-policy", "NoCluster", "--eviction-policy", "AllKeysLRU", "--port", "10000"],
+    hints: [
+      "Nhóm lệnh tạo database: `az redisenterprise database create`.",
+      "Chỉ định tên cụm bằng `--cluster-name $env:REDIS_NAME`.",
+      "Mã hóa TLS: `--client-protocol Encrypted`.",
+      "Chính sách LRU và cổng: `--eviction-policy AllKeysLRU --port 10000`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database create --resource-group <RG> --cluster-name <Cluster> --client-protocol Encrypted --clustering-policy NoCluster --eviction-policy AllKeysLRU --port 10000",
+      breakdown: [
+        { part: "database create", role: "Database Provisioning", desc: "Khởi tạo database trong cụm Redis Enterprise" },
+        { part: "--client-protocol Encrypted", role: "Transport Security", desc: "Bắt buộc mã hóa toàn bộ dữ liệu truyền qua mạng bằng TLS/SSL" },
+        { part: "--port 10000", role: "Standard AMR Port", desc: "Cổng TCP chuẩn của Azure Managed Redis (khác cổng 6379 của Redis mã nguồn mở)" },
+        { part: "--eviction-policy AllKeysLRU", role: "Memory Management", desc: "Tự động thu hồi các key ít truy cập nhất khi bộ nhớ RAM đạt giới hạn" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--port 10000", meaning: "Cổng lắng nghe kết nối client của Azure Managed Redis." },
+      { param: "--eviction-policy", meaning: "Chính sách giải phóng bộ nhớ khi cache bị đầy: AllKeysLRU, VolatileLRU, NoEviction, AllKeysLFU, v.v." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Azure Managed Redis luôn sử dụng cổng 10000 với kết nối mã hóa Encrypted TLS/SSL.",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-redis-lab/providers/Microsoft.Cache/redisEnterprise/amr-exercise-9e9994d6/databases/default",
+  "name": "default",
+  "clientProtocol": "Encrypted",
+  "clusteringPolicy": "NoCluster",
+  "evictionPolicy": "AllKeysLRU",
+  "port": 10000,
+  "provisioningState": "Creating"
+}`
+  },
+  {
+    id: "l10-show-database-state",
+    level: 10,
+    title: "5. Kiểm tra Trạng thái Khởi tạo Database",
+    difficulty: "Cơ bản",
+    category: "Health & Monitoring",
+    mission: "Kiểm tra thuộc tính `provisioningState` của database trên cụm `$env:REDIS_NAME` trong RG `$env:RG` để đảm bảo cơ sở dữ liệu in-memory đã ở trạng thái 'Succeeded'.",
+    expectedCommand: "az redisenterprise database show --resource-group $env:RG --cluster-name $env:REDIS_NAME --query provisioningState -o tsv",
+    aliases: [
+      "az redisenterprise database show -g $env:RG --cluster-name $env:REDIS_NAME --query provisioningState -o tsv",
+      "az redisenterprise database show --resource-group $env:RG --cluster $env:REDIS_NAME --query provisioningState -o tsv"
+    ],
+    tokens: ["az", "redisenterprise", "database", "show", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--query", "provisioningState", "-o", "tsv"],
+    hints: [
+      "Lệnh xem database: `az redisenterprise database show`.",
+      "Chỉ định cờ `--cluster-name $env:REDIS_NAME`.",
+      "Lọc thuộc tính: `--query provisioningState -o tsv`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database show --resource-group <RG> --cluster-name <Cluster> --query provisioningState -o tsv",
+      breakdown: [
+        { part: "database show", role: "Database Inspection", desc: "Xem thuộc tính của cơ sở dữ liệu mặc định trong cụm" },
+        { part: "--query provisioningState -o tsv", role: "State Check", desc: "Xác minh trạng thái sẵn sàng nhận kết nối client" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--cluster-name", meaning: "Tên cụm Redis Enterprise chứa database cần kiểm tra." }
+    ],
+    examNotes: "Database ở trạng thái 'Succeeded' đồng nghĩa các module RediSearch và công cụ lưu trữ in-memory đã sẵn sàng.",
+    simulatedOutput: "Succeeded"
+  },
+  {
+    id: "l10-assign-access-policy",
+    level: 10,
+    title: "6. Gán Chính sách Truy cập Microsoft Entra ID cho Người dùng",
+    difficulty: "Trung bình",
+    category: "Identity & RBAC",
+    mission: "Cấp quyền xác thực qua Microsoft Entra ID cho tài khoản người dùng hiện tại (`$env:USER_OBJECT_ID`) trên database `default` của cụm `$env:REDIS_NAME` trong RG `$env:RG`. Đặt tên phân quyền là `useraccess` với chính sách truy cập `default`.",
+    expectedCommand: "az redisenterprise database access-policy-assignment create --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --access-policy-assignment-name useraccess --access-policy-name default --object-id $env:USER_OBJECT_ID",
+    aliases: [
+      "az redisenterprise database access-policy-assignment create -g $env:RG --cluster-name $env:REDIS_NAME --database-name default --access-policy-assignment-name useraccess --access-policy-name default --object-id $env:USER_OBJECT_ID"
+    ],
+    tokens: ["az", "redisenterprise", "database", "access-policy-assignment", "create", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--database-name", "default", "--access-policy-assignment-name", "useraccess", "--access-policy-name", "default", "--object-id", "$env:USER_OBJECT_ID"],
+    hints: [
+      "Lệnh gán quyền: `az redisenterprise database access-policy-assignment create`.",
+      "Tên assignment: `--access-policy-assignment-name useraccess`.",
+      "Chính sách truy cập: `--access-policy-name default`.",
+      "Object ID người dùng: `--object-id $env:USER_OBJECT_ID`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database access-policy-assignment create --resource-group <RG> --cluster-name <Cluster> --database-name default --access-policy-assignment-name <Assignment> --access-policy-name default --object-id <OID>",
+      breakdown: [
+        { part: "access-policy-assignment create", role: "Identity Policy", desc: "Gán quyền truy cập dữ liệu Redis dựa trên định danh Microsoft Entra ID" },
+        { part: "--access-policy-name default", role: "Built-in Policy", desc: "Chính sách quyền mặc định cho phép đầy đủ thao tác đọc/ghi dữ liệu" },
+        { part: "--object-id", role: "Entra Principal", desc: "Mã GUID định danh của người dùng hoặc Managed Identity" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--access-policy-name", meaning: "Tên chính sách truy cập Redis ACL (Access Control List): default, read-only, v.v." },
+      { param: "--object-id", meaning: "Object ID của thực thể Microsoft Entra ID (User, Group, Service Principal, Managed Identity)." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: Microsoft khuyến nghị xác thực Entra ID cho Redis để loại bỏ hoàn toàn Access Keys tĩnh (Passwordless Security).",
+    simulatedOutput: `{
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-redis-lab/providers/Microsoft.Cache/redisEnterprise/amr-exercise-9e9994d6/databases/default/accessPolicyAssignments/useraccess",
+  "name": "useraccess",
+  "accessPolicyName": "default",
+  "objectId": "e82b79a1-871d-40a2-b91c-198273645012",
+  "provisioningState": "Succeeded"
+}`
+  },
+  {
+    id: "l10-show-access-policy",
+    level: 10,
+    title: "7. Kiểm tra Chi tiết Phân quyền Access Policy Assignment",
+    difficulty: "Cơ bản",
+    category: "Identity & RBAC",
+    mission: "Xem chi tiết cấu hình phân quyền Entra ID `useraccess` trên database `default` của cụm `$env:REDIS_NAME` trong RG `$env:RG` dưới dạng JSON.",
+    expectedCommand: "az redisenterprise database access-policy-assignment show --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --access-policy-assignment-name useraccess -o json",
+    aliases: [
+      "az redisenterprise database access-policy-assignment show -g $env:RG --cluster-name $env:REDIS_NAME --database-name default --access-policy-assignment-name useraccess -o json"
+    ],
+    tokens: ["az", "redisenterprise", "database", "access-policy-assignment", "show", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--database-name", "default", "--access-policy-assignment-name", "useraccess", "-o", "json"],
+    hints: [
+      "Lệnh kiểm tra: `az redisenterprise database access-policy-assignment show`.",
+      "Chỉ định cờ `--access-policy-assignment-name useraccess`.",
+      "Định dạng JSON với `-o json`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database access-policy-assignment show --resource-group <RG> --cluster-name <Cluster> --database-name default --access-policy-assignment-name useraccess -o json",
+      breakdown: [
+        { part: "access-policy-assignment show", role: "Inspection", desc: "Xem chi tiết phân quyền ACL hiện tại" },
+        { part: "-o json", role: "Output Format", desc: "Xuất cấu trúc phân quyền dạng JSON" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--access-policy-assignment-name", meaning: "Tên định danh của lượt gán quyền truy cập (useraccess)." }
+    ],
+    examNotes: "Xác nhận trạng thái provisioningState là Succeeded trước khi cho ứng dụng kết nối.",
+    simulatedOutput: `{
+  "accessPolicyName": "default",
+  "id": "/subscriptions/7820a1bc-341e-42ef-a841-f42f38d12345/resourceGroups/rg-ai200-redis-lab/providers/Microsoft.Cache/redisEnterprise/amr-exercise-9e9994d6/databases/default/accessPolicyAssignments/useraccess",
+  "name": "useraccess",
+  "objectId": "e82b79a1-871d-40a2-b91c-198273645012",
+  "provisioningState": "Succeeded",
+  "type": "Microsoft.Cache/redisEnterprise/databases/accessPolicyAssignments"
+}`
+  },
+  {
+    id: "l10-get-hostname",
+    level: 10,
+    title: "8. Lấy Endpoint Hostname Kết nối Redis",
+    difficulty: "Cơ bản",
+    category: "Connection Information",
+    mission: "Trích xuất địa chỉ FQDN hostname kết nối của cụm Azure Managed Redis `$env:REDIS_NAME` trong RG `$env:RG` dưới dạng TSV để gán vào biến môi trường `$env:REDIS_HOST`.",
+    expectedCommand: "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query hostName -o tsv",
+    aliases: [
+      "az redisenterprise show -g $env:RG -n $env:REDIS_NAME --query hostName -o tsv",
+      "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query \"hostName\" -o tsv"
+    ],
+    tokens: ["az", "redisenterprise", "show", "--resource-group", "$env:RG", "--name", "$env:REDIS_NAME", "--query", "hostName", "-o", "tsv"],
+    hints: [
+      "Lệnh xem cụm: `az redisenterprise show`.",
+      "Lọc thuộc tính: `--query hostName`.",
+      "Xuất chuỗi sạch: `-o tsv`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise show --resource-group <RG> --name <Name> --query hostName -o tsv",
+      breakdown: [
+        { part: "az redisenterprise show", role: "Cluster Details", desc: "Xem thông tin máy chủ cụm Redis" },
+        { part: "--query hostName -o tsv", role: "Endpoint Extraction", desc: "Lấy chuỗi hostname FQDN không chứa dấu nháy kép để ứng dụng Python kết nối" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query hostName", meaning: "Địa chỉ hostname miền FQDN dạng <cache-name>.<region>.redisenterprise.cache.azure.net." }
+    ],
+    examNotes: "💡 Điểm thi AI-200: FQDN của Azure Managed Redis có dạng `<name>.<region>.redisenterprise.cache.azure.net` (khác với `<name>.redis.cache.windows.net` của thế hệ cũ).",
+    simulatedOutput: "amr-exercise-9e9994d6.southeastasia.redisenterprise.cache.azure.net"
+  },
+  {
+    id: "l10-list-access-policies",
+    level: 10,
+    title: "9. Liệt kê Toàn bộ Access Policy Assignments trên Database",
+    difficulty: "Cơ bản",
+    category: "Identity & Auditing",
+    mission: "Liệt kê danh sách tất cả các chính sách truy cập định danh Entra ID đã gán trên database `default` của cụm `$env:REDIS_NAME` trong RG `$env:RG` dưới dạng bảng.",
+    expectedCommand: "az redisenterprise database access-policy-assignment list --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default -o table",
+    aliases: [
+      "az redisenterprise database access-policy-assignment list -g $env:RG --cluster-name $env:REDIS_NAME --database-name default -o table"
+    ],
+    tokens: ["az", "redisenterprise", "database", "access-policy-assignment", "list", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--database-name", "default", "-o", "table"],
+    hints: [
+      "Nhóm lệnh liệt kê: `az redisenterprise database access-policy-assignment list`.",
+      "Chỉ định `--cluster-name $env:REDIS_NAME --database-name default`.",
+      "Xuất dạng bảng: `-o table`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database access-policy-assignment list --resource-group <RG> --cluster-name <Cluster> --database-name default -o table",
+      breakdown: [
+        { part: "access-policy-assignment list", role: "Auditing", desc: "Kiểm tra toàn bộ phân quyền định danh đang có hiệu lực trên database" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "-o table", meaning: "Trình bày danh sách định dạng bảng." }
+    ],
+    examNotes: "Giúp xác minh nhanh xem người dùng hoặc Managed Identity đã được cấp quyền thành công hay chưa.",
+    simulatedOutput: `Name        AccessPolicyName  ObjectId                              ProvisioningState
+----------  ----------------  ------------------------------------  -------------------
+useraccess  default           e82b79a1-871d-40a2-b91c-198273645012  Succeeded`
+  },
+  {
+    id: "l10-update-eviction-policy",
+    level: 10,
+    title: "10. Cập nhật Chính sách Eviction sang VolatileLRU",
+    difficulty: "Trung bình",
+    category: "Performance & Memory Tuning",
+    mission: "Thay đổi chính sách giải phóng bộ nhớ của database trên cụm `$env:REDIS_NAME` trong RG `$env:RG` sang `VolatileLRU` để Redis chỉ thu hồi các key có thiết lập thời gian hết hạn (TTL).",
+    expectedCommand: "az redisenterprise database update --resource-group $env:RG --cluster-name $env:REDIS_NAME --eviction-policy VolatileLRU",
+    aliases: [
+      "az redisenterprise database update -g $env:RG --cluster-name $env:REDIS_NAME --eviction-policy VolatileLRU"
+    ],
+    tokens: ["az", "redisenterprise", "database", "update", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--eviction-policy", "VolatileLRU"],
+    hints: [
+      "Lệnh cập nhật database: `az redisenterprise database update`.",
+      "Chỉ định cờ `--eviction-policy VolatileLRU`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database update --resource-group <RG> --cluster-name <Cluster> --eviction-policy VolatileLRU",
+      breakdown: [
+        { part: "database update", role: "Configuration Update", desc: "Cập nhật tham số động của database in-memory" },
+        { part: "--eviction-policy VolatileLRU", role: "Eviction Rule", desc: "Chỉ giải phóng các key có TTL (expire) khi bộ nhớ đầy, bảo vệ các key vĩnh viễn" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--eviction-policy VolatileLRU", meaning: "LRU (Least Recently Used) chỉ áp dụng cho tập hợp các key có cài đặt thời gian sống TTL." }
+    ],
+    examNotes: "Sự khác biệt: `AllKeysLRU` loại bỏ bất kỳ key nào ít dùng; `VolatileLRU` chỉ loại bỏ key có TTL; `NoEviction` báo lỗi khi hết RAM.",
+    simulatedOutput: `{
+  "clientProtocol": "Encrypted",
+  "clusteringPolicy": "NoCluster",
+  "evictionPolicy": "VolatileLRU",
+  "port": 10000,
+  "provisioningState": "Succeeded"
+}`
+  },
+  {
+    id: "l10-flush-database",
+    level: 10,
+    title: "11. Xóa Sạch Dữ liệu Cache Database (Flush)",
+    difficulty: "Cơ bản",
+    category: "Maintenance & Operations",
+    mission: "Dọn dẹp nhanh toàn bộ các key và dữ liệu in-memory trong database của cụm `$env:REDIS_NAME` trong RG `$env:RG` với cờ `--yes` để phục vụ chạy test suite mới.",
+    expectedCommand: "az redisenterprise database flush --resource-group $env:RG --cluster-name $env:REDIS_NAME --yes",
+    aliases: [
+      "az redisenterprise database flush -g $env:RG --cluster-name $env:REDIS_NAME --yes",
+      "az redisenterprise database flush --resource-group $env:RG --cluster $env:REDIS_NAME -y"
+    ],
+    tokens: ["az", "redisenterprise", "database", "flush", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--yes"],
+    hints: [
+      "Lệnh flush database: `az redisenterprise database flush`.",
+      "Chỉ định `--cluster-name $env:REDIS_NAME`.",
+      "Bỏ qua xác nhận với cờ `--yes`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database flush --resource-group <RG> --cluster-name <Cluster> --yes",
+      breakdown: [
+        { part: "database flush", role: "Purge Action", desc: "Tương đương lệnh FLUSHDB của Redis, xóa sạch toàn bộ key trong RAM" },
+        { part: "--yes", role: "Confirmation", desc: "Tự động đồng ý mà không hỏi lại" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--yes", meaning: "Tự động đồng ý xóa toàn bộ dữ liệu trong database." }
+    ],
+    examNotes: "Thao tác không thể hoàn tác; chỉ sử dụng trong môi trường dev/lab hoặc khi cần reset sạch cache.",
+    simulatedOutput: ""
+  },
+  {
+    id: "l10-force-unlink",
+    level: 10,
+    title: "12. Force-unlink Tái khởi động Nút Cơ sở Dữ liệu",
+    difficulty: "Trung bình",
+    category: "Troubleshooting & High Availability",
+    mission: "Chủ động tách hoặc tái khởi động phân vùng database node với ID `0` trên cụm `$env:REDIS_NAME` trong RG `$env:RG` để giải phóng kết nối bị treo hoặc kiểm thử tính chịu lỗi (Failover) với cờ `--yes`.",
+    expectedCommand: "az redisenterprise database force-unlink --resource-group $env:RG --cluster-name $env:REDIS_NAME --unlink-ids 0 --yes",
+    aliases: [
+      "az redisenterprise database force-unlink -g $env:RG --cluster-name $env:REDIS_NAME --unlink-ids 0 --yes"
+    ],
+    tokens: ["az", "redisenterprise", "database", "force-unlink", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--unlink-ids", "0", "--yes"],
+    hints: [
+      "Lệnh xử lý sự cố node: `az redisenterprise database force-unlink`.",
+      "Chỉ định ID phân vùng node cần unlink: `--unlink-ids 0`.",
+      "Bỏ qua xác nhận: `--yes`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database force-unlink --resource-group <RG> --cluster-name <Cluster> --unlink-ids <IDs> --yes",
+      breakdown: [
+        { part: "database force-unlink", role: "Cluster Remediation", desc: "Ngắt kết nối cưỡng bức một shard/node đang gặp sự cố" },
+        { part: "--unlink-ids 0", role: "Target Shard", desc: "Định danh shard/node cần thao tác" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--unlink-ids", meaning: "Danh sách các phân vùng database ID cần tách khỏi cụm." }
+    ],
+    examNotes: "Dùng để khôi phục cụm khi có một node bị treo hoặc mất đồng bộ trong mô hình Active-Active Geo-Replication.",
+    simulatedOutput: ""
+  },
+  {
+    id: "l10-show-cluster-summary",
+    level: 10,
+    title: "13. Lọc Tổng quan Cấu hình Cụm AMR bằng JMESPath Multi-hash",
+    difficulty: "Trung bình",
+    category: "Monitoring & Reporting",
+    mission: "Trích xuất thông tin tổng hợp gồm SKU, hostname, trạng thái và phiên bản Redis của cụm `$env:REDIS_NAME` trong RG `$env:RG` dưới dạng JSON gọn gàng.",
+    expectedCommand: "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query \"{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}\" -o json",
+    aliases: [
+      "az redisenterprise show -g $env:RG -n $env:REDIS_NAME --query \"{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}\" -o json",
+      "az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query '{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}' -o json"
+    ],
+    tokens: ["az", "redisenterprise", "show", "--resource-group", "$env:RG", "--name", "$env:REDIS_NAME", "--query", "{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}", "-o", "json"],
+    hints: [
+      "Dùng lệnh `az redisenterprise show`.",
+      "Sử dụng cú pháp Multi-hash Projection: `--query \"{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}\"`.",
+      "Định dạng ngõ ra là `-o json`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise show --resource-group <RG> --name <Name> --query \"{field1:path1, field2:path2}\" -o json",
+      breakdown: [
+        { part: "JMESPath Multi-hash", role: "Projection", desc: "Tái cấu trúc phản hồi JSON phức tạp thành đối tượng đơn giản chỉ chứa các trường cần thiết" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--query {key:path}", meaning: "Cú pháp Multi-hash Projection trong JMESPath gom nhóm các trường tùy chọn." }
+    ],
+    examNotes: "Kỹ năng lọc dữ liệu JSON bằng JMESPath là câu hỏi thường xuyên xuất hiện trong bài thi thực hành AI-200.",
+    simulatedOutput: `{
+  "host": "amr-exercise-9e9994d6.southeastasia.redisenterprise.cache.azure.net",
+  "redisVersion": "7.2",
+  "sku": "Balanced_B0",
+  "status": "Succeeded"
+}`
+  },
+  {
+    id: "l10-delete-database",
+    level: 10,
+    title: "14. Xóa Database trên Cụm Azure Managed Redis",
+    difficulty: "Cơ bản",
+    category: "Cleanup",
+    mission: "Hủy bỏ cơ sở dữ liệu `default` trên cụm `$env:REDIS_NAME` trong RG `$env:RG` với cờ `--yes`.",
+    expectedCommand: "az redisenterprise database delete --resource-group $env:RG --cluster-name $env:REDIS_NAME --yes",
+    aliases: [
+      "az redisenterprise database delete -g $env:RG --cluster-name $env:REDIS_NAME --yes",
+      "az redisenterprise database delete --resource-group $env:RG --cluster $env:REDIS_NAME -y"
+    ],
+    tokens: ["az", "redisenterprise", "database", "delete", "--resource-group", "$env:RG", "--cluster-name", "$env:REDIS_NAME", "--yes"],
+    hints: [
+      "Lệnh xóa database: `az redisenterprise database delete`.",
+      "Chỉ định `--cluster-name $env:REDIS_NAME`.",
+      "Tự động xác nhận: `--yes`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise database delete --resource-group <RG> --cluster-name <Cluster> --yes",
+      breakdown: [
+        { part: "database delete", role: "Teardown Action", desc: "Xóa cấu hình cơ sở dữ liệu và giải phóng bộ nhớ RAM" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--yes", meaning: "Xác nhận xóa không cần hiển thị prompt." }
+    ],
+    examNotes: "Xóa database trước khi xóa cụm đảm bảo toàn bộ tài nguyên con được giải phóng sạch sẽ.",
+    simulatedOutput: ""
+  },
+  {
+    id: "l10-delete-cluster",
+    level: 10,
+    title: "15. Xóa Cụm Azure Managed Redis Enterprise",
+    difficulty: "Cơ bản",
+    category: "Cleanup",
+    mission: "Xóa toàn bộ cụm Azure Managed Redis Enterprise `$env:REDIS_NAME` trong RG `$env:RG` để dọn dẹp tài nguyên và dừng tính cước sau khi hoàn thành lab.",
+    expectedCommand: "az redisenterprise delete --resource-group $env:RG --name $env:REDIS_NAME --yes",
+    aliases: [
+      "az redisenterprise delete -g $env:RG -n $env:REDIS_NAME --yes",
+      "az redisenterprise delete --resource-group $env:RG --name $env:REDIS_NAME -y"
+    ],
+    tokens: ["az", "redisenterprise", "delete", "--resource-group", "$env:RG", "--name", "$env:REDIS_NAME", "--yes"],
+    hints: [
+      "Lệnh xóa cụm: `az redisenterprise delete`.",
+      "Cờ đồng ý: `--yes`."
+    ],
+    mentalModel: {
+      rule: "az redisenterprise delete --resource-group <RG> --name <Name> --yes",
+      breakdown: [
+        { part: "az redisenterprise delete", role: "Final Teardown", desc: "Hủy toàn bộ cụm máy chủ Redis Enterprise và dừng hoàn toàn chi phí phát sinh" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--yes", meaning: "Xác nhận xóa tài nguyên cloud không cần hộp thoại tương tác." }
+    ],
+    examNotes: "Sau khi xóa, hostname FQDN sẽ được Azure giải phóng.",
+    simulatedOutput: ""
+  },
+
+  // ==========================================
+  // LEVEL 11: BACKEND SERVICES INTEGRATION (SERVICE BUS, EVENT GRID, FUNCTIONS & MCP)
+  // ==========================================
+  {
+    id: "l11-register-servicebus",
+    level: 11,
+    title: "1. Đăng ký Resource Provider Microsoft.ServiceBus",
+    difficulty: "Cơ bản",
+    category: "Service Bus",
+    mission: "Trước khi tạo các hàng đợi (Queues) và chủ đề (Topics) phục vụ kiến trúc suy luận AI bất đồng bộ, hãy kích hoạt Resource Provider `Microsoft.ServiceBus` trên Azure subscription.",
+    expectedCommand: "az provider register --namespace Microsoft.ServiceBus",
+    aliases: [
+      "az provider register -n Microsoft.ServiceBus"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.ServiceBus"],
+    hints: [
+      "Sử dụng lệnh `az provider register`.",
+      "Truyền cờ `--namespace Microsoft.ServiceBus`."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace <ProviderName>",
+      breakdown: [
+        { part: "az provider register", role: "Resource Provider", desc: "Đăng ký nhà cung cấp dịch vụ hạ tầng trên subscription" },
+        { part: "--namespace Microsoft.ServiceBus", role: "Namespace", desc: "Không gian tài nguyên của Azure Service Bus" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--namespace Microsoft.ServiceBus", meaning: "Resource Provider quản lý Message Queues và Pub/Sub Topics chuẩn doanh nghiệp." }
+    ],
+    whyThisMatters: "Mọi yêu cầu tạo Service Bus Namespace sẽ bị từ chối nếu subscription chưa kích hoạt provider này.",
+    examTip: "⭐ AI-200: Service Bus là giải pháp hàng đầu khi cần đảm bảo thứ tự nghiêm ngặt (FIFO Sessions), xử lý giao dịch ACID và Dead-Letter Queue."
+  },
+  {
+    id: "l11-register-eventgrid",
+    level: 11,
+    title: "2. Đăng ký Resource Provider Microsoft.EventGrid",
+    difficulty: "Cơ bản",
+    category: "Event Grid",
+    mission: "Tiếp tục kích hoạt nhà cung cấp dịch vụ định tuyến sự kiện phản ứng `Microsoft.EventGrid` trên Azure subscription.",
+    expectedCommand: "az provider register --namespace Microsoft.EventGrid",
+    aliases: [
+      "az provider register -n Microsoft.EventGrid"
+    ],
+    tokens: ["az", "provider", "register", "--namespace", "Microsoft.EventGrid"],
+    hints: [
+      "Dùng lệnh `az provider register`.",
+      "Chỉ định `--namespace Microsoft.EventGrid`."
+    ],
+    mentalModel: {
+      rule: "az provider register --namespace <ProviderName>",
+      breakdown: [
+        { part: "az provider register", role: "Provider", desc: "Đăng ký dịch vụ Event Grid" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--namespace Microsoft.EventGrid", meaning: "Resource Provider phụ trách phân phối sự kiện phản ứng quy mô lớn và MQTT broker." }
+    ],
+    whyThisMatters: "Cần thiết trước khi tạo Event Grid Namespaces, Topics và Event Subscriptions.",
+    examTip: "⭐ Event Grid chuyên xử lý kiến trúc Reactive Events (phản ứng tức thì khi có sự kiện xảy ra) với chi phí trên từng triệu sự kiện cực rẻ."
+  },
+  {
+    id: "l11-create-servicebus-namespace",
+    level: 11,
+    title: "3. Tạo Azure Service Bus Namespace (Gói Standard)",
+    difficulty: "Trung bình",
+    category: "Service Bus",
+    mission: "Khởi tạo Service Bus Namespace tên biến `$env:SB_NAMESPACE` trong Resource Group `$env:RG` tại vùng `eastus` với SKU `Standard` (gói hỗ trợ cả Queues và Topics/Subscriptions).",
+    expectedCommand: "az servicebus namespace create --resource-group $env:RG --name $env:SB_NAMESPACE --location eastus --sku Standard",
+    aliases: [
+      "az servicebus namespace create -g $env:RG -n $env:SB_NAMESPACE -l eastus --sku Standard",
+      "az servicebus namespace create --resource-group $env:RG --name $env:SB_NAMESPACE --location eastus --sku Standard"
+    ],
+    tokens: ["az", "servicebus", "namespace", "create", "--resource-group", "$env:RG", "--name", "$env:SB_NAMESPACE", "--location", "eastus", "--sku", "Standard"],
+    hints: [
+      "Dùng `az servicebus namespace create`.",
+      "Truyền `--resource-group $env:RG`, `--name $env:SB_NAMESPACE`, `--location eastus` và `--sku Standard`."
+    ],
+    mentalModel: {
+      rule: "az servicebus namespace create --resource-group <RG> --name <Name> --location <Loc> --sku Standard",
+      breakdown: [
+        { part: "az servicebus namespace create", role: "Resource", desc: "Tạo cụm chứa logic cho hàng đợi và chủ đề" },
+        { part: "--sku Standard", role: "Tier", desc: "Cung cấp tính năng Pub/Sub Topics, message TTL và Dead-lettering (Basic chỉ có Queue)" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--sku Standard", meaning: "Bắt buộc từ gói Standard trở lên để sử dụng được Service Bus Topics & Subscriptions." }
+    ],
+    whyThisMatters: "Tạo vùng chứa ranh giới bảo mật và địa chỉ FQDN endpoint cho toàn bộ luồng tin nhắn.",
+    examTip: "⭐ AI-200: Gói Basic không hỗ trợ Topics; luôn chọn Standard hoặc Premium cho bài toán phân tán AI đa hệ thống."
+  },
+  {
+    id: "l11-create-servicebus-queue",
+    level: 11,
+    title: "4. Tạo Hàng Đợi Queue với Dead-Lettering (DLQ)",
+    difficulty: "Trung bình",
+    category: "Service Bus",
+    mission: "Tạo hàng đợi `inference-requests` trong Service Bus Namespace `$env:SB_NAMESPACE`. Thiết lập số lần nhận tối đa `--max-delivery-count 5` và tự động chuyển tin nhắn hết hạn vào Dead-Letter Queue `--enable-dead-lettering-on-message-expiration true`.",
+    expectedCommand: "az servicebus queue create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-requests --max-delivery-count 5 --enable-dead-lettering-on-message-expiration true",
+    aliases: [
+      "az servicebus queue create -g $env:RG --namespace-name $env:SB_NAMESPACE -n inference-requests --max-delivery-count 5 --enable-dead-lettering-on-message-expiration true",
+      "az servicebus queue create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-requests --max-delivery-count 5 --enable-dead-lettering-on-message-expiration true"
+    ],
+    tokens: ["az", "servicebus", "queue", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:SB_NAMESPACE", "--name", "inference-requests", "--max-delivery-count", "5", "--enable-dead-lettering-on-message-expiration", "true"],
+    hints: [
+      "Dùng lệnh `az servicebus queue create`.",
+      "Chỉ định `--namespace-name $env:SB_NAMESPACE` và `--name inference-requests`.",
+      "Thêm `--max-delivery-count 5` và `--enable-dead-lettering-on-message-expiration true`."
+    ],
+    mentalModel: {
+      rule: "az servicebus queue create --resource-group <RG> --namespace-name <NS> --name <Queue> --max-delivery-count 5 --enable-dead-lettering-on-message-expiration true",
+      breakdown: [
+        { part: "queue create", role: "Entity", desc: "Tạo hàng đợi tin nhắn theo cơ chế FIFO" },
+        { part: "--max-delivery-count 5", role: "Poison Threshold", desc: "Tự động cô lập tin nhắn độc hại sau 5 lần xử lý lỗi" },
+        { part: "--enable-dead-lettering-on-message-expiration true", role: "DLQ Expiration", desc: "Lưu vết tin nhắn quá hạn thay vì xóa mất" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--max-delivery-count", meaning: "Số lần thử lại tối đa trước khi đưa tin nhắn vào dead-letter subqueue." },
+      { param: "--enable-dead-lettering-on-message-expiration", meaning: "Đảm bảo tin nhắn hết thời gian sống (TTL) được lưu lại để kiểm toán." }
+    ],
+    whyThisMatters: "Bảo vệ các worker AI không bị lặp vô tận (infinite poison retry loop) khi gặp prompt lỗi.",
+    examTip: "⭐ Dead-Letter Queue (DLQ) là cơ chế tiêu chuẩn để cô lập malformed JSON payload trong kiến trúc AI."
+  },
+  {
+    id: "l11-create-servicebus-topic",
+    level: 11,
+    title: "5. Tạo Chủ Đề Topic Phát Tán Kết Quả Suy Luận",
+    difficulty: "Cơ bản",
+    category: "Service Bus",
+    mission: "Khởi tạo Topic `inference-results` trong Service Bus Namespace `$env:SB_NAMESPACE` để phát tán kết quả xử lý từ mô hình AI tới nhiều subscriber cùng lúc.",
+    expectedCommand: "az servicebus topic create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-results",
+    aliases: [
+      "az servicebus topic create -g $env:RG --namespace-name $env:SB_NAMESPACE -n inference-results"
+    ],
+    tokens: ["az", "servicebus", "topic", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:SB_NAMESPACE", "--name", "inference-results"],
+    hints: [
+      "Sử dụng `az servicebus topic create`.",
+      "Cung cấp `--resource-group $env:RG`, `--namespace-name $env:SB_NAMESPACE`, và `--name inference-results`."
+    ],
+    mentalModel: {
+      rule: "az servicebus topic create --resource-group <RG> --namespace-name <NS> --name <Topic>",
+      breakdown: [
+        { part: "topic create", role: "Pub/Sub Channel", desc: "Kênh phát thông điệp 1-nhiều tới các subscription" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name inference-results", meaning: "Tên topic phân phối kết quả đầu ra của mô hình." }
+    ],
+    whyThisMatters: "Cho phép tách rời (decouple) tiến trình sinh nội dung AI với các tiến trình lưu trữ và gửi thông báo.",
+    examTip: "Topic hỗ trợ mô hình Publish-Subscribe: người gửi đẩy 1 tin, nhiều subscriber nhận bản sao độc lập."
+  },
+  {
+    id: "l11-create-servicebus-subscription",
+    level: 11,
+    title: "6. Tạo Subscription Hứng Tin Nhắn Ưu Tiên Cao",
+    difficulty: "Trung bình",
+    category: "Service Bus",
+    mission: "Tạo Subscription `high-priority` gắn vào Topic `inference-results` thuộc Service Bus Namespace `$env:SB_NAMESPACE`.",
+    expectedCommand: "az servicebus topic subscription create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --name high-priority",
+    aliases: [
+      "az servicebus topic subscription create -g $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results -n high-priority"
+    ],
+    tokens: ["az", "servicebus", "topic", "subscription", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:SB_NAMESPACE", "--topic-name", "inference-results", "--name", "high-priority"],
+    hints: [
+      "Dùng `az servicebus topic subscription create`.",
+      "Gắn `--topic-name inference-results` và `--name high-priority`."
+    ],
+    mentalModel: {
+      rule: "az servicebus topic subscription create --resource-group <RG> --namespace-name <NS> --topic-name <Topic> --name <SubName>",
+      breakdown: [
+        { part: "topic subscription create", role: "Consumer Queue", desc: "Hộp thư riêng biệt nhận tin nhắn từ topic" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--topic-name", meaning: "Topic cha mà subscription đăng ký nhận tin." }
+    ],
+    whyThisMatters: "Mỗi subscription đóng vai trò như một virtual queue độc lập, không ảnh hưởng đến các consumers khác.",
+    examTip: "Mặc định mỗi subscription mới tạo sẽ đi kèm quy tắc `$Default` khớp với 100% tin nhắn."
+  },
+  {
+    id: "l11-delete-default-rule",
+    level: 11,
+    title: "7. Xóa Quy Tắc Mặc Định $Default Trên Subscription",
+    difficulty: "Trung bình",
+    category: "Service Bus",
+    mission: "Để chuẩn bị áp dụng bộ lọc tùy chỉnh chuyên biệt, hãy xóa quy tắc lọc mặc định `$Default` trên Subscription `high-priority` của Topic `inference-results`.",
+    expectedCommand: "az servicebus topic subscription rule delete --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name \"$Default\"",
+    aliases: [
+      "az servicebus topic subscription rule delete -g $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name \"$Default\"",
+      "az servicebus topic subscription rule delete --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name '$Default'"
+    ],
+    tokens: ["az", "servicebus", "topic", "subscription", "rule", "delete", "--resource-group", "$env:RG", "--namespace-name", "$env:SB_NAMESPACE", "--topic-name", "inference-results", "--subscription-name", "high-priority", "--name", "$Default"],
+    hints: [
+      "Dùng `az servicebus topic subscription rule delete`.",
+      "Chỉ định `--name \"$Default\"` và `--subscription-name high-priority`."
+    ],
+    mentalModel: {
+      rule: "az servicebus topic subscription rule delete ... --name \"$Default\"",
+      breakdown: [
+        { part: "rule delete", role: "Clean Rule", desc: "Xóa bỏ quy tắc TrueFilter nhận mọi tin nhắn" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--name $Default", meaning: "Quy tắc lọc mặc định ban đầu do Service Bus tự sinh (1=1)." }
+    ],
+    whyThisMatters: "Nếu không xóa `$Default`, subscription sẽ nhận tất cả tin nhắn bất chấp các filter khác được tạo thêm.",
+    examTip: "⭐ Bắt buộc xóa `$Default` trước khi thêm bộ lọc SQL hoặc Correlation Filter để chỉ nhận tin khớp điều kiện."
+  },
+  {
+    id: "l11-create-sql-filter",
+    level: 11,
+    title: "8. Tạo Bộ Lọc SQL Filter Định Tuyến Thuộc Tính (priority='high')",
+    difficulty: "Nâng cao",
+    category: "Service Bus",
+    mission: "Tạo quy tắc lọc SQL `high-priority-filter` trên Subscription `high-priority` với biểu thức `--filter-sql-expression \"priority = 'high'\"` để lọc tin dựa vào `application_properties`.",
+    expectedCommand: "az servicebus topic subscription rule create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name high-priority-filter --filter-sql-expression \"priority = 'high'\"",
+    aliases: [
+      "az servicebus topic subscription rule create -g $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority -n high-priority-filter --filter-sql-expression \"priority = 'high'\"",
+      "az servicebus topic subscription rule create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name high-priority-filter --filter-sql-expression 'priority = \'high\''"
+    ],
+    tokens: ["az", "servicebus", "topic", "subscription", "rule", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:SB_NAMESPACE", "--topic-name", "inference-results", "--subscription-name", "high-priority", "--name", "high-priority-filter", "--filter-sql-expression", "priority = 'high'"],
+    hints: [
+      "Dùng `az servicebus topic subscription rule create`.",
+      "Đặt `--name high-priority-filter`.",
+      "Gán `--filter-sql-expression \"priority = 'high'\"`."
+    ],
+    mentalModel: {
+      rule: "az servicebus topic subscription rule create ... --filter-sql-expression \"<Property> = '<Value>'\"",
+      breakdown: [
+        { part: "rule create", role: "Routing Rule", desc: "Tạo bộ lọc thuộc tính tin nhắn" },
+        { part: "--filter-sql-expression", role: "SQL Query", desc: "Biểu thức SQL đánh giá trên application_properties của ServiceBusMessage" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--filter-sql-expression", meaning: "Cú pháp SQL-92 lọc các trường metadata do ứng dụng đính kèm trong tin nhắn." }
+    ],
+    whyThisMatters: "Định tuyến tự động tin nhắn khẩn cấp tới hàng đợi ưu tiên mà không cần code logic phân nhánh phức tạp.",
+    examTip: "⭐ AI-200: Bộ lọc SQL đánh giá trên header metadata (application_properties), không cần giải mã nội dung body."
+  },
+  {
+    id: "l11-assign-servicebus-role",
+    level: 11,
+    title: "9. Phân Quyền Data Plane: Azure Service Bus Data Owner",
+    difficulty: "Trung bình",
+    category: "Service Bus",
+    mission: "Gán vai trò Data Plane `Azure Service Bus Data Owner` cho người dùng `$env:USER_OID` trên phạm vi Service Bus Namespace `$SB_ID` để gửi/nhận tin không cần Connection String.",
+    expectedCommand: "az role assignment create --assignee $env:USER_OID --scope $SB_ID --role \"Azure Service Bus Data Owner\"",
+    aliases: [
+      "az role assignment create --assignee $env:USER_OID --scope $SB_ID --role 'Azure Service Bus Data Owner'"
+    ],
+    tokens: ["az", "role", "assignment", "create", "--assignee", "$env:USER_OID", "--scope", "$SB_ID", "--role", "Azure Service Bus Data Owner"],
+    hints: [
+      "Dùng `az role assignment create`.",
+      "Truyền `--assignee $env:USER_OID`, `--scope $SB_ID`, và `--role \"Azure Service Bus Data Owner\"`."
+    ],
+    mentalModel: {
+      rule: "az role assignment create --assignee <OID> --scope <ScopeID> --role \"Azure Service Bus Data Owner\"",
+      breakdown: [
+        { part: "role assignment create", role: "RBAC", desc: "Gán quyền truy cập dữ liệu tầng Data Plane" },
+        { part: "--role \"Azure Service Bus Data Owner\"", role: "Built-in Role", desc: "Quyền toàn quyền gửi, nhận và quản lý tin nhắn trong queue/topic" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "Azure Service Bus Data Owner", meaning: "Vai trò tích hợp của Azure cho phép gửi và nhận tin qua xác thực Microsoft Entra ID." }
+    ],
+    whyThisMatters: "Loại bỏ hoàn toàn rủi ro lộ lọt Shared Access Signatures (SAS) connection strings trong mã nguồn.",
+    examTip: "⭐ Ba vai trò Service Bus chính trong đề thi: Data Owner (toàn quyền), Data Sender (chỉ gửi), Data Receiver (chỉ nhận)."
+  },
+  {
+    id: "l11-create-eventgrid-namespace",
+    level: 11,
+    title: "10. Khởi Tạo Event Grid Namespace (Standard SKU)",
+    difficulty: "Trung bình",
+    category: "Event Grid",
+    mission: "Tạo Event Grid Namespace mới tên `$env:EG_NAMESPACE` trong Resource Group `$env:RG` tại vùng `eastus` với SKU Standard dung lượng 1 (`--sku \"{name:standard,capacity:1}\"`).",
+    expectedCommand: "az eventgrid namespace create --resource-group $env:RG --name $env:EG_NAMESPACE --location eastus --sku \"{name:standard,capacity:1}\"",
+    aliases: [
+      "az eventgrid namespace create -g $env:RG -n $env:EG_NAMESPACE -l eastus --sku \"{name:standard,capacity:1}\"",
+      "az eventgrid namespace create --resource-group $env:RG --name $env:EG_NAMESPACE --location eastus --sku '{name:standard,capacity:1}'"
+    ],
+    tokens: ["az", "eventgrid", "namespace", "create", "--resource-group", "$env:RG", "--name", "$env:EG_NAMESPACE", "--location", "eastus", "--sku", "{name:standard,capacity:1}"],
+    hints: [
+      "Dùng `az eventgrid namespace create`.",
+      "Chỉ định `--sku \"{name:standard,capacity:1}\"`."
+    ],
+    mentalModel: {
+      rule: "az eventgrid namespace create --resource-group <RG> --name <Name> --location <Loc> --sku \"{name:standard,capacity:1}\"",
+      breakdown: [
+        { part: "eventgrid namespace create", role: "Namespace", desc: "Khởi tạo Event Grid thế hệ mới hỗ trợ MQTT broker và Pull Delivery" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--sku {name:standard,capacity:1}", meaning: "Cấu hình chuẩn hóa tài nguyên thông lượng cho Event Grid Namespace." }
+    ],
+    whyThisMatters: "Event Grid Namespace là nền tảng hiện đại hỗ trợ định dạng sự kiện chuẩn công nghiệp CloudEvents 1.0.",
+    examTip: "⭐ Phân biệt Event Grid Basic (chỉ Push HTTP Webhook) với Event Grid Namespace (hỗ trợ Pull Delivery, MQTT và CloudEvents)."
+  },
+  {
+    id: "l11-create-eventgrid-topic",
+    level: 11,
+    title: "11. Tạo Namespace Topic Schema CloudEvents v1.0",
+    difficulty: "Nâng cao",
+    category: "Event Grid",
+    mission: "Tạo Namespace Topic `moderation-events` trong Event Grid Namespace `$env:EG_NAMESPACE` với thời gian lưu trữ 1 ngày (`--event-retention-in-days 1`), publisher `Custom` và định dạng `--input-schema CloudEventSchemaV1_0`.",
+    expectedCommand: "az eventgrid namespace topic create --resource-group $env:RG --namespace-name $env:EG_NAMESPACE --name moderation-events --event-retention-in-days 1 --publisher-type Custom --input-schema CloudEventSchemaV1_0",
+    aliases: [
+      "az eventgrid namespace topic create -g $env:RG --namespace-name $env:EG_NAMESPACE -n moderation-events --event-retention-in-days 1 --publisher-type Custom --input-schema CloudEventSchemaV1_0"
+    ],
+    tokens: ["az", "eventgrid", "namespace", "topic", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:EG_NAMESPACE", "--name", "moderation-events", "--event-retention-in-days", "1", "--publisher-type", "Custom", "--input-schema", "CloudEventSchemaV1_0"],
+    hints: [
+      "Dùng `az eventgrid namespace topic create`.",
+      "Truyền `--event-retention-in-days 1`, `--publisher-type Custom`, và `--input-schema CloudEventSchemaV1_0`."
+    ],
+    mentalModel: {
+      rule: "az eventgrid namespace topic create ... --input-schema CloudEventSchemaV1_0",
+      breakdown: [
+        { part: "namespace topic create", role: "Topic", desc: "Tạo kênh sự kiện bên trong Namespace" },
+        { part: "--input-schema CloudEventSchemaV1_0", role: "Standard Schema", desc: "Bắt buộc tuân thủ đặc tả CloudEvents v1.0 của CNCF" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--input-schema CloudEventSchemaV1_0", meaning: "Cấu trúc bao bì sự kiện tiêu chuẩn gồm id, source, type, data." },
+      { param: "--event-retention-in-days 1", meaning: "Thời gian lưu trữ sự kiện đệm trong hệ thống." }
+    ],
+    whyThisMatters: "Cho phép các dịch vụ đa nền tảng và AI agents giao tiếp bằng định dạng sự kiện trung lập.",
+    examTip: "⭐ CloudEvents v1.0 là schema mặc định và duy nhất được hỗ trợ trên Event Grid Namespace Topics."
+  },
+  {
+    id: "l11-create-eventgrid-subscription",
+    level: 11,
+    title: "12. Tạo Event Subscription Chế Độ Queue Pull Delivery & Filter",
+    difficulty: "Nâng cao",
+    category: "Event Grid",
+    mission: "Tạo Subscription `sub-flagged` trên Topic `moderation-events` với cấu hình Queue pull delivery (khóa nhận 60s, max 10 lần gửi, TTL 1 ngày), schema CloudEvents và bộ lọc chỉ nhận sự kiện `--filters-configuration \"{includedEventTypes:['com.contoso.ai.ContentFlagged']}\"`.",
+    expectedCommand: "az eventgrid namespace topic event-subscription create --resource-group $env:RG --namespace-name $env:EG_NAMESPACE --topic-name moderation-events --name sub-flagged --delivery-configuration \"{deliveryMode:Queue,queue:{receiveLockDurationInSeconds:60,maxDeliveryCount:10,eventTimeToLive:P1D}}\" --event-delivery-schema CloudEventSchemaV1_0 --filters-configuration \"{includedEventTypes:['com.contoso.ai.ContentFlagged']}\"",
+    aliases: [
+      "az eventgrid namespace topic event-subscription create -g $env:RG --namespace-name $env:EG_NAMESPACE --topic-name moderation-events -n sub-flagged --delivery-configuration \"{deliveryMode:Queue,queue:{receiveLockDurationInSeconds:60,maxDeliveryCount:10,eventTimeToLive:P1D}}\" --event-delivery-schema CloudEventSchemaV1_0 --filters-configuration \"{includedEventTypes:['com.contoso.ai.ContentFlagged']}\""
+    ],
+    tokens: ["az", "eventgrid", "namespace", "topic", "event-subscription", "create", "--resource-group", "$env:RG", "--namespace-name", "$env:EG_NAMESPACE", "--topic-name", "moderation-events", "--name", "sub-flagged", "--delivery-configuration", "{deliveryMode:Queue,queue:{receiveLockDurationInSeconds:60,maxDeliveryCount:10,eventTimeToLive:P1D}}", "--event-delivery-schema", "CloudEventSchemaV1_0", "--filters-configuration", "{includedEventTypes:['com.contoso.ai.ContentFlagged']}"],
+    hints: [
+      "Dùng `az eventgrid namespace topic event-subscription create`.",
+      "Thiết lập `--delivery-configuration \"{deliveryMode:Queue,...}\"`.",
+      "Thêm `--filters-configuration \"{includedEventTypes:['com.contoso.ai.ContentFlagged']}\"`."
+    ],
+    mentalModel: {
+      rule: "az eventgrid namespace topic event-subscription create ... --delivery-configuration \"{deliveryMode:Queue,...}\" --filters-configuration \"{...}\"",
+      breakdown: [
+        { part: "event-subscription create", role: "Subscription", desc: "Tạo điểm tiếp nhận sự kiện" },
+        { part: "deliveryMode:Queue", role: "Pull Delivery", desc: "Người nhận tự chủ động gọi receive() kéo tin nhắn về, không cần mở public endpoint" },
+        { part: "includedEventTypes", role: "Type Filter", desc: "Chỉ chuyển giao các sự kiện AI kiểm duyệt bị gắn cờ" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--delivery-configuration", meaning: "Cấu hình hàng đợi pull delivery gồm thời gian khóa và số lần retry." },
+      { param: "--filters-configuration", meaning: "Bộ lọc sự kiện nâng cao dựa theo thuộc tính CloudEvent type." }
+    ],
+    whyThisMatters: "Pull Delivery loại bỏ nhu cầu mở cổng mạng inbound webhook cho các agent AI chạy trong môi trường private.",
+    examTip: "⭐ Pull Delivery trong Event Grid hoạt động tương tự như Service Bus Queue: Client gọi receive(), xử lý xong gọi acknowledge() hoặc reject()."
+  },
+  {
+    id: "l11-assign-eventgrid-receiver",
+    level: 11,
+    title: "13. Phân Quyền EventGrid Data Receiver Cho User OID",
+    difficulty: "Trung bình",
+    category: "Event Grid",
+    mission: "Gán vai trò Data Plane `EventGrid Data Receiver` cho tài khoản người dùng `$env:USER_OID` trên phạm vi Namespace Topic `$EG_TOPIC_ID` để thực hiện kéo sự kiện từ subscription.",
+    expectedCommand: "az role assignment create --assignee $env:USER_OID --scope $EG_TOPIC_ID --role \"EventGrid Data Receiver\"",
+    aliases: [
+      "az role assignment create --assignee $env:USER_OID --scope $EG_TOPIC_ID --role 'EventGrid Data Receiver'"
+    ],
+    tokens: ["az", "role", "assignment", "create", "--assignee", "$env:USER_OID", "--scope", "$EG_TOPIC_ID", "--role", "EventGrid Data Receiver"],
+    hints: [
+      "Sử dụng `az role assignment create`.",
+      "Truyền `--assignee $env:USER_OID`, `--scope $EG_TOPIC_ID` và `--role \"EventGrid Data Receiver\"`."
+    ],
+    mentalModel: {
+      rule: "az role assignment create --assignee <OID> --scope <ScopeID> --role \"EventGrid Data Receiver\"",
+      breakdown: [
+        { part: "--role \"EventGrid Data Receiver\"", role: "Data Plane", desc: "Cho phép nhận, giải phóng hoặc từ chối sự kiện" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "EventGrid Data Receiver", meaning: "Vai trò bảo mật tối thiểu để ứng dụng client đọc sự kiện từ Event Grid Namespace." }
+    ],
+    whyThisMatters: "Bảo mật Zero-Trust theo nguyên tắc đặc quyền tối thiểu (Least Privilege).",
+    examTip: "⭐ Phân biệt: `EventGrid Data Sender` để publish sự kiện; `EventGrid Data Receiver` để consume sự kiện."
+  },
+  {
+    id: "l11-create-functionapp-mcp",
+    level: 11,
+    title: "14. Tạo Azure Function App Linux Host MCP Server",
+    difficulty: "Nâng cao",
+    category: "Functions & MCP",
+    mission: "Khởi tạo Azure Function App tên `$env:FUNC_NAME` trên Linux chạy runtime `python` 3.11, Functions version 4 kết hợp tài khoản storage `$env:STORAGE_ACCOUNT` tại vùng `eastus` để host MCP Server.",
+    expectedCommand: "az functionapp create --resource-group $env:RG --consumption-plan-location eastus --runtime python --runtime-version 3.11 --functions-version 4 --name $env:FUNC_NAME --storage-account $env:STORAGE_ACCOUNT --os-type Linux",
+    aliases: [
+      "az functionapp create -g $env:RG --consumption-plan-location eastus --runtime python --runtime-version 3.11 --functions-version 4 -n $env:FUNC_NAME --storage-account $env:STORAGE_ACCOUNT --os-type Linux"
+    ],
+    tokens: ["az", "functionapp", "create", "--resource-group", "$env:RG", "--consumption-plan-location", "eastus", "--runtime", "python", "--runtime-version", "3.11", "--functions-version", "4", "--name", "$env:FUNC_NAME", "--storage-account", "$env:STORAGE_ACCOUNT", "--os-type", "Linux"],
+    hints: [
+      "Dùng `az functionapp create`.",
+      "Cung cấp `--runtime python --runtime-version 3.11 --functions-version 4`.",
+      "Chỉ định `--os-type Linux` và `--consumption-plan-location eastus`."
+    ],
+    mentalModel: {
+      rule: "az functionapp create --resource-group <RG> --name <Name> --storage-account <Storage> --consumption-plan-location <Loc> --runtime python --runtime-version 3.11 --functions-version 4 --os-type Linux",
+      breakdown: [
+        { part: "az functionapp create", role: "Serverless Compute", desc: "Tạo ứng dụng Azure Functions serverless" },
+        { part: "--os-type Linux", role: "OS", desc: "Hệ điều hành bắt buộc cho Python Functions trên Azure" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "--consumption-plan-location", meaning: "Vùng triển khai gói Serverless tự động co giãn." },
+      { param: "--functions-version 4", meaning: "Phiên bản runtime Functions v4 hỗ trợ Python v2 programming model." }
+    ],
+    whyThisMatters: "Cung cấp hạ tầng serverless chi phí tối ưu để triển khai các công cụ MCP Tool Triggers cho AI assistants.",
+    examTip: "⭐ Python Azure Functions bắt buộc phải chạy trên Linux (`--os-type Linux`)."
+  },
+  {
+    id: "l11-get-functionapp-hostname",
+    level: 11,
+    title: "15. Trích Xuất FQDN Hostname Của Function App",
+    difficulty: "Cơ bản",
+    category: "Functions & MCP",
+    mission: "Lấy chuỗi FQDN sạch (`defaultHostName` với định dạng `-o tsv`) của Function App `$env:FUNC_NAME` để cấu hình URL webhook kết nối MCP Client (`https://<hostname>/runtime/webhooks/mcp/sse`).",
+    expectedCommand: "az functionapp show --resource-group $env:RG --name $env:FUNC_NAME --query defaultHostName -o tsv",
+    aliases: [
+      "az functionapp show -g $env:RG -n $env:FUNC_NAME --query defaultHostName -o tsv"
+    ],
+    tokens: ["az", "functionapp", "show", "--resource-group", "$env:RG", "--name", "$env:FUNC_NAME", "--query", "defaultHostName", "-o", "tsv"],
+    hints: [
+      "Dùng lệnh `az functionapp show`.",
+      "Lọc `--query defaultHostName` và xuất `-o tsv`."
+    ],
+    mentalModel: {
+      rule: "az functionapp show --resource-group <RG> --name <Name> --query defaultHostName -o tsv",
+      breakdown: [
+        { part: "functionapp show", role: "Inspection", desc: "Đọc cấu hình chi tiết Function App" },
+        { part: "--query defaultHostName -o tsv", role: "Clean String", desc: "Trích xuất tên miền *.azurewebsites.net sạch không nháy kép" }
+      ]
+    },
+    parametersExplanation: [
+      { param: "defaultHostName", meaning: "Tên miền FQDN chuẩn gán cho Function App." }
+    ],
+    whyThisMatters: "Sử dụng làm biến môi trường endpoint cho GitHub Copilot hoặc Cursor khi cấu hình MCP SSE transport.",
+    examTip: "⭐ Luôn dùng `-o tsv` khi muốn gán kết quả đầu ra trực tiếp vào biến script mà không bị lỗi ngoặc kép."
+  }
+,
+  // ==========================================
+  // LEVEL 12: AZURE KEY VAULT & APP CONFIGURATION
+  // ==========================================
+  {
+  "id": "l12-register-appconfig",
+  "level": 12,
+  "title": "1. Đăng Ký Resource Provider AppConfiguration",
+  "difficulty": "Cơ bản",
+  "category": "Azure App Configuration",
+  "mission": "Đăng ký resource provider `Microsoft.AppConfiguration` cho Azure subscription để có thể khởi tạo và quản lý dịch vụ App Configuration Store.",
+  "expectedCommand": "az provider register --namespace Microsoft.AppConfiguration",
+  "aliases": [
+    "az provider register -n Microsoft.AppConfiguration"
+  ],
+  "tokens": [
+    "az",
+    "provider",
+    "register",
+    "--namespace",
+    "Microsoft.AppConfiguration"
+  ],
+  "hints": [
+    "Sử dụng lệnh `az provider register`.",
+    "Cờ chỉ định namespace là `--namespace` hoặc `-n` với giá trị `Microsoft.AppConfiguration`."
+  ],
+  "mentalModel": {
+    "rule": "az provider register --namespace <ProviderNamespace>",
+    "breakdown": [
+      {
+        "part": "provider register",
+        "role": "Resource Provider",
+        "desc": "Kích hoạt dịch vụ quản lý cấu hình tập trung"
+      },
+      {
+        "part": "--namespace Microsoft.AppConfiguration",
+        "role": "Service Namespace",
+        "desc": "Không gian tên dịch vụ Azure App Configuration"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--namespace",
+      "meaning": "Định danh không gian tên dịch vụ Azure cần đăng ký (Microsoft.AppConfiguration)."
+    }
+  ],
+  "whyThisMatters": "Mọi tài nguyên Azure đều cần provider tương ứng được đăng ký trong subscription trước khi có thể deploy qua CLI/Bicep/ARM.",
+  "examTip": "⭐ Thao tác đăng ký provider chỉ cần thực hiện 1 lần duy nhất cho mỗi Azure Subscription."
+},
+  {
+  "id": "l12-register-keyvault",
+  "level": 12,
+  "title": "2. Đăng Ký Resource Provider KeyVault",
+  "difficulty": "Cơ bản",
+  "category": "Azure Key Vault",
+  "mission": "Đăng ký resource provider `Microsoft.KeyVault` để cấp phép khởi tạo kho quản lý bí mật bảo mật trong subscription.",
+  "expectedCommand": "az provider register --namespace Microsoft.KeyVault",
+  "aliases": [
+    "az provider register -n Microsoft.KeyVault"
+  ],
+  "tokens": [
+    "az",
+    "provider",
+    "register",
+    "--namespace",
+    "Microsoft.KeyVault"
+  ],
+  "hints": [
+    "Dùng `az provider register`.",
+    "Tham số `--namespace Microsoft.KeyVault`."
+  ],
+  "mentalModel": {
+    "rule": "az provider register --namespace Microsoft.KeyVault",
+    "breakdown": [
+      {
+        "part": "provider register",
+        "role": "Provider Activation",
+        "desc": "Đăng ký dịch vụ lưu trữ bí mật và khóa mã hóa"
+      },
+      {
+        "part": "--namespace Microsoft.KeyVault",
+        "role": "Namespace",
+        "desc": "Azure Key Vault Provider Namespace"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--namespace",
+      "meaning": "Không gian tên nhà cung cấp dịch vụ Azure Key Vault."
+    }
+  ],
+  "whyThisMatters": "Bắt buộc đăng ký trước khi tạo Key Vault lưu trữ khóa API, chuỗi kết nối và chứng chỉ cho giải pháp AI.",
+  "examTip": "⭐ Có thể kiểm tra trạng thái đăng ký bằng `az provider show -n Microsoft.KeyVault --query registrationState`."
+},
+  {
+  "id": "l12-create-keyvault-rbac",
+  "level": 12,
+  "title": "3. Khởi Tạo Key Vault Với RBAC Authorization",
+  "difficulty": "Cơ bản",
+  "category": "Azure Key Vault",
+  "mission": "Khởi tạo một Azure Key Vault tên `$env:KV_NAME` trong Resource Group `$env:RG`, location `eastus`, và kích hoạt mô hình phân quyền hiện đại Azure RBAC (`--enable-rbac-authorization true`).",
+  "expectedCommand": "az keyvault create --resource-group $env:RG --name $env:KV_NAME --location eastus --enable-rbac-authorization true",
+  "aliases": [
+    "az keyvault create -g $env:RG -n $env:KV_NAME -l eastus --enable-rbac-authorization true"
+  ],
+  "tokens": [
+    "az",
+    "keyvault",
+    "create",
+    "--resource-group",
+    "$env:RG",
+    "--name",
+    "$env:KV_NAME",
+    "--location",
+    "eastus",
+    "--enable-rbac-authorization",
+    "true"
+  ],
+  "hints": [
+    "Dùng `az keyvault create`.",
+    "Chỉ định `--enable-rbac-authorization true` để dùng Azure RBAC thay cho access policy truyền thống."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault create --resource-group <RG> --name <Name> --location <Loc> --enable-rbac-authorization true",
+    "breakdown": [
+      {
+        "part": "keyvault create",
+        "role": "Resource Creation",
+        "desc": "Tạo kho lưu trữ bí mật an toàn tiêu chuẩn FIPS 140"
+      },
+      {
+        "part": "--enable-rbac-authorization true",
+        "role": "Modern Security",
+        "desc": "Bật xác thực phân quyền qua Azure Entra ID RBAC thay vì Vault Access Policies cổ điển"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--enable-rbac-authorization",
+      "meaning": "Khi đặt là true, áp dụng kiểm soát truy cập dữ liệu bí mật bằng các vai trò RBAC (Key Vault Secrets Officer/User)."
+    }
+  ],
+  "whyThisMatters": "Azure khuyến nghị chuẩn bảo mật RBAC vì cho phép phân quyền chi tiết tới từng secret riêng lẻ và đồng bộ chính sách Entra ID PIM.",
+  "examTip": "⭐ Mặc định Key Vault luôn bật tính năng Soft-Delete (lưu giữ 90 ngày) để chống xóa nhầm ngoài ý muốn."
+},
+  {
+  "id": "l12-assign-kv-secrets-officer",
+  "level": 12,
+  "title": "4. Gán Quyền Key Vault Secrets Officer",
+  "difficulty": "Trung bình",
+  "category": "Azure Key Vault",
+  "mission": "Gán quyền vai trò `Key Vault Secrets Officer` cho người dùng `$env:USER_OID` trên phạm vi kho `$KV_ID` để được phép thêm, sửa, xóa và đọc toàn bộ secret.",
+  "expectedCommand": "az role assignment create --role \"Key Vault Secrets Officer\" --assignee $env:USER_OID --scope $KV_ID",
+  "aliases": [],
+  "tokens": [
+    "az",
+    "role",
+    "assignment",
+    "create",
+    "--role",
+    "\"Key Vault Secrets Officer\"",
+    "--assignee",
+    "$env:USER_OID",
+    "--scope",
+    "$KV_ID"
+  ],
+  "hints": [
+    "Dùng `az role assignment create`.",
+    "Tên vai trò `--role \"Key Vault Secrets Officer\"`.",
+    "Phạm vi `--scope $KV_ID`."
+  ],
+  "mentalModel": {
+    "rule": "az role assignment create --role <RoleName> --assignee <PrincipalId> --scope <ScopeId>",
+    "breakdown": [
+      {
+        "part": "role assignment create",
+        "role": "RBAC Data Plane",
+        "desc": "Trao quyền thao tác dữ liệu"
+      },
+      {
+        "part": "--role \"Key Vault Secrets Officer\"",
+        "role": "Role",
+        "desc": "Vai trò toàn quyền CRUD đối với Secrets trong Key Vault"
+      },
+      {
+        "part": "--scope $KV_ID",
+        "role": "Boundary",
+        "desc": "Giới hạn phạm vi quyền trên đúng Key Vault này"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--role",
+      "meaning": "Tên vai trò Entra ID RBAC chuẩn: Key Vault Secrets Officer."
+    },
+    {
+      "param": "--scope",
+      "meaning": "Resource ID đầy đủ của Key Vault cần phân quyền."
+    }
+  ],
+  "whyThisMatters": "Ngay cả Subscription Owner cũng không mặc định đọc hay ghi được Secrets trong Key Vault nếu bật RBAC mà chưa gán role này.",
+  "examTip": "⭐ Phân biệt: `Key Vault Secrets Officer` (CRUD bí mật) vs `Key Vault Secrets User` (chỉ đọc bí mật ở runtime)."
+},
+  {
+  "id": "l12-set-kv-secret-apikey",
+  "level": 12,
+  "title": "5. Lưu Trữ Secret OpenAI API Key",
+  "difficulty": "Cơ bản",
+  "category": "Azure Key Vault",
+  "mission": "Lưu trữ khóa API bí mật `openai-api-key` có giá trị `\"sk-proj-prod123456\"` vào Key Vault `$env:KV_NAME`, định dạng loại nội dung `--content-type \"application/x-api-key\"`.",
+  "expectedCommand": "az keyvault secret set --vault-name $env:KV_NAME --name openai-api-key --value \"sk-proj-prod123456\" --content-type \"application/x-api-key\"",
+  "aliases": [
+    "az keyvault secret set --vault-name $env:KV_NAME -n openai-api-key --value \"sk-proj-prod123456\" --content-type \"application/x-api-key\""
+  ],
+  "tokens": [
+    "az",
+    "keyvault",
+    "secret",
+    "set",
+    "--vault-name",
+    "$env:KV_NAME",
+    "--name",
+    "openai-api-key",
+    "--value",
+    "\"sk-proj-prod123456\"",
+    "--content-type",
+    "\"application/x-api-key\""
+  ],
+  "hints": [
+    "Dùng `az keyvault secret set`.",
+    "Cờ kho lưu trữ là `--vault-name`.",
+    "Gắn nhãn định dạng dữ liệu bằng `--content-type \"application/x-api-key\"`."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault secret set --vault-name <Vault> --name <Name> --value <Value> --content-type <ContentType>",
+    "breakdown": [
+      {
+        "part": "keyvault secret set",
+        "role": "Secret Persistence",
+        "desc": "Tạo hoặc cập nhật phiên bản mới của bí mật"
+      },
+      {
+        "part": "--content-type application/x-api-key",
+        "role": "Metadata",
+        "desc": "Gắn nhãn nhận diện loại dữ liệu cho ứng dụng client"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--vault-name",
+      "meaning": "Tên Key Vault chứa secret."
+    },
+    {
+      "param": "--content-type",
+      "meaning": "Mô tả kiểu MIME hoặc loại chuỗi nhạy cảm để client nhận biết cách giải mã/sử dụng."
+    }
+  ],
+  "whyThisMatters": "Bảo vệ các API key quan trọng khỏi việc bị commit lộ lên Git hoặc hiển thị dạng bản rõ trong cấu hình môi trường.",
+  "examTip": "⭐ Mỗi lần chạy `secret set`, Key Vault tự động tạo ra một version GUID mới mà vẫn giữ nguyên tên secret."
+},
+  {
+  "id": "l12-set-kv-secret-cosmosdb",
+  "level": 12,
+  "title": "6. Lưu Trữ Chuỗi Kết Nối Cosmos DB",
+  "difficulty": "Cơ bản",
+  "category": "Azure Key Vault",
+  "mission": "Lưu trữ bí mật `cosmosdb-connection-string` vào Key Vault `$env:KV_NAME` với giá trị chuỗi kết nối và `--content-type \"application/x-connection-string\"`.",
+  "expectedCommand": "az keyvault secret set --vault-name $env:KV_NAME --name cosmosdb-connection-string --value \"AccountEndpoint=https://mycosmos.documents.azure.com:443/;AccountKey=abc123==\" --content-type \"application/x-connection-string\"",
+  "aliases": [],
+  "tokens": [
+    "az",
+    "keyvault",
+    "secret",
+    "set",
+    "--vault-name",
+    "$env:KV_NAME",
+    "--name",
+    "cosmosdb-connection-string",
+    "--value",
+    "\"AccountEndpoint=https://mycosmos.documents.azure.com:443/;AccountKey=abc123==\"",
+    "--content-type",
+    "\"application/x-connection-string\""
+  ],
+  "hints": [
+    "Dùng `az keyvault secret set`.",
+    "Đảm bảo bọc giá trị chuỗi kết nối trong dấu ngoặc kép."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault secret set --vault-name <Vault> --name <Name> --value <Value> --content-type <ContentType>",
+    "breakdown": [
+      {
+        "part": "keyvault secret set",
+        "role": "Connection String Store",
+        "desc": "Lưu trữ chuỗi kết nối cơ sở dữ liệu nhạy cảm"
+      },
+      {
+        "part": "--content-type application/x-connection-string",
+        "role": "Content Type",
+        "desc": "Quy định kiểu dữ liệu kết nối"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--name",
+      "meaning": "Tên bí mật nhận dạng trong Key Vault."
+    },
+    {
+      "param": "--value",
+      "meaning": "Chuỗi kết nối hoàn chỉnh gồm Endpoint và AccountKey."
+    }
+  ],
+  "whyThisMatters": "Chuỗi kết nối chứa master key của cơ sở dữ liệu nếu bị rò rỉ sẽ gây nguy cơ toàn bộ dữ liệu bị xâm nhập hoặc phá hủy.",
+  "examTip": "⭐ Trong bài thi AI-200, luôn ưu tiên lưu connection string trong Key Vault thay vì ghi trực tiếp vào App Settings."
+},
+  {
+  "id": "l12-show-kv-secret-id",
+  "level": 12,
+  "title": "7. Trích Xuất Secret Identifier URI",
+  "difficulty": "Cơ bản",
+  "category": "Azure Key Vault",
+  "mission": "Lấy địa chỉ URI định danh đầy đủ (`id`) của secret `openai-api-key` từ Key Vault `$env:KV_NAME` dưới định dạng `-o tsv` để làm Secret Identifier tham chiếu.",
+  "expectedCommand": "az keyvault secret show --vault-name $env:KV_NAME --name openai-api-key --query id -o tsv",
+  "aliases": [
+    "az keyvault secret show --vault-name $env:KV_NAME -n openai-api-key --query id -o tsv"
+  ],
+  "tokens": [
+    "az",
+    "keyvault",
+    "secret",
+    "show",
+    "--vault-name",
+    "$env:KV_NAME",
+    "--name",
+    "openai-api-key",
+    "--query",
+    "id",
+    "-o",
+    "tsv"
+  ],
+  "hints": [
+    "Sử dụng lệnh `az keyvault secret show`.",
+    "Lọc trường `--query id` và xuất `-o tsv`."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault secret show --vault-name <Vault> --name <SecretName> --query id -o tsv",
+    "breakdown": [
+      {
+        "part": "keyvault secret show",
+        "role": "Inspect Secret",
+        "desc": "Xem thuộc tính bí mật"
+      },
+      {
+        "part": "--query id -o tsv",
+        "role": "URI Extractor",
+        "desc": "Trích xuất URI định dạng https://<vault>.vault.azure.net/secrets/<name>/<version>"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--query id",
+      "meaning": "Lọc thuộc tính URI định danh duy nhất của phiên bản secret."
+    },
+    {
+      "param": "-o tsv",
+      "meaning": "Định dạng chuỗi thô không có dấu nháy kép, thích hợp gán biến script."
+    }
+  ],
+  "whyThisMatters": "URI này là giá trị bắt buộc truyền vào cờ `--secret-identifier` khi tích hợp với Azure App Configuration.",
+  "examTip": "⭐ Nếu bỏ qua phần version GUID ở cuối URI, tham chiếu sẽ luôn tự động trỏ tới phiên bản mới nhất của secret."
+},
+  {
+  "id": "l12-list-kv-secret-versions",
+  "level": 12,
+  "title": "8. Liệt Kê Các Phiên Bản Của Secret",
+  "difficulty": "Trung bình",
+  "category": "Azure Key Vault",
+  "mission": "Liệt kê lịch sử tất cả các phiên bản của secret `openai-api-key` trong Key Vault `$env:KV_NAME`, hiển thị trường `id` và trạng thái `attributes.enabled` dưới dạng bảng.",
+  "expectedCommand": "az keyvault secret list-versions --vault-name $env:KV_NAME --name openai-api-key --query \"[].{id:id, enabled:attributes.enabled}\" -o table",
+  "aliases": [],
+  "tokens": [
+    "az",
+    "keyvault",
+    "secret",
+    "list-versions",
+    "--vault-name",
+    "$env:KV_NAME",
+    "--name",
+    "openai-api-key",
+    "--query",
+    "\"[].{id:id, enabled:attributes.enabled}\"",
+    "-o",
+    "table"
+  ],
+  "hints": [
+    "Dùng lệnh `az keyvault secret list-versions`.",
+    "Ánh xạ mảng với `--query \"[].{id:id, enabled:attributes.enabled}\"` và `-o table`."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault secret list-versions --vault-name <Vault> --name <Name> --query \"[].{...}\" -o table",
+    "breakdown": [
+      {
+        "part": "keyvault secret list-versions",
+        "role": "Version Audit",
+        "desc": "Xem toàn bộ lịch sử thay đổi của secret"
+      },
+      {
+        "part": "--query \"[].{id:id, enabled:attributes.enabled}\"",
+        "role": "JMESPath Projection",
+        "desc": "Hiển thị ID phiên bản và cờ kích hoạt"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "list-versions",
+      "meaning": "Lệnh liệt kê tất cả các version GUID của một secret cụ thể."
+    },
+    {
+      "param": "attributes.enabled",
+      "meaning": "Trạng thái boolean cho biết phiên bản đó có đang được phép đọc hay bị vô hiệu hóa."
+    }
+  ],
+  "whyThisMatters": "Kiểm toán secret versions giúp phát hiện việc xoay vòng khóa (key rotation) và hỗ trợ rollback nhanh về phiên bản trước nếu cần.",
+  "examTip": "⭐ Secret cũ không bị ghi đè mất đi mà được lưu giữ dưới dạng các phiên bản lịch sử bất biến (immutable versions)."
+},
+  {
+  "id": "l12-create-appconfig-store",
+  "level": 12,
+  "title": "9. Khởi Tạo Cửa Hàng Azure App Configuration",
+  "difficulty": "Cơ bản",
+  "category": "Azure App Configuration",
+  "mission": "Tạo một cửa hàng cấu hình tập trung Azure App Configuration tên `$env:APPCONFIG_NAME` trong Resource Group `$env:RG`, location `eastus`, với SKU gói `Standard`.",
+  "expectedCommand": "az appconfig create --resource-group $env:RG --name $env:APPCONFIG_NAME --location eastus --sku Standard",
+  "aliases": [
+    "az appconfig create -g $env:RG -n $env:APPCONFIG_NAME -l eastus --sku Standard"
+  ],
+  "tokens": [
+    "az",
+    "appconfig",
+    "create",
+    "--resource-group",
+    "$env:RG",
+    "--name",
+    "$env:APPCONFIG_NAME",
+    "--location",
+    "eastus",
+    "--sku",
+    "Standard"
+  ],
+  "hints": [
+    "Dùng `az appconfig create`.",
+    "Chọn tầng dịch vụ `--sku Standard` để hỗ trợ dynamic refresh không giới hạn và SLA 99.9%."
+  ],
+  "mentalModel": {
+    "rule": "az appconfig create --resource-group <RG> --name <Name> --location <Loc> --sku Standard",
+    "breakdown": [
+      {
+        "part": "appconfig create",
+        "role": "Store Creation",
+        "desc": "Khởi tạo kho cấu hình tập trung phân tán"
+      },
+      {
+        "part": "--sku Standard",
+        "role": "Service Tier",
+        "desc": "Gói tiêu chuẩn hỗ trợ phục hồi điểm thời gian, private endpoint và không giới hạn request"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--sku Standard",
+      "meaning": "Gói tính phí Standard hỗ trợ đầy đủ các tính năng doanh nghiệp so với gói Free."
+    }
+  ],
+  "whyThisMatters": "Azure App Configuration cung cấp kho lưu trữ cấu hình tập trung độc lập với chu kỳ triển khai mã nguồn và container.",
+  "examTip": "⭐ Gói Free chỉ cho phép 1 store duy nhất trên 1 subscription; trong môi trường doanh nghiệp luôn dùng SKU Standard."
+},
+  {
+  "id": "l12-assign-appconfig-data-owner",
+  "level": 12,
+  "title": "10. Phân Quyền App Configuration Data Owner",
+  "difficulty": "Trung bình",
+  "category": "Azure App Configuration",
+  "mission": "Gán quyền RBAC `App Configuration Data Owner` cho user `$env:USER_OID` trên phạm vi kho `$APPCONFIG_ID` để quản lý key-values và Key Vault references.",
+  "expectedCommand": "az role assignment create --role \"App Configuration Data Owner\" --assignee $env:USER_OID --scope $APPCONFIG_ID",
+  "aliases": [],
+  "tokens": [
+    "az",
+    "role",
+    "assignment",
+    "create",
+    "--role",
+    "\"App Configuration Data Owner\"",
+    "--assignee",
+    "$env:USER_OID",
+    "--scope",
+    "$APPCONFIG_ID"
+  ],
+  "hints": [
+    "Dùng `az role assignment create`.",
+    "Chỉ định vai trò `--role \"App Configuration Data Owner\"` trên `--scope $APPCONFIG_ID`."
+  ],
+  "mentalModel": {
+    "rule": "az role assignment create --role <Role> --assignee <OID> --scope <Scope>",
+    "breakdown": [
+      {
+        "part": "role assignment create",
+        "role": "Data Plane RBAC",
+        "desc": "Cấp quyền thao tác các key-values"
+      },
+      {
+        "part": "--role \"App Configuration Data Owner\"",
+        "role": "Role",
+        "desc": "Vai trò toàn quyền đọc ghi cấu hình và tính năng (Feature Flags)"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "App Configuration Data Owner",
+      "meaning": "Vai trò dữ liệu đầy đủ nhất cho phép quản trị key-value, snapshot và nhãn."
+    },
+    {
+      "param": "App Configuration Data Reader",
+      "meaning": "Vai trò chỉ đọc thường cấp cho Managed Identity của ứng dụng tiêu thụ."
+    }
+  ],
+  "whyThisMatters": "Sử dụng RBAC thay cho connection string truy cập App Configuration giúp loại bỏ hoàn toàn việc quản lý secret trong mã nguồn.",
+  "examTip": "⭐ Phải mất từ 1-2 phút sau khi gán role RBAC để chính sách token AAD có hiệu lực trên App Configuration SDK."
+},
+  {
+  "id": "l12-set-appconfig-default-kv",
+  "level": 12,
+  "title": "11. Thiết Lập Key-Value Mặc Định (Không Nhãn)",
+  "difficulty": "Cơ bản",
+  "category": "Azure App Configuration",
+  "mission": "Thiết lập cấu hình mặc định (unlabeled / null label) `OpenAI:Endpoint` với giá trị `\"https://my-openai.openai.azure.com/\"` trong store `$env:APPCONFIG_NAME` mà không cần xác nhận (`--yes`).",
+  "expectedCommand": "az appconfig kv set --name $env:APPCONFIG_NAME --key \"OpenAI:Endpoint\" --value \"https://my-openai.openai.azure.com/\" --yes",
+  "aliases": [
+    "az appconfig kv set -n $env:APPCONFIG_NAME --key \"OpenAI:Endpoint\" --value \"https://my-openai.openai.azure.com/\" --yes"
+  ],
+  "tokens": [
+    "az",
+    "appconfig",
+    "kv",
+    "set",
+    "--name",
+    "$env:APPCONFIG_NAME",
+    "--key",
+    "\"OpenAI:Endpoint\"",
+    "--value",
+    "\"https://my-openai.openai.azure.com/\"",
+    "--yes"
+  ],
+  "hints": [
+    "Dùng `az appconfig kv set`.",
+    "Cờ `--name $env:APPCONFIG_NAME`.",
+    "Thêm cờ `--yes` để bỏ qua bước xác nhận tương tác."
+  ],
+  "mentalModel": {
+    "rule": "az appconfig kv set --name <Store> --key <Key> --value <Value> --yes",
+    "breakdown": [
+      {
+        "part": "appconfig kv set",
+        "role": "Write Key-Value",
+        "desc": "Tạo hoặc cập nhật cấu hình"
+      },
+      {
+        "part": "--key OpenAI:Endpoint",
+        "role": "Hierarchical Key",
+        "desc": "Khóa phân cấp ngăn cách bằng dấu hai chấm"
+      },
+      {
+        "part": "--yes",
+        "role": "Non-interactive",
+        "desc": "Tự động chấp thuận thao tác ghi đè"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--key",
+      "meaning": "Tên khóa cấu hình, hỗ trợ cú pháp phân cấp như Section:Subsection:Setting."
+    },
+    {
+      "param": "--yes",
+      "meaning": "Bỏ qua nhắc nhở xác nhận ghi đè trong script tự động hóa."
+    }
+  ],
+  "whyThisMatters": "Các cấu hình không gắn nhãn (unlabeled) hoạt động như các giá trị fallback mặc định cho tất cả môi trường triển khai.",
+  "examTip": "⭐ Trong Python App Configuration SDK, khóa không nhãn được lọc bằng ký hiệu `label_filter=\"\\0\"`."
+},
+  {
+  "id": "l12-set-appconfig-labeled-kv",
+  "level": 12,
+  "title": "12. Thiết Lập Cấu Hình Có Nhãn Môi Trường",
+  "difficulty": "Cơ bản",
+  "category": "Azure App Configuration",
+  "mission": "Thiết lập cấu hình `Pipeline:BatchSize` có giá trị `\"200\"` kèm nhãn `--label \"Production\"` trong store `$env:APPCONFIG_NAME` để ghi đè thiết lập khi chạy môi trường Prod.",
+  "expectedCommand": "az appconfig kv set --name $env:APPCONFIG_NAME --key \"Pipeline:BatchSize\" --value \"200\" --label \"Production\" --yes",
+  "aliases": [
+    "az appconfig kv set -n $env:APPCONFIG_NAME --key \"Pipeline:BatchSize\" --value \"200\" --label \"Production\" --yes"
+  ],
+  "tokens": [
+    "az",
+    "appconfig",
+    "kv",
+    "set",
+    "--name",
+    "$env:APPCONFIG_NAME",
+    "--key",
+    "\"Pipeline:BatchSize\"",
+    "--value",
+    "\"200\"",
+    "--label",
+    "\"Production\"",
+    "--yes"
+  ],
+  "hints": [
+    "Dùng `az appconfig kv set`.",
+    "Bổ sung cờ `--label \"Production\"` để phân biệt môi trường."
+  ],
+  "mentalModel": {
+    "rule": "az appconfig kv set --name <Store> --key <Key> --value <Val> --label <Label> --yes",
+    "breakdown": [
+      {
+        "part": "appconfig kv set",
+        "role": "Write Labeled Setting",
+        "desc": "Ghi cấu hình chuyên biệt theo ngữ cảnh"
+      },
+      {
+        "part": "--label Production",
+        "role": "Environment Label",
+        "desc": "Gắn nhãn định danh phiên bản môi trường"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "--label",
+      "meaning": "Nhãn phân loại (e.g. Production, Staging, v1.0), cho phép cùng một tên key có nhiều giá trị theo ngữ cảnh."
+    }
+  ],
+  "whyThisMatters": "Kỹ thuật Label Stacking cho phép nạp cấu hình mặc định rồi xếp đè cấu hình Prod lên trên mà không trùng lặp mã cấu hình.",
+  "examTip": "⭐ Khóa có nhãn cùng tên sẽ đè lên khóa không nhãn nếu selector nạp theo thứ tự default -> environment."
+},
+  {
+  "id": "l12-set-appconfig-keyvault-ref",
+  "level": 12,
+  "title": "13. Tạo Key Vault Reference Trong App Configuration",
+  "difficulty": "Trung bình",
+  "category": "Security Integration",
+  "mission": "Tạo một Key Vault Reference trong `$env:APPCONFIG_NAME` với tên key `\"OpenAI:ApiKey\"`, trỏ tới bí mật qua định danh `--secret-identifier $SECRET_URI` và tự động chấp thuận (`--yes`).",
+  "expectedCommand": "az appconfig kv set-keyvault --name $env:APPCONFIG_NAME --key \"OpenAI:ApiKey\" --secret-identifier $SECRET_URI --yes",
+  "aliases": [
+    "az appconfig kv set-keyvault -n $env:APPCONFIG_NAME --key \"OpenAI:ApiKey\" --secret-identifier $SECRET_URI --yes"
+  ],
+  "tokens": [
+    "az",
+    "appconfig",
+    "kv",
+    "set-keyvault",
+    "--name",
+    "$env:APPCONFIG_NAME",
+    "--key",
+    "\"OpenAI:ApiKey\"",
+    "--secret-identifier",
+    "$SECRET_URI",
+    "--yes"
+  ],
+  "hints": [
+    "Sử dụng lệnh `az appconfig kv set-keyvault`.",
+    "Cờ chỉ định URI bí mật là `--secret-identifier`."
+  ],
+  "mentalModel": {
+    "rule": "az appconfig kv set-keyvault --name <Store> --key <Key> --secret-identifier <Uri> --yes",
+    "breakdown": [
+      {
+        "part": "appconfig kv set-keyvault",
+        "role": "Reference Linker",
+        "desc": "Tạo liên kết cấu hình tham chiếu tới Key Vault"
+      },
+      {
+        "part": "--secret-identifier $SECRET_URI",
+        "role": "Target Secret URI",
+        "desc": "Đường dẫn URI của bí mật trong Key Vault"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "set-keyvault",
+      "meaning": "Lệnh chuyên biệt của Azure CLI để thiết lập Key Vault Reference trong App Configuration."
+    },
+    {
+      "param": "--secret-identifier",
+      "meaning": "URI đầy đủ của secret trong Azure Key Vault (ví dụ: https://my-kv.vault.azure.net/secrets/my-secret)."
+    }
+  ],
+  "whyThisMatters": "Ứng dụng chỉ cần đọc một nguồn duy nhất (App Configuration) mà vẫn lấy được cả thông số cấu hình thường lẫn dữ liệu bí mật được bảo vệ bởi Key Vault.",
+  "examTip": "⭐ Kiểu nội dung của Key Vault reference là `application/vnd.microsoft.appconfig.keyvaultref+json;charset=utf-8`."
+},
+  {
+  "id": "l12-set-appconfig-sentinel",
+  "level": 12,
+  "title": "14. Thiết Lập Sentinel Key Cho Dynamic Refresh",
+  "difficulty": "Cơ bản",
+  "category": "Azure App Configuration",
+  "mission": "Khởi tạo khóa canh gác `Sentinel` với giá trị ban đầu `\"1\"` trong store `$env:APPCONFIG_NAME` để dùng làm tín hiệu kích hoạt Dynamic Refresh cho ứng dụng mà không cần restart.",
+  "expectedCommand": "az appconfig kv set --name $env:APPCONFIG_NAME --key \"Sentinel\" --value \"1\" --yes",
+  "aliases": [
+    "az appconfig kv set -n $env:APPCONFIG_NAME --key \"Sentinel\" --value \"1\" --yes"
+  ],
+  "tokens": [
+    "az",
+    "appconfig",
+    "kv",
+    "set",
+    "--name",
+    "$env:APPCONFIG_NAME",
+    "--key",
+    "\"Sentinel\"",
+    "--value",
+    "\"1\"",
+    "--yes"
+  ],
+  "hints": [
+    "Dùng `az appconfig kv set`.",
+    "Khóa là `\"Sentinel\"` và giá trị `\"1\"`."
+  ],
+  "mentalModel": {
+    "rule": "az appconfig kv set --name <Store> --key \"Sentinel\" --value <VersionNum> --yes",
+    "breakdown": [
+      {
+        "part": "key \"Sentinel\"",
+        "role": "Watchdog Key",
+        "desc": "Khóa đóng vai trò kích hoạt cập nhật động"
+      },
+      {
+        "part": "value \"1\"",
+        "role": "Revision",
+        "desc": "Tăng giá trị này mỗi khi có thay đổi cấu hình cần client reload"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "Sentinel",
+      "meaning": "Mô hình thiết kế chuẩn: ứng dụng chỉ cần theo dõi một khóa duy nhất thay vì kiểm tra hàng trăm khóa riêng lẻ."
+    }
+  ],
+  "whyThisMatters": "Giảm thiểu 99% số lượng request kiểm tra cấu hình gửi tới Azure App Configuration, tối ưu chi phí và tránh bị rate limiting.",
+  "examTip": "⭐ Trong Python SDK, thiết lập `refresh_on=[\"Sentinel\"]` kết hợp với hàm gọi định kỳ `provider.refresh()`."
+},
+  {
+  "id": "l12-keyvault-purge-deleted",
+  "level": 12,
+  "title": "15. Xóa Vĩnh Viễn Key Vault Đã Bị Soft-Delete",
+  "difficulty": "Nâng cao",
+  "category": "Lifecycle & Cleanup",
+  "mission": "Xóa vĩnh viễn (purge) Key Vault `$env:KV_NAME` đang ở trạng thái soft-deleted mà không chờ lệnh hoàn tất (`--no-wait`) để giải phóng hoàn toàn tên vault trên toàn cầu.",
+  "expectedCommand": "az keyvault purge --name $env:KV_NAME --no-wait",
+  "aliases": [
+    "az keyvault purge -n $env:KV_NAME --no-wait"
+  ],
+  "tokens": [
+    "az",
+    "keyvault",
+    "purge",
+    "--name",
+    "$env:KV_NAME",
+    "--no-wait"
+  ],
+  "hints": [
+    "Sử dụng lệnh `az keyvault purge`.",
+    "Cờ bất đồng bộ là `--no-wait`."
+  ],
+  "mentalModel": {
+    "rule": "az keyvault purge --name <VaultName> --no-wait",
+    "breakdown": [
+      {
+        "part": "keyvault purge",
+        "role": "Permanent Destruction",
+        "desc": "Tiêu hủy hoàn toàn kho bí mật khỏi trạng thái soft-deleted"
+      },
+      {
+        "part": "--no-wait",
+        "role": "Async Execution",
+        "desc": "Trả quyền điều khiển terminal ngay mà không đợi thao tác dọn dẹp kết thúc"
+      }
+    ]
+  },
+  "parametersExplanation": [
+    {
+      "param": "purge",
+      "meaning": "Xóa vĩnh viễn và không thể khôi phục được nữa. Chỉ thực hiện được nếu Vault KHÔNG kích hoạt Purge Protection."
+    }
+  ],
+  "whyThisMatters": "Tên Key Vault có phạm vi duy nhất trên toàn cầu (DNS `*.vault.azure.net`). Khi test lab bị trùng tên cũ đã xóa, cần purge để có thể tạo lại.",
+  "examTip": "⭐ Nếu một Key Vault đã được bật Purge Protection, lệnh purge sẽ thất bại cho đến khi hết hạn thời gian lưu giữ (thường là 90 ngày)."
+}
 ];
 
 // ==========================================
@@ -3921,6 +6272,561 @@ export const QUIZ_QUESTIONS = [
     correctIndex: 2,
     explanation: "Azure Cosmos DB for NoSQL hỗ trợ kích thước vector tối đa lên đến 4,096 chiều (dimensions), tương thích hoàn hảo với các mô hình embedding tiên tiến nhất như text-embedding-3-large (3,072 dims) của OpenAI hay Cohere Embed."
   }
+,
+  {
+    id: "q33",
+    question: "Để có thể chạy thành công câu lệnh `CREATE EXTENSION IF NOT EXISTS vector;` trên Azure Database for PostgreSQL Flexible Server, tham số cấu hình cấp máy chủ (Server Parameter) nào bắt buộc phải được thiết lập trước?",
+    options: [
+      "azure.extensions",
+      "shared_preload_libraries",
+      "wal_level",
+      "custom_variable_classes"
+    ],
+    correctIndex: 0,
+    explanation: "Azure Database for PostgreSQL kiểm soát nghiêm ngặt các tiện ích mở rộng qua tham số máy chủ `azure.extensions`. Bạn bắt buộc phải cấu hình đưa `vector` vào allow-list của tham số này trước khi có thể kích hoạt extension trong cơ sở dữ liệu."
+  },
+  {
+    id: "q34",
+    question: "Khi xác thực ứng dụng với Azure Database for PostgreSQL bằng Microsoft Entra ID Token (không dùng mật khẩu tĩnh), lệnh Azure CLI nào cung cấp Bearer Access Token chính xác cho loại tài nguyên này?",
+    options: [
+      "az account get-access-token --resource-type oss-rdbms",
+      "az account get-access-token --resource https://graph.microsoft.com",
+      "az postgres token generate --server <name>",
+      "az keyvault secret show --name db-password"
+    ],
+    correctIndex: 0,
+    explanation: "Cờ `--resource-type oss-rdbms` yêu cầu cấp token với audience scope là `https://ossrdbms-aad.database.windows.net/.default`, dành riêng cho dịch vụ cơ sở dữ liệu mã nguồn mở của Azure như PostgreSQL Flexible Server."
+  },
+  {
+    id: "q35",
+    question: "Trong tiện ích mở rộng pgvector của PostgreSQL, toán tử (operator) nào được sử dụng để tính toán khoảng cách Cosine (Cosine Distance) giữa hai vector embeddings?",
+    options: [
+      "<=>",
+      "<->",
+      "<#>",
+      "<+>"
+    ],
+    correctIndex: 0,
+    explanation: "Toán tử `<=>` trong pgvector đại diện cho Cosine Distance (khoảng cách cosin: 0 = trùng khớp, 2 = hoàn toàn đối nghịch). Trong khi đó, `<->` là khoảng cách L2 Euclidean, còn `<#>` là tích vô hướng âm (negative inner product)."
+  },
+  {
+    id: "q36",
+    question: "Khi tạo chỉ mục đồ thị phân tầng HNSW (`CREATE INDEX ... USING hnsw`) trong pgvector, tham số `m` và `ef_construction` có vai trò gì trong kiến trúc?",
+    options: [
+      "m là số kết nối tối đa cho mỗi node; ef_construction là kích thước danh sách ứng viên động trong quá trình xây dựng đồ thị.",
+      "m là số lõi CPU song song; ef_construction là lượng bộ nhớ RAM gán cho index.",
+      "m là số chiều vector; ef_construction là độ sâu tối đa của cây đồ thị.",
+      "m là số cụm phân vùng; ef_construction là số probe quét khi truy vấn."
+    ],
+    correctIndex: 0,
+    explanation: "Trong HNSW: `m` (mặc định 16) là số lượng liên kết tối đa giữa một node với các lân cận trên mỗi tầng đồ thị. `ef_construction` (mặc định 64) xác định kích thước danh sách lân cận tiềm năng được xem xét khi nạp vector vào chỉ mục; giá trị càng cao thì chất lượng đồ thị càng tốt nhưng tốn thời gian build lâu hơn."
+  },
+  {
+    id: "q37",
+    question: "Trong quá trình tìm kiếm vector thời điểm truy vấn (query-time) sử dụng chỉ mục HNSW, biến phiên làm việc nào có thể tăng lên để nâng cao độ chính xác thu hồi (Recall) nhưng đánh đổi làm tăng nhẹ độ trễ (latency)?",
+    options: [
+      "hnsw.ef_search",
+      "ivfflat.probes",
+      "work_mem",
+      "shared_buffers"
+    ],
+    correctIndex: 0,
+    explanation: "Thiết lập `SET hnsw.ef_search = 100;` (mặc định 40) mở rộng danh sách ứng viên được khám phá trong quá trình duyệt đồ thị lúc truy vấn, giúp tìm kiếm ra các lân cận gần nhất thực sự với Recall cao hơn."
+  },
+  {
+    id: "q38",
+    question: "Quy tắc kinh nghiệm (rule of thumb) chuẩn mực để xác định số lượng cụm phân vùng `lists` khi tạo chỉ mục IVFFlat (`WITH (lists = ... )`) cho tập dữ liệu có tối đa 1 triệu hàng là gì?",
+    options: [
+      "lists = rows / 1000",
+      "lists = sqrt(rows)",
+      "lists = 10 * rows",
+      "lists = 16"
+    ],
+    correctIndex: 0,
+    explanation: "Đối với bảng có đến 1 triệu hàng, khuyến nghị chuẩn là `lists = rows / 1000` (ví dụ: 100,000 hàng thì lists = 100). Với tập dữ liệu trên 1 triệu hàng, công thức thường dùng là `lists = sqrt(rows)`."
+  },
+  {
+    id: "q39",
+    question: "So sánh giữa hai loại chỉ mục vector phổ biến trong pgvector: HNSW và IVFFlat, nhận định nào sau đây là CHÍNH XÁC?",
+    options: [
+      "HNSW cho tốc độ truy vấn nhanh hơn, Recall cao hơn ngay từ đầu và hỗ trợ chèn dữ liệu tăng dần (incremental) mà không cần build lại toàn bộ, nhưng tốn nhiều RAM và thời gian build hơn IVFFlat.",
+      "IVFFlat có tốc độ truy vấn nhanh hơn và Recall vượt trội hơn HNSW trong mọi tình huống.",
+      "HNSW yêu cầu phải huấn luyện lại toàn bộ chỉ mục mỗi khi có vector mới được thêm vào.",
+      "IVFFlat tốn dung lượng RAM cao hơn HNSW gấp nhiều lần."
+    ],
+    correctIndex: 0,
+    explanation: "HNSW vượt trội về tốc độ truy vấn và độ chính xác out-of-the-box, đặc biệt hỗ trợ cập nhật tăng dần linh hoạt, bù lại đòi hỏi dung lượng bộ nhớ RAM lớn hơn và thời gian xây dựng đồ thị ban đầu lâu hơn IVFFlat."
+  },
+  {
+    id: "q40",
+    question: "Khi thực thi `EXPLAIN ANALYZE` cho câu lệnh tìm kiếm tương đồng vector trên bảng sản phẩm chưa được tạo bất kỳ chỉ mục vector nào, kế hoạch thực thi sẽ hiển thị nút (Plan Node) nào thể hiện việc quét toàn bộ cơ sở dữ liệu?",
+    options: [
+      "Seq Scan on products",
+      "Index Scan using idx_products",
+      "Bitmap Index Scan",
+      "Index Only Scan"
+    ],
+    correctIndex: 0,
+    explanation: "Khi không có chỉ mục vector, PostgreSQL buộc phải thực hiện quét tuần tự (`Seq Scan`), tính toán khoảng cách vector cho toàn bộ 100,000 dòng dữ liệu, dẫn đến độ trễ rất cao (thường từ vài trăm ms đến vài giây)."
+  },
+  {
+    id: "q41",
+    question: "Trước khi thực hiện tạo chỉ mục HNSW trên bảng dữ liệu lớn (như 100,000 vector 384 chiều), thiết lập bộ nhớ nào của PostgreSQL nên được tăng tạm thời trong phiên làm việc để tránh lỗi thiếu RAM và tối ưu tốc độ dựng đồ thị?",
+    options: [
+      "SET maintenance_work_mem = '256MB';",
+      "SET max_connections = 1000;",
+      "SET autovacuum = off;",
+      "SET synchronous_commit = off;"
+    ],
+    correctIndex: 0,
+    explanation: "Tham số `maintenance_work_mem` kiểm soát dung lượng bộ nhớ tối đa dành cho các tác vụ bảo trì như `CREATE INDEX`. Đặt lên 256MB hoặc 512MB giúp quá trình xây dựng đồ thị HNSW diễn ra hoàn toàn trong RAM và nhanh hơn đáng kể."
+  },
+  {
+    id: "q42",
+    question: "Trong kiến trúc bộ nhớ và checkpoint trạng thái của AI Agent (Agent Memory Backend) trên PostgreSQL, cú pháp SQL nào cho phép lưu vết hoặc cập nhật checkpoint một cách nguyên tử (atomic upsert) dựa trên cặp khóa (conversation_id, task_name)?",
+    options: [
+      "INSERT INTO task_checkpoints (...) VALUES (...) ON CONFLICT (conversation_id, task_name) DO UPDATE SET status = EXCLUDED.status, checkpoint_data = EXCLUDED.checkpoint_data, updated_at = CURRENT_TIMESTAMP",
+      "UPDATE task_checkpoints SET ... WHERE NOT EXISTS (INSERT INTO ...)",
+      "UPSERT INTO task_checkpoints VALUES (...)",
+      "MERGE INTO task_checkpoints USING dual ON ..."
+    ],
+    correctIndex: 0,
+    explanation: "Cú pháp `ON CONFLICT (conversation_id, task_name) DO UPDATE SET ...` của PostgreSQL là cơ chế Idempotent Upsert tiêu chuẩn, bảo đảm tiến trình AI Agent có thể cập nhật trạng thái nhiệm vụ an toàn ngay cả khi bị gián đoạn hay khởi động lại."
+  }
+,
+  {
+    id: "q43",
+    question: "Cổng kết nối TCP tiêu chuẩn và yêu cầu mã hóa mạng bắt buộc khi kết nối ứng dụng với Azure Managed Redis (AMR / Redis Enterprise) là gì?",
+    options: [
+      "Cổng 10000 và bắt buộc bật SSL/TLS (ssl=True)",
+      "Cổng 6379 và không cần SSL",
+      "Cổng 443 HTTPS",
+      "Cổng 5432 SSL"
+    ],
+    correctIndex: 0,
+    explanation: "Azure Managed Redis (Enterprise tier) chuẩn hóa việc sử dụng cổng TCP 10000 (thay vì 6379 của Redis mã nguồn mở truyền thống) và bắt buộc bật mã hóa đường truyền TLS/SSL (Encrypted)."
+  },
+  {
+    id: "q44",
+    question: "Khi sử dụng thư viện `redis-entraid` để kết nối ứng dụng Python với Azure Managed Redis không dùng access keys tĩnh, scope định danh nào được dùng để phát hành token Microsoft Entra ID?",
+    options: [
+      "https://redis.azure.com/.default",
+      "https://ossrdbms-aad.database.windows.net/.default",
+      "https://management.azure.com/.default",
+      "https://graph.microsoft.com/.default"
+    ],
+    correctIndex: 0,
+    explanation: "Thư viện `redis-entraid` sử dụng hàm `create_from_default_azure_credential((\"https://redis.azure.com/.default\",))` để lấy và tự động refresh Bearer token của Microsoft Entra ID cấp riêng cho dịch vụ Azure Redis."
+  },
+  {
+    id: "q45",
+    question: "Trong Azure CLI, nhóm lệnh chuẩn mực nào được sử dụng để quản lý tài nguyên và cơ sở dữ liệu Azure Managed Redis (AMR)?",
+    options: [
+      "az redisenterprise",
+      "az redis",
+      "az cache",
+      "az cosmosdb redis"
+    ],
+    correctIndex: 0,
+    explanation: "Nhóm lệnh `az redisenterprise` quản lý các cụm Azure Managed Redis và Azure Cache for Redis Enterprise tier. Nhóm lệnh `az redis` chỉ dành cho các phiên bản Basic/Standard cũ."
+  },
+  {
+    id: "q46",
+    question: "Trong kiến trúc Pub/Sub của Redis, điểm khác biệt căn bản nhất giữa Redis Pub/Sub và các dịch vụ hàng đợi tin nhắn bền vững như Azure Event Hubs hay Azure Service Bus là gì?",
+    options: [
+      "Redis Pub/Sub là cơ chế gửi tin tạm thời 'Fire-and-Forget' (nếu subscriber không online lúc tin được phát, tin nhắn sẽ bị hủy ngay và không lưu trữ lại).",
+      "Redis Pub/Sub lưu trữ tin nhắn vĩnh viễn trên ổ cứng SSD đến 90 ngày.",
+      "Redis Pub/Sub chỉ cho phép tối đa 1 subscriber cho mỗi kênh.",
+      "Redis Pub/Sub yêu cầu phải tạo schema JSON trước khi phát tin."
+    ],
+    correctIndex: 0,
+    explanation: "Redis Pub/Sub phân phối thông điệp tức thời đến các subscriber đang kết nối trực tiếp ('at-most-once' / Fire-and-Forget). Nó không lưu trữ lịch sử tin nhắn như Redis Streams hay Azure Event Hubs."
+  },
+  {
+    id: "q47",
+    question: "Trong Redis Pub/Sub, cú pháp đăng ký nhận thông điệp nào cho phép lắng nghe đồng thời tất cả các kênh bắt đầu bằng tiền tố `orders:`, ví dụ `orders:created`, `orders:shipped`, `orders:cancelled`?",
+    options: [
+      "pubsub.psubscribe(\"orders:*\")",
+      "pubsub.subscribe(\"orders:ALL\")",
+      "pubsub.listen_all(\"orders\")",
+      "pubsub.wildcard(\"orders\")"
+    ],
+    correctIndex: 0,
+    explanation: "Phương thức `psubscribe()` (Pattern Subscribe) hỗ trợ ký tự đại diện wildcard `*` để đăng ký lắng nghe đồng thời tất cả các kênh thỏa mãn mẫu định dạng."
+  },
+  {
+    id: "q48",
+    question: "Khi định nghĩa chỉ mục vector RediSearch trong Azure Managed Redis bằng Python (`VectorField`), cấu hình nào sau đây là hợp lệ cho tìm kiếm ngữ nghĩa với HNSW?",
+    options: [
+      "VectorField(\"embedding\", \"HNSW\", {\"TYPE\": \"FLOAT32\", \"DIM\": 8, \"DISTANCE_METRIC\": \"COSINE\"})",
+      "VectorField(\"embedding\", \"BTREE\", {\"TYPE\": \"INT64\"})",
+      "VectorField(\"embedding\", \"FLAT\", {\"TYPE\": \"STRING\"})",
+      "VectorField(\"embedding\", \"GRAPH\", {\"TYPE\": \"JSON\"})"
+    ],
+    correctIndex: 0,
+    explanation: "Chỉ mục vector của RediSearch hỗ trợ thuật toán HNSW hoặc FLAT, với kiểu dữ liệu số thực `FLOAT32` hoặc `FLOAT64`, số chiều vector `DIM`, và khoảng cách `COSINE`, `L2`, hoặc `IP`."
+  },
+  {
+    id: "q49",
+    question: "Để lưu trữ vector embedding vào Redis Hash cho RediSearch đánh chỉ mục, mảng số thực (float list) bắt buộc phải được chuyển đổi sang định dạng nhị phân nào trước khi gọi `r.hset()`?",
+    options: [
+      "Dãy byte nhị phân thô (np.array(vector, dtype=np.float32).tobytes())",
+      "Chuỗi JSON phân tách dấu phẩy (json.dumps(vector))",
+      "Chuỗi Base64 có padding",
+      "Mảng số nguyên Integer 16-bit"
+    ],
+    correctIndex: 0,
+    explanation: "RediSearch yêu cầu dữ liệu vector trong Redis Hash phải ở dạng byte nhị phân thô (raw binary float bytes) thu được qua hàm `.tobytes()` của NumPy."
+  },
+  {
+    id: "q50",
+    question: "Trong RediSearch Dialect 2, cú pháp truy vấn K-Nearest Neighbors (KNN) nào được sử dụng để tìm 5 vector tương đồng nhất với vector tham số `$query_vec`?",
+    options: [
+      "*=>[KNN 5 @embedding $query_vec AS score]",
+      "SELECT TOP 5 FROM embedding WHERE vector = $query_vec",
+      "FIND NEAREST 5 TO $query_vec ON @embedding",
+      "VECTOR_SEARCH(5, @embedding, $query_vec)"
+    ],
+    correctIndex: 0,
+    explanation: "Cú pháp chuẩn của RediSearch KNN là `*=>[KNN <k> @<vector_field> $<param_name> AS <score_name>]` kết hợp với `.sort_by('score').dialect(2)`."
+  },
+  {
+    id: "q51",
+    question: "Trong cấu hình Azure Managed Redis Database, chính sách giải phóng bộ nhớ (Eviction Policy) `AllKeysLRU` hoạt động như thế nào khi bộ nhớ RAM đạt ngưỡng tối đa?",
+    options: [
+      "Tự động xóa các key ít được sử dụng gần đây nhất (Least Recently Used) trong toàn bộ cơ sở dữ liệu để nhường chỗ cho dữ liệu mới.",
+      "Chỉ xóa các key đã được thiết lập thời gian hết hạn (TTL).",
+      "Từ chối tất cả các lệnh ghi mới và trả về lỗi OOM (Out Of Memory).",
+      "Tự động nén tất cả các key xuống 50% kích thước."
+    ],
+    correctIndex: 0,
+    explanation: "`AllKeysLRU` giải phóng các key ít được truy cập gần đây nhất trên toàn bộ tập dữ liệu, đảm bảo Redis luôn duy trì bộ đệm nóng cho dữ liệu được truy cập thường xuyên nhất."
+  },
+  {
+    id: "q52",
+    question: "Khi gọi lệnh `r.ttl(key)` trong Redis, giá trị trả về `-1` và `-2` có ý nghĩa gì đối với vòng đời của key?",
+    options: [
+      "-1 có nghĩa key tồn tại vĩnh viễn (không cài đặt TTL); -2 có nghĩa key không tồn tại trong cơ sở dữ liệu.",
+      "-1 có nghĩa key đã hết hạn; -2 có nghĩa database đang bị khóa.",
+      "-1 có nghĩa lỗi mạng; -2 có nghĩa sai mật khẩu.",
+      "Cả hai giá trị đều biểu thị key đã bị xóa."
+    ],
+    correctIndex: 0,
+    explanation: "Theo chuẩn Redis: hàm `ttl(key)` trả về số giây còn lại của key; trả về `-1` nếu key không có hạn sử dụng (persists indefinitely); và trả về `-2` nếu key không tồn tại."
+  }
+,
+  {
+    id: "q53",
+    question: "Trong Azure Service Bus, tại sao chế độ nhận tin 'Peek-Lock' (mặc định) lại được khuyến nghị cho các tác vụ suy luận AI thay vì 'Receive-and-Delete'?",
+    options: [
+      "Peek-Lock tạm khóa tin nhắn trong hàng đợi; nếu worker AI bị crash hoặc timeout, tin nhắn sẽ tự động được mở khóa để worker khác xử lý tiếp, đảm bảo tính At-least-once delivery.",
+      "Peek-Lock xóa tin nhắn ngay lập tức khỏi queue để giải phóng dung lượng bộ nhớ.",
+      "Peek-Lock yêu cầu mã hóa tin nhắn bằng chứng chỉ SSL hai chiều.",
+      "Receive-and-Delete chỉ hoạt động trên Service Bus Topic chứ không hỗ trợ Queue."
+    ],
+    correctIndex: 0,
+    explanation: "Chế độ Peek-Lock chỉ xóa tin nhắn khỏi hàng đợi sau khi consumer gọi `complete_message()`. Nếu có sự cố (crash, lỗi OOM), khóa lock hết hạn và tin nhắn sẽ được gửi lại, tránh mất mát dữ liệu suy luận quý giá."
+  },
+  {
+    id: "q54",
+    question: "Khi xử lý tin nhắn trong Azure Service Bus Queue, nếu nhận được một payload JSON bị lỗi cú pháp không thể parse, hành động nào là chuẩn thực hành an toàn nhất?",
+    options: [
+      "Gọi `dead_letter_message(msg, reason='MalformedPayload', error_description='...')` để chuyển tin nhắn vào hàng đợi Dead-Letter Queue (DLQ).",
+      "Gọi `abandon_message(msg)` để tin nhắn được thử lại liên tục.",
+      "Gọi `complete_message(msg)` để bỏ qua lỗi.",
+      "Xóa toàn bộ hàng đợi và khởi tạo lại."
+    ],
+    correctIndex: 0,
+    explanation: "Chuyển tin nhắn hỏng vào Dead-Letter Queue (DLQ) bằng `dead_letter_message()` kèm lý do rõ ràng giúp cô lập tin nhắn độc hại (poison message), ngăn không cho hệ thống rơi vào vòng lặp thử lại vô tận làm quá tải CPU."
+  },
+  {
+    id: "q55",
+    question: "Thuộc tính nào của `ServiceBusMessage` được sử dụng để truy vết mối liên hệ (End-to-End Tracing) giữa yêu cầu đầu vào của người dùng và các phản hồi suy luận do AI Agent sinh ra?",
+    options: [
+      "correlation_id",
+      "message_id",
+      "to",
+      "content_type"
+    ],
+    correctIndex: 0,
+    explanation: "`correlation_id` là trường metadata tiêu chuẩn dùng để liên kết các thông điệp có liên quan với nhau trong kiến trúc Request-Reply hoặc hệ thống AI đa tác tử phân tán."
+  },
+  {
+    id: "q56",
+    question: "Để Subscription chỉ nhận những tin nhắn có thuộc tính ứng dụng `priority = 'high'`, thao tác cấu hình nào là BẮT BUỘC trước khi tạo SQL Filter Rule mới?",
+    options: [
+      "Xóa quy tắc mặc định `$Default` (vốn tự động khớp 100% mọi tin nhắn).",
+      "Nâng cấp Service Bus Namespace lên gói Premium.",
+      "Khởi động lại Service Bus Namespace.",
+      "Kích hoạt Partitioning trên Topic."
+    ],
+    correctIndex: 0,
+    explanation: "Khi tạo Subscription mới, Service Bus luôn tự sinh một quy tắc `$Default` (`TrueFilter 1=1`). Nếu không xóa quy tắc này, subscription sẽ tiếp tục nhận toàn bộ tin nhắn bất kể có bộ lọc SQL hay không."
+  },
+  {
+    id: "q57",
+    question: "Vai trò phân quyền RBAC nào cấp quyền tối thiểu để một tiến trình chỉ có thể gửi tin nhắn vào Azure Service Bus Queue mà không được phép đọc hay xóa tin nhắn?",
+    options: [
+      "Azure Service Bus Data Sender",
+      "Azure Service Bus Data Receiver",
+      "Azure Service Bus Data Owner",
+      "Contributor"
+    ],
+    correctIndex: 0,
+    explanation: "`Azure Service Bus Data Sender` tuân thủ nguyên tắc đặc quyền tối thiểu (Least Privilege), chỉ cho phép đẩy tin nhắn vào hàng đợi/chủ đề mà không có quyền xem hay rút tin."
+  },
+  {
+    id: "q58",
+    question: "Điểm khác biệt kiến trúc CỐT LÕI giữa Azure Event Grid Namespace và Event Grid Basic Topics là gì?",
+    options: [
+      "Event Grid Namespace hỗ trợ cả mô hình Pull Delivery qua HTTP, giao thức MQTT Broker và chuẩn hóa schema CloudEvents v1.0.",
+      "Event Grid Namespace chỉ hỗ trợ duy nhất Webhook Push.",
+      "Event Grid Basic hỗ trợ dung lượng tin nhắn lên tới 50 MB.",
+      "Event Grid Namespace không hỗ trợ lọc sự kiện theo Event Type."
+    ],
+    correctIndex: 0,
+    explanation: "Event Grid Namespace là kiến trúc thế hệ mới, hỗ trợ Pull Delivery (consumer chủ động kéo sự kiện về không cần mở inbound endpoint), MQTT cho thiết bị IoT/edge và tiêu chuẩn CloudEvents v1.0 của CNCF."
+  },
+  {
+    id: "q59",
+    question: "Trong cơ chế Event Grid Pull Delivery, khi client gọi `consumer.reject(lock_tokens=[...])`, điều gì sẽ xảy ra với sự kiện đó?",
+    options: [
+      "Sự kiện được xác định là không thể xử lý (poison event); Event Grid sẽ đưa nó vào Dead-Letter container hoặc hủy bỏ nếu hết số lần gửi.",
+      "Sự kiện được giải phóng ngay lập tức để gửi lại cho consumer khác (Release).",
+      "Sự kiện được đánh dấu là xử lý thành công và xóa khỏi subscription (Acknowledge).",
+      "Sự kiện được lưu vô thời hạn trong RAM."
+    ],
+    correctIndex: 0,
+    explanation: "Trong Event Grid Pull: `acknowledge` = thành công; `release` = giải phóng khóa để gửi lại; `reject` = từ chối xử lý và đưa vào dead-letter."
+  },
+  {
+    id: "q60",
+    question: "Quy tắc quyết định (Determinism Constraint) quan trọng nhất trong thân hàm của một Azure Durable Functions Orchestrator là gì?",
+    options: [
+      "Hàm orchestrator phải mang tính đơn định tuyệt đối: KHÔNG được gọi trực tiếp `uuid.uuid4()`, `datetime.now()` hay I/O ngẫu nhiên; phải dùng `context.new_uuid()` và `context.current_utc_datetime`.",
+      "Hàm orchestrator phải thực hiện tất cả các lệnh gọi API bên ngoài trực tiếp mà không thông qua Activity Functions.",
+      "Hàm orchestrator không được phép nhận tham số đầu vào.",
+      "Hàm orchestrator phải chạy vô hạn không bao giờ kết thúc."
+    ],
+    correctIndex: 0,
+    explanation: "Vì Durable Functions sử dụng cơ chế Event Sourcing Replay để phục hồi trạng thái sau mỗi lượt `yield`, mã nguồn orchestrator bắt buộc phải mang tính tất định (deterministic). Mọi giá trị ngẫu nhiên phải được sinh qua đối tượng `context`."
+  },
+  {
+    id: "q61",
+    question: "Mô hình xử lý song song phân tán (Fan-Out / Fan-In) trong Azure Durable Functions được cài đặt bằng cú pháp nào trong Python v2?",
+    options: [
+      "Lặp qua danh sách tài liệu gọi `context.call_sub_orchestrator()` tích lũy vào mảng tasks, sau đó gọi `yield context.task_all(tasks)`.",
+      "Sử dụng `threading.Thread` bên trong hàm orchestrator.",
+      "Gọi `multiprocessing.Pool` để chia nhỏ dữ liệu trên CPU.",
+      "Chạy vòng lặp for đồng bộ từng phần tử một."
+    ],
+    correctIndex: 0,
+    explanation: "Trong Durable Functions: Fan-out được thực hiện bằng cách lên lịch hàng loạt sub-orchestrators hoặc activities vào mảng tasks, sau đó Fan-in gom kết quả đồng thời bằng `yield context.task_all(tasks)`."
+  },
+  {
+    id: "q62",
+    question: "Trong kịch bản duyệt tài liệu có con người can thiệp (Human-in-the-Loop), làm thế nào để Orchestrator chờ phản hồi từ người duyệt trong 30 giây mà KHÔNG gây nghẽn (block) luồng xử lý CPU?",
+    options: [
+      "Dùng `context.wait_for_external_event('ApprovalResponse')` và `context.create_timer(deadline)`, sau đó chạy đua bằng `yield context.task_any([approval, timeout])`.",
+      "Sử dụng `time.sleep(30)` bên trong hàm orchestrator.",
+      "Chạy một vòng lặp `while True` kiểm tra database liên tục.",
+      "Yêu cầu người dùng gửi email trực tiếp cho máy chủ."
+    ],
+    correctIndex: 0,
+    explanation: "`task_any([external_event, timer])` cho phép orchestrator ngủ đông (hibernates) giải phóng hoàn toàn tài nguyên CPU. Khi có sự kiện người duyệt gửi đến hoặc hết hạn 30s, Durable Functions runtime sẽ tự động đánh thức orchestrator."
+  },
+  {
+    id: "q63",
+    question: "Khi cần gửi quyết định duyệt (Approved / Rejected) từ một hệ thống bên ngoài vào một phiên Durable Functions đang chờ, phương thức HTTP client nào được sử dụng?",
+    options: [
+      "await client.raise_event(instance_id, 'ApprovalResponse', {'decision': 'Approved'})",
+      "await client.restart(instance_id)",
+      "await client.terminate(instance_id, 'Approved')",
+      "client.send_message(instance_id, 'Approved')"
+    ],
+    correctIndex: 0,
+    explanation: "Hàm `client.raise_event(instance_id, event_name, event_data)` kích hoạt và phân phối sự kiện đích danh đến đúng phiên làm việc đang chờ sự kiện đó."
+  },
+  {
+    id: "q64",
+    question: "Trong mô hình Model Context Protocol (MCP) Server trên Azure Functions, loại trigger nào được sử dụng để khai báo và công khai các công cụ cho AI client (Copilot, Cursor, Antigravity)?",
+    options: [
+      "@app.generic_trigger(type='mcpToolTrigger', toolName='...', toolProperties='...')",
+      "@app.route(methods=['POST'])",
+      "@app.service_bus_queue_trigger()",
+      "@app.event_grid_trigger()"
+    ],
+    correctIndex: 0,
+    explanation: "Extension `Microsoft.Azure.Functions.ExtensionBundle.Preview` cung cấp trigger `mcpToolTrigger`, tự động phơi bày các công cụ AI và phục vụ endpoint SSE tại `/runtime/webhooks/mcp/sse`."
+  },
+  {
+    id: "q65",
+    question: "Khi cấu hình `.vscode/mcp.json` để kết nối AI Assistant với một Azure Functions MCP Server chạy cục bộ, giao thức truyền tải (Transport) nào được sử dụng?",
+    options: [
+      "Server-Sent Events (SSE) trỏ vào endpoint http://localhost:7071/runtime/webhooks/mcp/sse",
+      "Standard Input/Output (stdio) qua tệp thực thi .exe",
+      "gRPC qua cổng 50051",
+      "WebSocket qua cổng 8080"
+    ],
+    correctIndex: 0,
+    explanation: "Azure Functions MCP Server hỗ trợ giao thức SSE (Server-Sent Events), cho phép các AI Client kết nối qua HTTP SSE endpoint `/runtime/webhooks/mcp/sse` để khám phá và gọi công cụ theo chuẩn MCP."
+  }
+,
+  // LEVEL 12: KEY VAULT & APP CONFIGURATION QUIZ
+  {
+  "id": "q66",
+  "question": "Trong Azure App Configuration, kỹ thuật 'Label Stacking' (xếp chồng nhãn) bằng `SettingSelector` hoạt động như thế nào khi nạp cấu hình ứng dụng?",
+  "options": [
+    "Nạp lần lượt các selector theo thứ tự: nhãn mặc định (\\0) làm nền, sau đó các nhãn môi trường (ví dụ Production) sẽ đè lên các khóa trùng tên.",
+    "Gộp tất cả các giá trị của các nhãn thành một mảng danh sách cho mỗi khóa.",
+    "Bắt buộc mỗi khóa chỉ được phép mang một nhãn duy nhất, nếu trùng tên sẽ xảy ra ngoại lệ ConfigurationException.",
+    "Chỉ nạp các khóa thuộc nhãn Production và hoàn toàn bỏ qua các khóa không có nhãn."
+  ],
+  "correctIndex": 0,
+  "explanation": "Kỹ thuật Label Stacking định nghĩa selector đầu tiên với `label_filter='\\0'` (không nhãn) làm cấu hình cơ sở, sau đó định nghĩa selector thứ hai với `label_filter='Production'`. Các giá trị có nhãn Production sẽ tự động ghi đè lên khóa cơ sở, giúp tái sử dụng cấu hình chung."
+},
+  {
+  "id": "q67",
+  "question": "Mục đích chính của mô hình 'Sentinel Key' trong Dynamic Refresh của Azure App Configuration là gì?",
+  "options": [
+    "Chỉ cần thăm dò (poll) một khóa duy nhất thay vì kiểm tra toàn bộ cấu hình, giảm thiểu chi phí request và tránh bị quá tải (throttling).",
+    "Dùng làm khóa mã hóa cấp cao cho toàn bộ dữ liệu cấu hình trong kho.",
+    "Tự động gửi thông báo qua SMS hoặc Email mỗi khi có ai đó sửa đổi cấu hình.",
+    "Ngăn chặn không cho người dùng khác chỉnh sửa cấu hình khi ứng dụng đang chạy."
+  ],
+  "correctIndex": 0,
+  "explanation": "Sentinel Key đóng vai trò là cờ hiệu phiên bản. Khi cấu hình có sự thay đổi, lập trình viên cập nhật giá trị của Sentinel Key. Ứng dụng client chỉ cần định kỳ thăm dò khóa này; nếu giá trị thay đổi thì mới kích hoạt reload toàn bộ cấu hình một cách đồng bộ và nguyên tử."
+},
+  {
+  "id": "q68",
+  "question": "Làm thế nào Azure App Configuration lưu trữ và xử lý một tham chiếu đến bí mật trong Azure Key Vault (Key Vault Reference)?",
+  "options": [
+    "Lưu giá trị JSON chứa Secret Identifier URI kèm Content-Type quy chuẩn và SDK tự động phân giải lấy giá trị thật qua Managed Identity.",
+    "Sao chép bản rõ của bí mật từ Key Vault sang App Configuration mỗi giờ một lần.",
+    "Tạo một SSH Tunnel bảo mật giữa máy chủ App Configuration và máy chủ Key Vault.",
+    "Lưu hash SHA-256 của bí mật vào App Configuration để so sánh đối chiếu."
+  ],
+  "correctIndex": 0,
+  "explanation": "App Configuration lưu trữ Secret Identifier URI (`https://<vault>.vault.azure.net/secrets/<name>`) với định dạng MIME `vnd.microsoft.appconfig.keyvaultref+json`. Khi ứng dụng nạp cấu hình với `AzureAppConfigurationKeyVaultOptions`, SDK sẽ dùng Entra ID credential để tự động truy vấn giá trị bí mật từ Key Vault."
+},
+  {
+  "id": "q69",
+  "question": "Tại sao Microsoft khuyến nghị bật cờ `--enable-rbac-authorization true` khi khởi tạo Azure Key Vault thay vì dùng Vault Access Policies cổ điển?",
+  "options": [
+    "Cung cấp mô hình quản trị quyền thống nhất của Azure Entra ID, cho phép phân quyền chi tiết tới từng Secret riêng lẻ và hỗ trợ Privileged Identity Management (PIM).",
+    "Tự động miễn phí toàn bộ chi phí lưu trữ và request truy vấn Key Vault.",
+    "Tăng tốc độ truy vấn bí mật lên gấp 10 lần nhờ cơ chế phần cứng chuyên dụng.",
+    "Cho phép truy cập Key Vault công khai từ internet mà không cần mật khẩu hay chứng chỉ."
+  ],
+  "correctIndex": 0,
+  "explanation": "Azure RBAC cho Key Vault loại bỏ giới hạn 1024 access policy entries, đồng bộ hóa quyền truy cập qua Azure Role Assignments chuẩn, cho phép giới hạn phạm vi quyền trên cấp độ Resource Group hoặc từng Secret/Key/Certificate cụ thể và tích hợp với Entra ID PIM."
+},
+  {
+  "id": "q70",
+  "question": "Để một kỹ sư vận hành có thể thêm, sửa, xem và xóa bí mật (Secrets) trong một Azure Key Vault sử dụng RBAC mà không được phép can thiệp vào Khóa mã hóa (Keys) hay Chứng chỉ (Certificates), vai trò nào là phù hợp nhất?",
+  "options": [
+    "Key Vault Secrets Officer",
+    "Contributor",
+    "Owner",
+    "Key Vault Administrator"
+  ],
+  "correctIndex": 0,
+  "explanation": "Vai trò `Key Vault Secrets Officer` cấp toàn quyền CRUD đối với Secrets trong Key Vault. Khác với `Key Vault Administrator` (quản trị toàn bộ Keys, Secrets, Certificates), vai trò này tuân thủ nguyên tắc đặc quyền tối thiểu (Least Privilege)."
+},
+  {
+  "id": "q71",
+  "question": "Một ứng dụng web AI chạy trên Azure App Service sử dụng Managed Identity chỉ cần đọc các bí mật cấu hình lúc runtime. Bạn nên gán vai trò RBAC nào cho Managed Identity của ứng dụng?",
+  "options": [
+    "Key Vault Secrets User",
+    "Key Vault Secrets Officer",
+    "Key Vault Reader",
+    "Key Vault Crypto User"
+  ],
+  "correctIndex": 0,
+  "explanation": "`Key Vault Secrets User` chỉ cấp quyền đọc nội dung bí mật (`Microsoft.KeyVault/vaults/secrets/getSecret/action`), tuân thủ chặt chẽ nguyên tắc Least Privilege cho ứng dụng lúc runtime."
+},
+  {
+  "id": "q72",
+  "question": "Khi xóa một Azure Key Vault, hành vi mặc định nào sau đây sẽ diễn ra nhờ tính năng Soft-Delete?",
+  "options": [
+    "Key Vault chuyển sang trạng thái đã xóa tạm thời (soft-deleted) và được lưu giữ trong 90 ngày, có thể khôi phục lại bằng lệnh `az keyvault recover`.",
+    "Key Vault và toàn bộ bí mật bị tiêu hủy vĩnh viễn ngay lập tức không thể phục hồi.",
+    "Key Vault được tự động chuyển sang một Azure Storage Account lưu trữ dạng cold archive.",
+    "Key Vault bị khóa tạm thời 24 giờ rồi tự động hoạt động trở lại."
+  ],
+  "correctIndex": 0,
+  "explanation": "Mặc định tất cả Key Vault mới tạo đều bật Soft-Delete với thời gian lưu giữ là 90 ngày. Người quản trị có thể xem các kho đã xóa bằng `az keyvault show-deleted` và phục hồi lại bằng `az keyvault recover`."
+},
+  {
+  "id": "q73",
+  "question": "Sự khác biệt quan trọng giữa việc tham chiếu Secret qua URI không có phiên bản (`https://.../secrets/mysecret`) và URI có phiên bản (`https://.../secrets/mysecret/43c...`) là gì?",
+  "options": [
+    "URI không có version luôn tự động trỏ tới phiên bản mới nhất của bí mật, trong khi URI có version cố định ứng dụng vào một phiên bản bất biến cụ thể.",
+    "URI có version miễn phí cước truy vấn, trong khi URI không có version tính phí theo số lần request.",
+    "URI không có version chỉ dùng được trong mạng nội bộ Virtual Network.",
+    "URI có version cho phép sửa đổi nội dung bí mật, còn URI không có version là chỉ đọc."
+  ],
+  "correctIndex": 0,
+  "explanation": "Khi cấu hình URI không gắn version GUID, mỗi khi ứng dụng truy vấn hoặc reload, Key Vault sẽ trả về phiên bản đang kích hoạt mới nhất, rất thuận tiện cho quá trình xoay vòng khóa tự động (secret rotation)."
+},
+  {
+  "id": "q74",
+  "question": "Trong thư viện `azure-keyvault-secrets` của Python, phương thức nào giúp liệt kê metadata của tất cả bí mật (tên, ngày tạo, trạng thái kích hoạt) mà KHÔNG làm lộ giá trị bí mật?",
+  "options": [
+    "client.list_properties_of_secrets()",
+    "client.get_secret()",
+    "client.list_secrets()",
+    "client.read_all_values()"
+  ],
+  "correctIndex": 0,
+  "explanation": "`client.list_properties_of_secrets()` trả về iterator các đối tượng `SecretProperties` chứa metadata (name, enabled, created_on, content_type) mà không tải giá trị thực tế của bí mật, tuân thủ nguyên tắc an toàn thông tin."
+},
+  {
+  "id": "q75",
+  "question": "Tại sao các ứng dụng backend AI tải cao nên triển khai cơ chế In-Memory Caching (với TTL ví dụ 30-300 giây) cho các bí mật lấy từ Azure Key Vault?",
+  "options": [
+    "Tránh kích hoạt giới hạn điều tiết dịch vụ (HTTP 429 Too Many Requests Throttling) của Key Vault và giảm độ trễ mạng cho mỗi request của người dùng.",
+    "Key Vault bắt buộc client phải xóa kết nối sau mỗi 10 lần gọi API.",
+    "Bộ nhớ RAM trên máy chủ tự động mã hóa bí mật với chuẩn AES-256.",
+    "Để ngăn ngừa việc Key Vault tự động xóa các bí mật không được truy vấn thường xuyên."
+  ],
+  "correctIndex": 0,
+  "explanation": "Azure Key Vault áp dụng giới hạn số lượng giao dịch trên mỗi khoảng thời gian (service limits/throttling). Việc cache tạm thời trong bộ nhớ ứng dụng giúp giảm tải số cuộc gọi mạng, tăng tốc độ xử lý và loại trừ hoàn toàn nguy cơ lỗi 429 Throttling."
+},
+  {
+  "id": "q76",
+  "question": "Để phân quyền cho nhóm DevOps có quyền quản lý toàn bộ cấu hình, Feature Flags và các Key Vault references trong Azure App Configuration mà không cần chia sẻ Connection String, vai trò Entra ID RBAC nào cần được gán?",
+  "options": [
+    "App Configuration Data Owner",
+    "Key Vault Administrator",
+    "Reader",
+    "Security Admin"
+  ],
+  "correctIndex": 0,
+  "explanation": "`App Configuration Data Owner` là vai trò RBAC dữ liệu cao nhất cho Azure App Configuration, cho phép quản lý toàn diện key-values, import/export và thiết lập dynamic refresh."
+},
+  {
+  "id": "q77",
+  "question": "Trong Python SDK `azure-appconfiguration-provider`, câu lệnh `provider.refresh()` hoạt động như thế nào khi được gọi định kỳ?",
+  "options": [
+    "Kiểm tra xem khoảng thời gian refresh_interval đã trôi qua chưa; nếu đã qua và giá trị Sentinel Key thay đổi, nó sẽ tải lại cấu hình và trả về True.",
+    "Luôn luôn bắt buộc ứng dụng khởi động lại tiến trình Python từ đầu.",
+    "Xóa sạch toàn bộ cấu hình trong bộ nhớ và tạm dừng ứng dụng cho đến khi người dùng nạp lại file .env.",
+    "Gửi tín hiệu restart đến tất cả các Pods trong Kubernetes cluster."
+  ],
+  "correctIndex": 0,
+  "explanation": "`provider.refresh()` thực hiện kiểm tra nhẹ (lightweight check) dựa trên khoảng thời gian `refresh_interval`. Nếu chưa đến hạn, phương thức lập tức trả về `False` mà không tốn request mạng. Nếu đã đến hạn và Sentinel Key thay đổi, SDK nạp lại cấu hình mới một cách trơn tru mà không làm gián đoạn ứng dụng."
+},
+  {
+  "id": "q78",
+  "question": "Khi bạn chạy lệnh xóa một Key Vault (`az keyvault delete`), sau đó muốn tạo lại ngay một Key Vault mới cùng tên nhưng bị báo lỗi tên đã tồn tại trong trạng thái đã xóa, lệnh nào cần thực hiện tiếp theo (với điều kiện vault không bật purge protection)?",
+  "options": [
+    "az keyvault purge --name <VaultName>",
+    "az keyvault recover --name <VaultName>",
+    "az keyvault force-delete --name <VaultName>",
+    "az keyvault clean --name <VaultName>"
+  ],
+  "correctIndex": 0,
+  "explanation": "Lệnh `az keyvault purge --name <VaultName>` sẽ xóa vĩnh viễn Key Vault khỏi danh sách soft-deleted vaults, giải phóng hoàn toàn tên miền DNS toàn cầu để có thể tái sử dụng ngay lập tức."
+}
 ];
-
-

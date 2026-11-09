@@ -750,5 +750,541 @@ SELECT * FROM c WHERE ARRAY_CONTAINS(c.metadata.tags, 'nosql') # 10 - 20+ RU (Fa
         note: "Trả về: [{\"path\": \"/embedding\", \"type\": \"quantizedFlat\"}]."
       }
     ]
+  },
+  {
+    id: "level-9-postgresql",
+    title: "🐘 Level 9: Azure Database for PostgreSQL Flexible Server & pgvector",
+    badge: "Level 9: PostgreSQL",
+    summary: "Cẩm nang toàn diện triển khai máy chủ PostgreSQL Flexible Server, cấu hình tiện ích pgvector, xác thực Microsoft Entra ID không mật khẩu, tinh chỉnh chỉ mục HNSW vs IVFFlat và quản lý bộ nhớ AI Agent.",
+    items: [
+      {
+        title: "1. Đăng ký Resource Provider Microsoft.DBforPostgreSQL",
+        desc: "Kích hoạt quyền tạo tài nguyên PostgreSQL trên subscription:",
+        code: "az provider register --namespace Microsoft.DBforPostgreSQL",
+        note: "Tránh lỗi ProviderNotRegistered khi chạy lệnh tạo Flexible Server."
+      },
+      {
+        title: "2. Tạo PostgreSQL Flexible Server với Entra Authentication",
+        desc: "Khởi tạo máy chủ với SKU Burstable B1ms, PostgreSQL 16 và bật xác thực kép:",
+        code: `az postgres flexible-server create \\
+  --resource-group $env:RG \\
+  --name $env:PG_SERVER \\
+  --location $env:LOCATION \\
+  --sku-name Standard_B1ms \\
+  --tier Burstable \\
+  --storage-size 32 \\
+  --version 16 \\
+  --public-access Enabled \\
+  --microsoft-entra-auth Enabled \\
+  --password-auth Enabled \\
+  --admin-user pgadmin \\
+  --admin-password $env:ADMIN_PASSWORD \\
+  --yes`,
+        note: "Khởi tạo ban đầu với password-auth Enabled để hoàn tất bootstrap, sau đó cấu hình Entra Admin và vô hiệu hóa mật khẩu tĩnh."
+      },
+      {
+        title: "3. Cấu hình Microsoft Entra Administrator (User / Managed Identity)",
+        desc: "Gán quyền quản trị viên cấp cao Entra ID cho tài khoản hiện tại:",
+        code: `az postgres flexible-server microsoft-entra-admin create \\
+  --resource-group $env:RG \\
+  --server-name $env:PG_SERVER \\
+  --display-name $env:USER_UPN \\
+  --object-id $env:USER_OBJECT_ID \\
+  --type User`,
+        note: "Tài khoản Entra Admin có quyền tương đương superuser trong PostgreSQL và đăng nhập qua token."
+      },
+      {
+        title: "4. Vô hiệu hóa Xác thực Mật khẩu (Zero-Trust Enforced)",
+        desc: "Khóa cổng đăng nhập bằng mật khẩu tĩnh, chỉ chấp nhận Entra ID Token:",
+        code: `az postgres flexible-server update \\
+  --resource-group $env:RG \\
+  --name $env:PG_SERVER \\
+  --microsoft-entra-auth Enabled \\
+  --password-auth Disabled \\
+  --yes`,
+        note: "💡 Điểm thi AI-200: Loại bỏ hoàn toàn nguy cơ lộ lọt credential trong code hoặc configuration."
+      },
+      {
+        title: "5. Tạo Firewall Rule Cho phép Kết nối Mạng (AllowAll / Client IP)",
+        desc: "Mở cổng 5432 cho kết nối từ máy trạm hoặc ứng dụng:",
+        code: `az postgres flexible-server firewall-rule create \\
+  --resource-group $env:RG \\
+  --server-name $env:PG_SERVER \\
+  --name AllowAll \\
+  --start-ip-address 0.0.0.0 \\
+  --end-ip-address 255.255.255.255`,
+        note: "Trong môi trường Production thực tế, chỉ cho phép dải IP cụ thể hoặc dùng Private Endpoint."
+      },
+      {
+        title: "6. Allow-list Tiện ích pgvector trong tham số azure.extensions",
+        desc: "Cấp phép tiện ích vector ở cấp độ máy chủ trước khi kích hoạt trong SQL:",
+        code: `az postgres flexible-server parameter set \\
+  --resource-group $env:RG \\
+  --server-name $env:PG_SERVER \\
+  --name azure.extensions \\
+  --value vector`,
+        note: "Bắt buộc thực hiện trước khi chạy 'CREATE EXTENSION vector;'. Máy chủ có thể cần khởi động lại để áp dụng."
+      },
+      {
+        title: "7. Lấy Access Token Entra ID cho PostgreSQL (--resource-type oss-rdbms)",
+        desc: "Trích xuất Bearer token ngắn hạn để đăng nhập psql hoặc ứng dụng Python:",
+        code: `$env:PGPASSWORD = az account get-access-token \\
+  --resource-type oss-rdbms \\
+  --query accessToken -o tsv`,
+        note: "Token có thời hạn khoảng 60 phút. Scope chuẩn: https://ossrdbms-aad.database.windows.net/.default."
+      },
+      {
+        title: "8. Tạo Cơ sở Dữ liệu Mới trên Flexible Server (agent_memory)",
+        desc: "Khởi tạo database độc lập dành riêng cho AI Agent:",
+        code: `az postgres flexible-server db create \\
+  --resource-group $env:RG \\
+  --server-name $env:PG_SERVER \\
+  --database-name agent_memory`,
+        note: "Database mới thừa hưởng toàn bộ thiết lập bảo mật và extension allow-list từ server."
+      },
+      {
+        title: "9. Kết nối bằng psql với Entra ID & SSL Mode Bắt buộc",
+        desc: "Chuỗi kết nối dòng lệnh chuẩn sử dụng biến môi trường:",
+        code: `psql "host=$env:DB_HOST port=5432 dbname=postgres user=$env:DB_USER sslmode=require"`,
+        note: "psql tự động sử dụng giá trị trong $env:PGPASSWORD làm mật khẩu xác thực."
+      },
+      {
+        title: "10. Bật Extension pgvector & Tạo Cột vector(n)",
+        desc: "Cú pháp SQL định nghĩa bảng với cột vector embedding:",
+        code: `CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE products (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
+    embedding vector(384) -- 384 dimensions
+);`,
+        note: "Kiểu vector(384) tương thích hoàn hảo với mô hình Sentence Transformers all-MiniLM-L6-v2."
+      },
+      {
+        title: "11. Tạo Chỉ mục HNSW & Tinh chỉnh hnsw.ef_search",
+        desc: "Chỉ mục đồ thị phân tầng cho hiệu năng tìm kiếm cao nhất:",
+        code: `-- 1. Tăng RAM bảo trì tạo index:
+SET maintenance_work_mem = '256MB';
+
+-- 2. Tạo chỉ mục HNSW (m=16 liên kết, ef_construction=64 ứng viên build):
+CREATE INDEX idx_products_embedding_hnsw
+ON products USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
+
+-- 3. Tinh chỉnh độ chính xác truy vấn (mặc định 40, tăng lên 100):
+SET hnsw.ef_search = 100;`,
+        note: "💡 Điểm thi AI-200: HNSW hỗ trợ cập nhật dữ liệu tăng dần mà không cần REINDEX, truy vấn < 5ms."
+      },
+      {
+        title: "12. Tạo Chỉ mục IVFFlat & Tinh chỉnh ivfflat.probes",
+        desc: "Chỉ mục phân cụm Inverted File tiết kiệm bộ nhớ:",
+        code: `-- 1. Tạo chỉ mục IVFFlat (lists = rows / 1000):
+CREATE INDEX idx_products_embedding_ivfflat
+ON products USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+
+-- 2. Tinh chỉnh số cụm quét lúc truy vấn (mặc định 1):
+SET ivfflat.probes = 10;`,
+        note: "Chỉ nên tạo IVFFlat khi bảng đã có sẵn dữ liệu để thuật toán k-means phân cụm chính xác."
+      },
+      {
+        title: "13. Ba Toán tử Khoảng cách Vector trong pgvector",
+        desc: "Bảng tra cứu cú pháp và lớp toán tử tương ứng:",
+        code: `# 1. Cosine Distance: <=> (toán tử lớp: vector_cosine_ops)
+SELECT * FROM products ORDER BY embedding <=> $query_vector LIMIT 5;
+
+# 2. L2 Euclidean Distance: <-> (toán tử lớp: vector_l2_ops)
+SELECT * FROM products ORDER BY embedding <-> $query_vector LIMIT 5;
+
+# 3. Negative Inner Product: <#> (toán tử lớp: vector_ip_ops)
+SELECT * FROM products ORDER BY embedding <#> $query_vector LIMIT 5;`,
+        note: "Cosine Distance (<=>) là chuẩn mực cho tìm kiếm tương đồng văn bản vì không phụ thuộc độ dài vector."
+      },
+      {
+        title: "14. Chẩn đoán Kế hoạch Thực thi với EXPLAIN ANALYZE",
+        desc: "Kiểm tra chi tiết nút kế hoạch thực thi và thời gian chạy thực tế:",
+        code: `EXPLAIN ANALYZE
+SELECT id, name, embedding <=> (SELECT embedding FROM query_vectors) AS distance
+FROM products
+ORDER BY embedding <=> (SELECT embedding FROM query_vectors)
+LIMIT 10;`,
+        note: "Seq Scan: ~246ms (100k hàng) -> Index Scan (HNSW): ~3.2ms (cải thiện hơn 70 lần)."
+      },
+      {
+        title: "15. Hybrid Search: Kết hợp Chỉ mục B-tree với Vector Distance",
+        desc: "Lọc thuộc tính metadata trước khi xếp hạng tương đồng ngữ nghĩa:",
+        code: `CREATE INDEX idx_products_category_price ON products (category_id, price);
+
+EXPLAIN ANALYZE
+SELECT id, name, price, embedding <=> $query_vector AS distance
+FROM products
+WHERE category_id = 5 AND price BETWEEN 100 AND 200
+ORDER BY embedding <=> $query_vector
+LIMIT 10;`,
+        note: "Planner sử dụng Bitmap Index Scan từ B-tree để thu hẹp tập ứng viên rồi tính toán khoảng cách vector."
+      },
+      {
+        title: "16. AI Agent Memory: Lưu Checkpoint với Idempotent ON CONFLICT",
+        desc: "Cú pháp atomic upsert lưu vết trạng thái tác vụ của mô hình AI:",
+        code: `INSERT INTO task_checkpoints (conversation_id, task_name, status, checkpoint_data)
+VALUES (1, 'research_postgresql', 'in_progress', '{"step": 2, "sources": 3}'::jsonb)
+ON CONFLICT (conversation_id, task_name)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    checkpoint_data = EXCLUDED.checkpoint_data,
+    updated_at = CURRENT_TIMESTAMP
+RETURNING id, updated_at;`,
+        note: "Đảm bảo Agent có thể tiếp tục công việc ngay tại điểm dừng khi hệ thống khởi động lại."
+      }
+    ]
   }
+,
+  {
+    id: "level-10",
+    title: "Level 10: Azure Managed Redis & RediSearch Vector",
+    badge: "Level 10",
+    summary: "Cẩm nang toàn diện: Azure CLI az redisenterprise, bảo mật Microsoft Entra ID, Hash Caching, Pub/Sub thời gian thực, RediSearch HNSW Vector KNN và Hybrid Search.",
+    items: [
+      {
+        title: "1. Đăng ký Microsoft.Cache Resource Provider",
+        desc: "Kích hoạt nhà cung cấp dịch vụ Redis trên Azure Subscription:",
+        code: "az provider register --namespace Microsoft.Cache",
+        note: "Bắt buộc thực hiện trước khi tạo bất kỳ cụm Azure Managed Redis nào."
+      },
+      {
+        title: "2. Tạo Cluster Cấp Enterprise (Two-Phase Provisioning)",
+        desc: "Khởi tạo cụm cluster rỗng với cờ --no-database:",
+        code: `az redisenterprise create \
+  --resource-group $env:RG \
+  --name $env:REDIS_NAME \
+  --location eastus \
+  --sku Enterprise_E10 \
+  --no-database`,
+        note: "Enterprise tier tách biệt giai đoạn tạo cụm phần cứng (cluster) và cấu hình cơ sở dữ liệu (database)."
+      },
+      {
+        title: "3. Khởi tạo Database Mặc định với Cổng 10000 TLS",
+        desc: "Tạo database tên 'default' với chính sách EnterpriseCluster và Eviction:",
+        code: `az redisenterprise database create \
+  --resource-group $env:RG \
+  --cluster-name $env:REDIS_NAME \
+  --database-name default \
+  --client-protocol Encrypted \
+  --port 10000 \
+  --clustering-policy EnterpriseCluster \
+  --eviction-policy VolatileLRU`,
+        note: "AMR Enterprise bắt buộc client-protocol Encrypted (TLS) và sử dụng cổng 10000 thay vì 6379."
+      },
+      {
+        title: "4. Gán Quyền Microsoft Entra ID Không Dùng Mật Khẩu",
+        desc: "Cấp quyền cho Service Principal hoặc User Object ID truy cập Redis:",
+        code: `az redisenterprise database access-policy-assignment create \
+  --resource-group $env:RG \
+  --cluster-name $env:REDIS_NAME \
+  --database-name default \
+  --access-policy-name default \
+  --name entra-assignment \
+  --object-id $USER_OID`,
+        note: "Loại bỏ hoàn toàn rủi ro lộ lọt Access Keys tĩnh; tự động xác thực qua token OAuth Bearer."
+      },
+      {
+        title: "5. Lấy Hostname FQDN Để Kết Nối Ứng Dụng",
+        desc: "Trích xuất chuỗi kết nối sạch bằng -o tsv:",
+        code: `az redisenterprise show \
+  --resource-group $env:RG \
+  --name $env:REDIS_NAME \
+  --query hostName -o tsv`,
+        note: "FQDN có dạng: <name>.<region>.redisenterprise.cache.azure.net"
+      },
+      {
+        title: "6. Cập Nhật Chính Sách Eviction Khi Đầy RAM",
+        desc: "Thay đổi chính sách giải phóng bộ nhớ (ví dụ: AllKeysLRU):",
+        code: `az redisenterprise database update \
+  --resource-group $env:RG \
+  --cluster-name $env:REDIS_NAME \
+  --database-name default \
+  --eviction-policy AllKeysLRU`,
+        note: "AllKeysLRU phù hợp nhất cho kịch bản hệ thống thuần túy làm cache tầng trước DB."
+      },
+      {
+        title: "7. Xóa Toàn Bộ Dữ Liệu Cache Bằng Flush",
+        desc: "Dọn dẹp sạch sẽ toàn bộ keyspace mà không cần xóa database:",
+        code: `az redisenterprise database flush \
+  --resource-group $env:RG \
+  --cluster-name $env:REDIS_NAME \
+  --database-name default --yes`,
+        note: "Dùng cờ --yes để bỏ qua yêu cầu xác nhận dòng lệnh khi chạy tự động hóa CI/CD."
+      },
+      {
+        title: "8. Caching Dạng Hash & Thời Gian Sống (TTL)",
+        desc: "Lưu trữ đối tượng sản phẩm và thiết lập tự động hết hạn:",
+        code: `# Lưu trữ Hash sản phẩm:
+HSET product:101 name "Azure AI Studio" price 49.99
+
+# Đọc toàn bộ hoặc đọc từng trường (Projection):
+HGETALL product:101
+HMGET product:101 name price
+
+# Thiết lập TTL 3600 giây (1 giờ):
+EXPIRE product:101 3600
+TTL product:101`,
+        note: "Dùng UNLINK thay vì DEL khi xóa khóa lớn để tránh làm đơ luồng xử lý chính của Redis."
+      },
+      {
+        title: "9. Real-Time Pub/Sub & Pattern Matching",
+        desc: "Phát tán thông điệp và lắng nghe theo ký tự đại diện wildcard (*):",
+        code: `# Phát sự kiện:
+PUBLISH orders:europe '{"order_id": 9901, "status": "paid"}'
+
+# Lắng nghe đa kênh:
+PSUBSCRIBE orders:*`,
+        note: "Pub/Sub là cơ chế At-most-once (Fire-and-Forget), cực nhanh cho thông báo trạng thái tức thời."
+      },
+      {
+        title: "10. RediSearch HNSW Vector Indexing & Raw Float32",
+        desc: "Cấu hình chỉ mục Vector Cosine trên tiền tố 'product:':",
+        code: `FT.CREATE idx:products ON HASH PREFIX 1 product: \
+SCHEMA name TEXT category TAG embedding VECTOR HNSW 6 \
+TYPE FLOAT32 DIM 8 DISTANCE_METRIC COSINE`,
+        note: "Trong Python, vector bắt buộc phải chuyển thành chuỗi byte: np.array(vec, dtype=np.float32).tobytes()."
+      },
+      {
+        title: "11. Truy Vấn KNN Vector Search với Dialect 2",
+        desc: "Tìm kiếm K phần tử lân cận có khoảng cách Cosine nhỏ nhất:",
+        code: `FT.SEARCH idx:products "*=>[KNN 3 @embedding $query_vec AS score]" \
+PARAMS 2 query_vec <binary_bytes> SORTBY score DIALECT 2`,
+        note: "Bắt buộc sử dụng DIALECT 2 để hỗ trợ cú pháp Vector Search và ánh xạ tham số PARAMS."
+      },
+      {
+        title: "12. Hybrid Search (Metadata Tag Filter + Vector KNN)",
+        desc: "Lọc thuộc tính trước (Pre-filtering) rồi mới tính khoảng cách vector:",
+        code: `FT.SEARCH idx:products "(@category:{Cloud})=>[KNN 3 @embedding $query_vec AS score]" \
+PARAMS 2 query_vec <binary_bytes> SORTBY score DIALECT 2`,
+        note: "Pre-filtering thu hẹp không gian tìm kiếm đồ thị HNSW, mang lại độ trễ dưới 1 mili-giây."
+      }
+    ]
+  }
+,
+  {
+    id: "level-11",
+    title: "Level 11: Backend Services Integration (Service Bus, Event Grid & Functions)",
+    badge: "Level 11",
+    summary: "Cẩm nang toàn diện: Azure Service Bus Queues/Topics/SQL Filters, Event Grid Namespaces CloudEvents Pull Delivery, Durable Functions Fan-out & HITL, và Azure Functions MCP Server.",
+    items: [
+      {
+        title: "1. Đăng ký Providers: Microsoft.ServiceBus & Microsoft.EventGrid",
+        desc: "Kích hoạt dịch vụ Message Queues và Event Broker trên subscription:",
+        code: `az provider register --namespace Microsoft.ServiceBus
+az provider register --namespace Microsoft.EventGrid`,
+        note: "Bắt buộc thực hiện trước khi tạo bất kỳ hàng đợi hoặc chủ đề sự kiện nào."
+      },
+      {
+        title: "2. Tạo Service Bus Namespace Standard & Queue với DLQ",
+        desc: "Cấp phát hàng đợi tin nhắn với số lần retry tối đa 5 và bật Dead-Lettering khi quá hạn:",
+        code: `az servicebus namespace create \
+  --resource-group $env:RG \
+  --name $env:SB_NAMESPACE \
+  --location eastus \
+  --sku Standard
+
+az servicebus queue create \
+  --resource-group $env:RG \
+  --namespace-name $env:SB_NAMESPACE \
+  --name inference-requests \
+  --max-delivery-count 5 \
+  --enable-dead-lettering-on-message-expiration true`,
+        note: "Queue với cơ chế Peek-Lock đảm bảo không bị mất prompt suy luận khi worker AI gặp sự cố."
+      },
+      {
+        title: "3. Topic Pub/Sub & Bộ Lọc SQL (priority = 'high')",
+        desc: "Tạo Topic, Subscription và quy tắc lọc thuộc tính metadata:",
+        code: `# 1. Tạo Topic & Subscription:
+az servicebus topic create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-results
+az servicebus topic subscription create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --name high-priority
+
+# 2. Xóa quy tắc $Default và gán SQL Filter:
+az servicebus topic subscription rule delete --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name "$Default"
+az servicebus topic subscription rule create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name high-priority-filter --filter-sql-expression "priority = 'high'"`,
+        note: "Xóa $Default là bắt buộc để subscription không nhận toàn bộ tin nhắn mà chỉ nhận tin khớp điều kiện SQL."
+      },
+      {
+        title: "4. Phân Quyền Data Plane Cho Service Bus",
+        desc: "Gán quyền Azure Service Bus Data Owner cho người dùng qua Entra ID:",
+        code: `az role assignment create \
+  --assignee $env:USER_OID \
+  --scope $SB_ID \
+  --role "Azure Service Bus Data Owner"`,
+        note: "Loại bỏ hoàn toàn nhu cầu sử dụng Connection String Shared Access Key."
+      },
+      {
+        title: "5. Event Grid Namespace & Topic Chuẩn CloudEvents v1.0",
+        desc: "Khởi tạo Event Grid thế hệ mới với Schema CloudEvents và thời gian lưu đệm 1 ngày:",
+        code: `az eventgrid namespace create \
+  --resource-group $env:RG \
+  --name $env:EG_NAMESPACE \
+  --location eastus \
+  --sku "{name:standard,capacity:1}"
+
+az eventgrid namespace topic create \
+  --resource-group $env:RG \
+  --namespace-name $env:EG_NAMESPACE \
+  --name moderation-events \
+  --event-retention-in-days 1 \
+  --publisher-type Custom \
+  --input-schema CloudEventSchemaV1_0`,
+        note: "Event Grid Namespace chỉ hỗ trợ định dạng sự kiện tiêu chuẩn CloudEventSchemaV1_0."
+      },
+      {
+        title: "6. Event Subscription Chế Độ Queue Pull Delivery & Filter",
+        desc: "Cấu hình hàng đợi kéo tin và lọc theo loại sự kiện ContentFlagged:",
+        code: `az eventgrid namespace topic event-subscription create \
+  --resource-group $env:RG \
+  --namespace-name $env:EG_NAMESPACE \
+  --topic-name moderation-events \
+  --name sub-flagged \
+  --delivery-configuration "{deliveryMode:Queue,queue:{receiveLockDurationInSeconds:60,maxDeliveryCount:10,eventTimeToLive:P1D}}" \
+  --event-delivery-schema CloudEventSchemaV1_0 \
+  --filters-configuration "{includedEventTypes:['com.contoso.ai.ContentFlagged']}"`,
+        note: "Pull Delivery cho phép AI worker trong mạng nội bộ tự kéo sự kiện về mà không cần mở inbound webhook."
+      },
+      {
+        title: "7. Phân Quyền EventGrid Data Receiver",
+        desc: "Cấp quyền kéo sự kiện từ subscription cho tài khoản người dùng:",
+        code: `az role assignment create \
+  --assignee $env:USER_OID \
+  --scope $EG_TOPIC_ID \
+  --role "EventGrid Data Receiver"`,
+        note: "Tương ứng với quyền Data Sender để publish và Data Receiver để consume."
+      },
+      {
+        title: "8. Tạo Azure Function App Linux Host MCP Server",
+        desc: "Khởi tạo Function App chạy runtime Python 3.11 v4 trên Linux:",
+        code: `az functionapp create \
+  --resource-group $env:RG \
+  --consumption-plan-location eastus \
+  --runtime python \
+  --runtime-version 3.11 \
+  --functions-version 4 \
+  --name $env:FUNC_NAME \
+  --storage-account $env:STORAGE_ACCOUNT \
+  --os-type Linux`,
+        note: "Python Functions trên Azure bắt buộc sử dụng hệ điều hành Linux (--os-type Linux)."
+      },
+      {
+        title: "9. Trích Xuất FQDN Hostname Function App",
+        desc: "Lấy chuỗi tên miền sạch để làm endpoint cho MCP Client:",
+        code: `az functionapp show \
+  --resource-group $env:RG \
+  --name $env:FUNC_NAME \
+  --query defaultHostName -o tsv`,
+        note: "Endpoint SSE của MCP server: https://<hostname>/runtime/webhooks/mcp/sse"
+      },
+      {
+        title: "10. Durable Functions Fan-Out / Fan-In Cho Batch Documents",
+        desc: "Lên lịch sub-orchestrators song song và gom kết quả đồng thời:",
+        code: `# Fan-out:
+for doc in documents:
+    tasks.append(context.call_sub_orchestrator("document_orchestrator", doc))
+
+# Fan-in:
+results = yield context.task_all(tasks)`,
+        note: "Xử lý hàng trăm file embedding song song tự động co giãn serverless."
+      },
+      {
+        title: "11. Human-in-the-Loop: Đua External Event & Timer 30s",
+        desc: "Ngủ đông chờ quyết định duyệt hoặc timeout mà không block CPU:",
+        code: `approval = context.wait_for_external_event("ApprovalResponse")
+deadline = context.current_utc_datetime + timedelta(seconds=30)
+timeout = context.create_timer(deadline)
+
+winner = yield context.task_any([approval, timeout])`,
+        note: "Bắt buộc dùng context.current_utc_datetime thay vì datetime.now() để bảo toàn tính tất định."
+      },
+      {
+        title: "12. Azure Functions Model Context Protocol (mcpToolTrigger)",
+        desc: "Khai báo trigger MCP để công khai công cụ cho AI Assistants:",
+        code: `@app.generic_trigger(
+    arg_name="context",
+    type="mcpToolTrigger",
+    toolName="summarize_text",
+    description="Summarize a block of text",
+    toolProperties='[{"propertyName": "text", "propertyType": "string"}]'
+)
+def summarize_text(context: str) -> str:
+    # Trả về JSON có trường 'content'
+    return json.dumps({"content": "Summary text..."})`,
+        note: "Tương thích với VS Code .vscode/mcp.json, GitHub Copilot, Cursor và Claude Desktop."
+      }
+    ]
+  },
+  {
+  "id": "level-12",
+  "title": "Level 12: Azure Key Vault & App Configuration",
+  "badge": "Level 12",
+  "summary": "Quản lý bí mật bảo mật an toàn với Azure Key Vault RBAC Data Plane và cấu hình tập trung phân tầng (Label Stacking) trong Azure App Configuration kèm Sentinel Dynamic Refresh không cần restart ứng dụng.",
+  "items": [
+    {
+      "title": "1. Đăng ký Resource Providers cho App Config & Key Vault",
+      "desc": "Kích hoạt các dịch vụ App Configuration và Key Vault trên Azure subscription trước khi khởi tạo tài nguyên.",
+      "code": "az provider register --namespace Microsoft.AppConfiguration\naz provider register --namespace Microsoft.KeyVault",
+      "note": "Kiểm tra tiến độ đăng ký bằng cờ: az provider show -n Microsoft.AppConfiguration --query registrationState."
+    },
+    {
+      "title": "2. Khởi tạo Key Vault với mô hình xác thực hiện đại Azure RBAC",
+      "desc": "Bật cờ --enable-rbac-authorization true để quản lý quyền truy cập dữ liệu bí mật qua Entra ID RBAC thay cho Vault Access Policies cổ điển.",
+      "code": "az keyvault create `\n  --resource-group $env:RG `\n  --name $env:KV_NAME `\n  --location eastus `\n  --enable-rbac-authorization true",
+      "note": "Khuyến nghị chuẩn AI-200: Hỗ trợ kiểm soát truy cập hạt mịn tới từng secret và tích hợp Entra ID PIM."
+    },
+    {
+      "title": "3. Phân quyền RBAC Data Plane cho Key Vault (Secrets Officer vs Secrets User)",
+      "desc": "Gán quyền Key Vault Secrets Officer cho kỹ sư vận hành/CI-CD và Key Vault Secrets User cho Managed Identity của ứng dụng runtime.",
+      "code": "# Gán cho kỹ sư/admin quản lý bí mật:\naz role assignment create `\n  --role \"Key Vault Secrets Officer\" `\n  --assignee $env:USER_OID `\n  --scope $KV_ID\n\n# Gán cho Managed Identity của Web App/Functions (chỉ đọc):\naz role assignment create `\n  --role \"Key Vault Secrets User\" `\n  --assignee $APP_PRINCIPAL_ID `\n  --scope $KV_ID",
+      "note": "Tuân thủ nguyên tắc Least Privilege (Đặc quyền tối thiểu) trong kiến trúc đám mây an toàn."
+    },
+    {
+      "title": "4. Lưu trữ Secret kèm Content-Type và Tags nhận diện",
+      "desc": "Lưu API Key hoặc chuỗi kết nối vào Key Vault, gắn nhãn content-type để client nhận diện và tags để phân loại môi trường.",
+      "code": "az keyvault secret set `\n  --vault-name $env:KV_NAME `\n  --name openai-api-key `\n  --value \"sk-proj-prod123456\" `\n  --content-type \"application/x-api-key\" `\n  --tags environment=production service=openai",
+      "note": "Mỗi lần chạy secret set, Key Vault tự động sinh ra một version GUID mới mà vẫn giữ nguyên tên secret."
+    },
+    {
+      "title": "5. Khởi tạo Azure App Configuration Store (SKU Standard)",
+      "desc": "Tạo kho cấu hình tập trung phân tán hỗ trợ Dynamic Refresh, snapshot và lưu giữ lịch sử cấu hình lên đến 30 ngày.",
+      "code": "az appconfig create `\n  --resource-group $env:RG `\n  --name $env:APPCONFIG_NAME `\n  --location eastus `\n  --sku Standard",
+      "note": "Gói Standard hỗ trợ SLA 99.9% và không giới hạn số lượng request cấu hình so với gói Free."
+    },
+    {
+      "title": "6. Phân quyền App Configuration Data Owner",
+      "desc": "Cấp quyền thao tác toàn diện trên các khóa cấu hình và Key Vault references cho quản trị viên cấu hình.",
+      "code": "az role assignment create `\n  --role \"App Configuration Data Owner\" `\n  --assignee $env:USER_OID `\n  --scope $APPCONFIG_ID",
+      "note": "Ứng dụng tiêu thụ lúc runtime chỉ cần vai trò App Configuration Data Reader."
+    },
+    {
+      "title": "7. Kỹ thuật Label Stacking: Khóa mặc định (\\0) và Khóa Production",
+      "desc": "Thiết lập khóa không nhãn làm fallback chung, sau đó xếp đè cấu hình gắn nhãn Production lên trên.",
+      "code": "# Thiết lập cấu hình mặc định (unlabeled):\naz appconfig kv set --name $env:APPCONFIG_NAME --key \"OpenAI:Endpoint\" --value \"https://my-openai.openai.azure.com/\" --yes\n\n# Thiết lập cấu hình ghi đè môi trường Production:\naz appconfig kv set --name $env:APPCONFIG_NAME --key \"Pipeline:BatchSize\" --value \"200\" --label \"Production\" --yes",
+      "note": "Trong Python SDK, sử dụng: SettingSelector(key_filter='*', label_filter='\\0') tiếp theo là label_filter='Production'."
+    },
+    {
+      "title": "8. Liên kết Key Vault Reference trong App Configuration",
+      "desc": "Tạo cấu hình trỏ thẳng tới Secret Identifier trong Key Vault. App Configuration SDK sẽ tự động phân giải qua DefaultAzureCredential.",
+      "code": "az appconfig kv set-keyvault `\n  --name $env:APPCONFIG_NAME `\n  --key \"OpenAI:ApiKey\" `\n  --secret-identifier $SECRET_URI `\n  --yes",
+      "note": "Ứng dụng chỉ cần đọc một endpoint App Config duy nhất mà vẫn lấy được toàn bộ cấu hình thường lẫn bí mật Key Vault."
+    },
+    {
+      "title": "9. Mô hình Sentinel Key kích hoạt Dynamic Refresh tức thì",
+      "desc": "Khởi tạo khóa canh gác Sentinel = 1. Khi có bất kỳ thay đổi cấu hình nào, ta tăng Sentinel lên 2 để kích hoạt client reload mà không cần restart.",
+      "code": "# Thiết lập Sentinel Key ban đầu:\naz appconfig kv set --name $env:APPCONFIG_NAME --key \"Sentinel\" --value \"1\" --yes\n\n# Khi cập nhật cấu hình mới trong tương lai, chỉ cần tăng giá trị:\naz appconfig kv set --name $env:APPCONFIG_NAME --key \"Sentinel\" --value \"2\" --yes",
+      "note": "Tiết kiệm 99% request kiểm tra cấu hình và đảm bảo tính nguyên tử (atomic refresh) trên toàn hệ thống."
+    },
+    {
+      "title": "10. Khôi phục (Recover) và Xóa vĩnh viễn (Purge) Key Vault",
+      "desc": "Key Vault mặc định bật Soft-Delete (90 ngày). Sử dụng lệnh recover để khôi phục hoặc purge để giải phóng tên DNS toàn cầu.",
+      "code": "# Khôi phục kho đã xóa tạm thời:\naz keyvault recover --name $env:KV_NAME\n\n# Xóa vĩnh viễn kho đã soft-delete (nếu không bật purge protection):\naz keyvault purge --name $env:KV_NAME --no-wait",
+      "note": "Trong môi trường Production, luôn bật Purge Protection để chống tấn công Ransomware xóa sổ dữ liệu."
+    }
+  ]
+}
 ];

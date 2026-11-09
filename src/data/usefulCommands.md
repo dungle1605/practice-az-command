@@ -204,3 +204,91 @@
 | `az cosmosdb sql role assignment create --resource-group $env:RESOURCE_GROUP --account-name $env:COSMOS_ACCOUNT --role-definition-name "Cosmos DB Built-in Data Contributor" --principal-id $USER_ID --scope $COSMOS_ID` | Phân quyền Data Plane cho Cosmos DB NoSQL | Cho phép CRUD documents và truy vấn VectorDistance qua Entra ID |
 | `$COSMOS_ENDPOINT = az cosmosdb show --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --query documentEndpoint -o tsv` | Lấy Document Endpoint sạch | Cấu hình biến môi trường kết nối SDK Python |
 | `az cosmosdb delete --resource-group $env:RESOURCE_GROUP --name $env:COSMOS_ACCOUNT --yes` | Xóa tài khoản Cosmos DB tự động xác nhận | Dọn dẹp tài nguyên sau khi hoàn thành lab |
+
+---
+
+## Level 9: Azure Database for PostgreSQL Flexible Server & pgvector
+
+| Câu lệnh | Giải thích | Mục đích |
+|---|---|---|
+| `az provider register --namespace Microsoft.DBforPostgreSQL` | Đăng ký Resource Provider PostgreSQL | Kích hoạt quyền tạo PostgreSQL Flexible Server trên subscription |
+| `az postgres flexible-server create --resource-group $env:RG --name $env:PG_SERVER --location $env:LOCATION --sku-name Standard_B1ms --tier Burstable --storage-size 32 --version 16 --public-access Enabled --microsoft-entra-auth Enabled --password-auth Enabled --admin-user pgadmin --admin-password $env:ADMIN_PASSWORD --yes` | Tạo máy chủ PostgreSQL Flexible Server | Cấp phát server phiên bản 16, SKU Burstable B1ms, bật xác thực kép |
+| `az postgres flexible-server show --resource-group $env:RG --name $env:PG_SERVER --query properties.state -o tsv` | Kiểm tra trạng thái máy chủ (State) qua JMESPath | Xác nhận server đã sẵn sàng nhận kết nối (Ready) |
+| `az postgres flexible-server microsoft-entra-admin create --resource-group $env:RG --server-name $env:PG_SERVER --display-name $env:USER_UPN --object-id $env:USER_OBJECT_ID --type User` | Gán quản trị viên Microsoft Entra ID | Thiết lập quyền superuser cho tài khoản Entra ID |
+| `az postgres flexible-server microsoft-entra-admin list --resource-group $env:RG --server-name $env:PG_SERVER -o table` | Liệt kê các quản trị viên Microsoft Entra | Xác thực danh sách admin định danh trên máy chủ |
+| `az postgres flexible-server update --resource-group $env:RG --name $env:PG_SERVER --microsoft-entra-auth Enabled --password-auth Disabled --yes` | Vô hiệu hóa xác thực mật khẩu tĩnh (Zero-Trust) | Chỉ cho phép kết nối bằng token Entra ID ngắn hạn |
+| `az postgres flexible-server firewall-rule create --resource-group $env:RG --server-name $env:PG_SERVER --name AllowAll --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255` | Tạo quy tắc tường lửa Firewall Rule | Mở cổng kết nối 5432 cho môi trường lab / máy trạm |
+| `az postgres flexible-server firewall-rule list --resource-group $env:RG --server-name $env:PG_SERVER -o table` | Liệt kê các quy tắc tường lửa đang hoạt động | Kiểm tra các dải IP được phép kết nối |
+| `az postgres flexible-server parameter set --resource-group $env:RG --server-name $env:PG_SERVER --name azure.extensions --value vector` | Cấp phép extension pgvector (azure.extensions) | Bắt buộc để có thể chạy 'CREATE EXTENSION vector;' |
+| `az postgres flexible-server parameter show --resource-group $env:RG --server-name $env:PG_SERVER --name azure.extensions --query value -o tsv` | Kiểm tra giá trị tham số azure.extensions | Xác nhận tiện ích 'vector' đã được đưa vào allow-list |
+| `az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv` | Lấy Bearer Token từ Microsoft Entra ID | Sử dụng làm mật khẩu kết nối cơ sở dữ liệu (PGPASSWORD) |
+| `az postgres flexible-server db create --resource-group $env:RG --server-name $env:PG_SERVER --database-name agent_memory` | Tạo Database mới (agent_memory) | Lưu trữ lịch sử hội thoại và checkpoint của AI Agent |
+| `az postgres flexible-server db list --resource-group $env:RG --server-name $env:PG_SERVER -o table` | Liệt kê danh sách database trên server | Kiểm tra các cơ sở dữ liệu đã tạo |
+| `az postgres flexible-server restart --resource-group $env:RG --name $env:PG_SERVER` | Khởi động lại máy chủ Flexible Server | Áp dụng triệt để các tham số hệ thống vừa cấu hình |
+| `az postgres flexible-server delete --resource-group $env:RG --name $env:PG_SERVER --yes` | Xóa máy chủ PostgreSQL Flexible Server | Giải phóng tài nguyên cloud sau khi hoàn thành |
+
+---
+
+## Level 10: Azure Managed Redis & RediSearch Vector
+
+| Câu lệnh | Giải thích | Mục đích |
+|---|---|---|
+| `az provider register --namespace Microsoft.Cache` | Đăng ký Resource Provider Microsoft.Cache | Kích hoạt dịch vụ Azure Managed Redis trên subscription |
+| `az redisenterprise create --resource-group $env:RG --name $env:REDIS_NAME --location eastus --sku Enterprise_E10 --no-database` | Tạo Azure Managed Redis Enterprise Cluster | Cấp phát cụm Enterprise E10 với cờ --no-database (quy trình 2 bước) |
+| `az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query provisioningState -o tsv` | Kiểm tra trạng thái cấp phát của Cluster | Xác nhận trạng thái Succeeded |
+| `az redisenterprise database create --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --client-protocol Encrypted --port 10000 --clustering-policy EnterpriseCluster --eviction-policy VolatileLRU` | Khởi tạo Cơ sở dữ liệu mặc định (default) | Cấu hình cổng 10000 TLS, EnterpriseCluster và VolatileLRU |
+| `az redisenterprise database show --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --query provisioningState -o tsv` | Kiểm tra trạng thái cấp phát của Database | Đảm bảo database đã hoàn tất cấu hình và sẵn sàng |
+| `az redisenterprise database access-policy-assignment create --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --access-policy-name default --name entra-assignment --object-id $env:USER_OID` | Gán quyền truy cập Microsoft Entra ID | Phân quyền xác thực không dùng mật khẩu cho User/Principal OID |
+| `az redisenterprise database access-policy-assignment show --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --name entra-assignment --query provisioningState -o tsv` | Xác minh trạng thái của Access Policy Assignment | Đảm bảo chính sách phân quyền đã có hiệu lực |
+| `az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query hostName -o tsv` | Trích xuất FQDN Hostname của cụm Redis | Lấy địa chỉ FQDN sạch để cấu hình biến môi trường ứng dụng |
+| `az redisenterprise database access-policy-assignment list --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default -o table` | Liệt kê toàn bộ các phân quyền Entra ID | Kiểm tra danh sách người dùng và ứng dụng được phép truy cập |
+| `az redisenterprise database update --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --eviction-policy AllKeysLRU` | Cập nhật chính sách Eviction thành AllKeysLRU | Tối ưu hóa cho hệ thống cache thuần túy đệm trước Database |
+| `az redisenterprise database flush --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --yes` | Xóa sạch toàn bộ dữ liệu cache trong Database | Dọn dẹp nhanh keyspace mà không cần xóa database |
+| `az redisenterprise database force-unlink --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --unlink-ids 1 --yes` | Cưỡng chế ngắt liên kết replication bị cô lập | Khôi phục trạng thái ổn định khi gặp sự cố phân mảnh nút |
+| `az redisenterprise show --resource-group $env:RG --name $env:REDIS_NAME --query "{sku:sku.name, host:hostName, status:provisioningState, redisVersion:redisVersion}" -o json` | Multi-hash Projection trích xuất tóm tắt thông số | Tái cấu trúc JSON phản hồi thành thông tin cô đọng |
+| `az redisenterprise database delete --resource-group $env:RG --cluster-name $env:REDIS_NAME --database-name default --yes` | Xóa Cơ sở dữ liệu mặc định | Dọn dẹp database trước khi hủy cụm phần cứng |
+| `az redisenterprise delete --resource-group $env:RG --name $env:REDIS_NAME --yes` | Xóa Cụm Azure Managed Redis Cluster | Giải phóng hoàn toàn chi phí tài nguyên cloud |
+
+---
+
+## Level 11: Backend Services Integration (Service Bus, Event Grid & Functions)
+
+| Câu lệnh | Giải thích | Mục đích |
+|---|---|---|
+| `az provider register --namespace Microsoft.ServiceBus` | Đăng ký Resource Provider Microsoft.ServiceBus | Kích hoạt dịch vụ Message Queues & Topics trên subscription |
+| `az provider register --namespace Microsoft.EventGrid` | Đăng ký Resource Provider Microsoft.EventGrid | Kích hoạt hệ thống định tuyến sự kiện phản ứng trên subscription |
+| `az servicebus namespace create --resource-group $env:RG --name $env:SB_NAMESPACE --location eastus --sku Standard` | Tạo Service Bus Namespace gói Standard | Cung cấp tài nguyên Enterprise cho Queues, Topics & Subscriptions |
+| `az servicebus queue create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-requests --max-delivery-count 5 --enable-dead-lettering-on-message-expiration true` | Tạo Hàng đợi Queue với DLQ | Xử lý yêu cầu suy luận AI, cô lập poison message vào Dead-Letter |
+| `az servicebus topic create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --name inference-results` | Tạo Topic phát tán kết quả suy luận | Phân phối kết quả 1-nhiều tới nhiều hệ thống backend cùng lúc |
+| `az servicebus topic subscription create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --name high-priority` | Tạo Subscription nhận tin ưu tiên cao | Đăng ký nhận bản sao tin nhắn từ Topic |
+| `az servicebus topic subscription rule delete --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name "$Default"` | Xóa quy tắc lọc mặc định $Default | Ngăn subscription nhận toàn bộ tin nhắn để bộ lọc SQL có hiệu lực |
+| `az servicebus topic subscription rule create --resource-group $env:RG --namespace-name $env:SB_NAMESPACE --topic-name inference-results --subscription-name high-priority --name high-priority-filter --filter-sql-expression "priority = 'high'"` | Tạo bộ lọc SQL Filter theo thuộc tính metadata | Chỉ tiếp nhận các tin nhắn có priority='high' trong header |
+| `az role assignment create --assignee $env:USER_OID --scope $SB_ID --role "Azure Service Bus Data Owner"` | Phân quyền Data Plane Service Bus Data Owner | Gửi và nhận tin nhắn không cần Shared Access Key connection string |
+| `az eventgrid namespace create --resource-group $env:RG --name $env:EG_NAMESPACE --location eastus --sku "{name:standard,capacity:1}"` | Tạo Event Grid Namespace thế hệ mới | Cung cấp hạ tầng MQTT broker và Pull Delivery cho sự kiện |
+| `az eventgrid namespace topic create --resource-group $env:RG --namespace-name $env:EG_NAMESPACE --name moderation-events --event-retention-in-days 1 --publisher-type Custom --input-schema CloudEventSchemaV1_0` | Tạo Namespace Topic chuẩn CloudEvents v1.0 | Định dạng sự kiện CNCF chuẩn quốc tế với thời gian lưu đệm 1 ngày |
+| `az eventgrid namespace topic event-subscription create --resource-group $env:RG --namespace-name $env:EG_NAMESPACE --topic-name moderation-events --name sub-flagged --delivery-configuration "{deliveryMode:Queue,queue:{receiveLockDurationInSeconds:60,maxDeliveryCount:10,eventTimeToLive:P1D}}" --event-delivery-schema CloudEventSchemaV1_0 --filters-configuration "{includedEventTypes:['com.contoso.ai.ContentFlagged']}"` | Tạo Event Subscription chế độ Queue Pull Delivery & Filter | Cho phép worker trong mạng nội bộ kéo sự kiện kiểm duyệt bị gắn cờ |
+| `az role assignment create --assignee $env:USER_OID --scope $EG_TOPIC_ID --role "EventGrid Data Receiver"` | Phân quyền Data Plane EventGrid Data Receiver | Cấp quyền kéo sự kiện từ subscription cho tài khoản người dùng |
+| `az functionapp create --resource-group $env:RG --consumption-plan-location eastus --runtime python --runtime-version 3.11 --functions-version 4 --name $env:FUNC_NAME --storage-account $env:STORAGE_ACCOUNT --os-type Linux` | Tạo Azure Function App Linux host MCP Server | Chạy serverless compute cho các công cụ AI Model Context Protocol |
+| `az functionapp show --resource-group $env:RG --name $env:FUNC_NAME --query defaultHostName -o tsv` | Trích xuất FQDN Hostname Function App | Cung cấp endpoint SSE URL cho các AI Client (Copilot, Cursor) |
+
+---
+
+## Level 12: Azure Key Vault & App Configuration
+
+| Câu lệnh | Giải thích | Mục đích |
+|---|---|---|
+| `az provider register --namespace Microsoft.AppConfiguration` | Đăng ký Resource Provider Microsoft.AppConfiguration | Kích hoạt dịch vụ quản lý cấu hình tập trung phân tán |
+| `az provider register --namespace Microsoft.KeyVault` | Đăng ký Resource Provider Microsoft.KeyVault | Kích hoạt dịch vụ lưu trữ bí mật và khóa mã hóa |
+| `az keyvault create --resource-group $env:RG --name $env:KV_NAME --location eastus --enable-rbac-authorization true` | Khởi tạo Key Vault với mô hình xác thực RBAC | Quản lý kiểm soát truy cập dữ liệu qua Microsoft Entra ID RBAC |
+| `az role assignment create --role "Key Vault Secrets Officer" --assignee $env:USER_OID --scope $KV_ID` | Phân quyền vai trò Key Vault Secrets Officer | Toàn quyền CRUD trên secrets cho kỹ sư vận hành/CI-CD |
+| `az keyvault secret set --vault-name $env:KV_NAME --name openai-api-key --value "sk-proj-prod123456" --content-type "application/x-api-key"` | Lưu trữ khóa bí mật kèm định dạng Content-Type | Bảo vệ an toàn OpenAI API key với nhãn nhận dạng loại dữ liệu |
+| `az keyvault secret set --vault-name $env:KV_NAME --name cosmosdb-connection-string --value "AccountEndpoint=https://mycosmos.documents.azure.com:443/;AccountKey=abc123==" --content-type "application/x-connection-string"` | Lưu trữ chuỗi kết nối nhạy cảm của CSDL | Cách ly chuỗi kết nối khỏi mã nguồn và cấu hình bản rõ |
+| `az keyvault secret show --vault-name $env:KV_NAME --name openai-api-key --query id -o tsv` | Trích xuất URI Secret Identifier duy nhất | Lấy đường dẫn URI sạch để liên kết Key Vault Reference |
+| `az keyvault secret list-versions --vault-name $env:KV_NAME --name openai-api-key --query "[].{id:id, enabled:attributes.enabled}" -o table` | Liệt kê toàn bộ các phiên bản lịch sử của Secret | Kiểm toán xoay vòng khóa (key rotation) và trạng thái kích hoạt |
+| `az appconfig create --resource-group $env:RG --name $env:APPCONFIG_NAME --location eastus --sku Standard` | Khởi tạo Azure App Configuration SKU Standard | Cung cấp SLA 99.9% và hỗ trợ Dynamic Refresh không giới hạn |
+| `az role assignment create --role "App Configuration Data Owner" --assignee $env:USER_OID --scope $APPCONFIG_ID` | Phân quyền App Configuration Data Owner | Quản trị toàn diện key-values, nhãn và Key Vault references |
+| `az appconfig kv set --name $env:APPCONFIG_NAME --key "OpenAI:Endpoint" --value "https://my-openai.openai.azure.com/" --yes` | Thiết lập khóa cấu hình mặc định (không nhãn) | Cung cấp cấu hình fallback chung cho mọi môi trường |
+| `az appconfig kv set --name $env:APPCONFIG_NAME --key "Pipeline:BatchSize" --value "200" --label "Production" --yes` | Kỹ thuật Label Stacking: Ghi đè khóa cho Production | Tái sử dụng cấu hình cơ sở và chỉ ghi đè tham số môi trường Prod |
+| `az appconfig kv set-keyvault --name $env:APPCONFIG_NAME --key "OpenAI:ApiKey" --secret-identifier $SECRET_URI --yes` | Tạo liên kết Key Vault Reference | Tự động phân giải secret từ Key Vault qua App Config Provider |
+| `az appconfig kv set --name $env:APPCONFIG_NAME --key "Sentinel" --value "1" --yes` | Khởi tạo Sentinel Key cho Dynamic Refresh | Khóa canh gác kích hoạt nạp lại cấu hình tức thì không restart app |
+| `az keyvault purge --name $env:KV_NAME --no-wait` | Xóa vĩnh viễn Key Vault khỏi trạng thái Soft-Delete | Giải phóng hoàn toàn tên miền DNS *.vault.azure.net toàn cầu |
